@@ -191,16 +191,16 @@ const configSchema = `// -------------------------------------------------------
 
 // configHeader tops the file: what it is, who writes it, and what a hand
 // edit can and cannot expect.
-const configHeader = `// qm settings.
+const configHeader = `// folio settings.
 //
-// qm reads this file when it starts and rewrites it whenever a setting
+// folio reads this file when it starts and rewrites it whenever a setting
 // changes in the web UI. The schema below says what belongs in it, and
 // every read is checked against it, so a mistake is reported with the line
 // it is on rather than quietly ignored.
 //
 // Editing the values by hand is fine -- they are read back as they stand.
 // Comments you add below are not: a rewrite replaces everything under
-// "settings" with what the UI holds. The schema itself is written by qm.
+// "settings" with what the UI holds. The schema itself is written by folio.
 //
 // The Markdown preview's stylesheets are not in here; they are CSS, and
 // they live in the custom-css directory beside this file.
@@ -214,6 +214,14 @@ config: #Config & `
 // configFileName is the settings file inside the config directory.
 const configFileName = "config.cue"
 
+// configDirName is the app's directory inside the user's config
+// directory; legacyConfigDirName is what it was called before the tool was
+// named folio.
+const (
+	configDirName       = "folio"
+	legacyConfigDirName = "qm"
+)
+
 // defaultConfigFile returns the settings file in the user's config
 // directory, or "" when there is no config directory to put it in — in
 // which case the app runs with settings that last as long as it does.
@@ -222,7 +230,27 @@ func defaultConfigFile() string {
 	if err != nil {
 		return ""
 	}
-	return filepath.Join(dir, "qm", configFileName)
+	return configFileIn(dir)
+}
+
+// configFileIn returns the settings file under the config directory dir,
+// moving a legacy qm directory to its new name first. The whole directory
+// moves, not just config.cue, so the custom CSS and any not-yet-migrated
+// JSON files beside it come along. When the move fails, the legacy
+// directory is used where it is rather than starting over with defaults.
+func configFileIn(dir string) string {
+	current := filepath.Join(dir, configDirName)
+	legacy := filepath.Join(dir, legacyConfigDirName)
+	if _, err := os.Stat(current); os.IsNotExist(err) {
+		if st, err := os.Stat(legacy); err == nil && st.IsDir() {
+			if err := os.Rename(legacy, current); err != nil {
+				fmt.Fprintf(os.Stderr, "folio: could not move %s to %s (%v); reading the settings from the old place\n", legacy, current, err)
+				return filepath.Join(legacy, configFileName)
+			}
+			fmt.Fprintf(os.Stderr, "folio: settings moved from %s to %s\n", legacy, current)
+		}
+	}
+	return filepath.Join(current, configFileName)
 }
 
 // defaultConfig is what a fresh installation starts with: nothing opened,

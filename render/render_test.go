@@ -21,7 +21,7 @@ func fixture(t *testing.T) string {
 		"chapter2/index.qmd":  "---\ntitle: Chapter 2\norder: 2\n---\n# Two\n\n::: pol\nnur pol\n:::\n",
 		"chapter2/second.qmd": "---\ntitle: Second\norder: 1\n---\n# Second\n",
 		"extra/index.qmd":     "---\ntitle: Extra\norder: 3\n---\n# Extra\n",
-		"qm.yml": `title: Test
+		"folio.yml": `title: Test
 formats:
   web: {type: html}
   handout: {type: [docx, pdf]}
@@ -101,7 +101,7 @@ func TestBuildOptionsRejectsUnknownNames(t *testing.T) {
 
 func TestBuildOptionsWithoutConfigUsesDefaults(t *testing.T) {
 	root := fixture(t)
-	os.Remove(filepath.Join(root, "qm.yml"))
+	os.Remove(filepath.Join(root, "folio.yml"))
 	opts, err := BuildOptions(root, config.Request{}, false, false)
 	if err != nil {
 		t.Fatal(err)

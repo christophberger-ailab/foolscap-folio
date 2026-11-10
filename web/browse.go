@@ -25,7 +25,7 @@ type browseView struct {
 // browseEntry is one subfolder in the dialog.
 type browseEntry struct {
 	Name, Path string
-	// Folio marks a folder that has a qm.yml.
+	// Folio marks a folder that has a folio.yml (or a legacy qm.yml).
 	Folio bool
 	// Selected marks the folio opened last, so Open opens it again.
 	Selected bool
@@ -81,8 +81,7 @@ func subfolders(dir, selected string) ([]browseEntry, error) {
 		if fi, err := os.Stat(p); err != nil || !fi.IsDir() {
 			continue
 		}
-		_, err := os.Stat(filepath.Join(p, config.FileName))
-		out = append(out, browseEntry{Name: e.Name(), Path: p, Folio: err == nil, Selected: p == selected})
+		out = append(out, browseEntry{Name: e.Name(), Path: p, Folio: config.Find(p) != "", Selected: p == selected})
 	}
 	return out, nil
 }

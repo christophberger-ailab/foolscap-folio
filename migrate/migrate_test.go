@@ -166,21 +166,21 @@ func TestMigrate(t *testing.T) {
 
 func TestMigrateExistingAndDryRun(t *testing.T) {
 	root := oldProject(t)
-	write(t, root, "qm.yml", "title: old\n")
+	write(t, root, "folio.yml", "title: old\n")
 	if _, err := Run(root, Options{}); err == nil {
-		t.Fatal("overwrote qm.yml without --force")
+		t.Fatal("overwrote folio.yml without --force")
 	}
 	res, err := Run(root, Options{DryRun: true})
 	if err != nil || res.Written || res.YAML == "" {
 		t.Fatalf("dry run: %v %+v", err, res)
 	}
-	if b, _ := os.ReadFile(filepath.Join(root, "qm.yml")); string(b) != "title: old\n" {
-		t.Error("dry run changed qm.yml")
+	if b, _ := os.ReadFile(filepath.Join(root, "folio.yml")); string(b) != "title: old\n" {
+		t.Error("dry run changed folio.yml")
 	}
 	if _, err := Run(root, Options{Force: true}); err != nil {
 		t.Fatal(err)
 	}
-	if b, _ := os.ReadFile(filepath.Join(root, "qm.yml")); strings.Contains(string(b), "title: old") {
+	if b, _ := os.ReadFile(filepath.Join(root, "folio.yml")); strings.Contains(string(b), "title: old") {
 		t.Error("force did not overwrite")
 	}
 }

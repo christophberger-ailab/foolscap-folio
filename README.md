@@ -87,7 +87,7 @@ Positional arguments name topics and are added to `--topic`. `--topic`,
 `--format` and `--audience` take comma-separated lists; a name `folio.yml` does not
 define is an error. Without them every topic, format and audience the project
 offers is rendered, cut down to what each topic and format declares (see
-[`folio.yml`](#qmyml)).
+[`folio.yml`](#folioyml)).
 
 A **website** format covers all selected topics in one site, one site per
 selected audience. A **document** format (DOCX, PDF) is written per topic and
@@ -197,7 +197,7 @@ The tasks and the connections are stored in the settings file (below),
 readable by its owner alone since it holds the keys, and a stored key is never
 sent back to the browser.
 
-The top bar names the open project by the `title` in its qm.yml, or by its
+The top bar names the open project by the `title` in its folio.yml, or by its
 folder name. The Open button beside it shows a folder dialog that starts where
 the last project was opened from (the current directory the first time), marks
 the folders that are projects, offers the ten projects opened before, and takes
@@ -231,7 +231,9 @@ Everything the UI remembers between runs lives in one file,
 `<user config dir>/folio/config.cue`: the projects opened before, the render
 selection and last open page per project, which preview stylesheet is active,
 the copyediting setup, and the external editors' command lines. The stylesheets themselves stay beside it in
-`custom-css/`, being CSS rather than settings.
+`custom-css/`, being CSS rather than settings. A settings directory from
+before the rename, `<user config dir>/qm/`, is moved to `folio/` on the
+first start.
 
 The file is CUE because it carries its own schema. The definitions are written
 into it above the settings, so the file says what belongs in it and in what
@@ -267,7 +269,9 @@ renamed `*.migrated`; they are no longer read and can be deleted.
 ## folio.yml
 
 One file in the project root, `folio.yml`, configures everything: the output
-formats, the audiences, the topics. Unknown keys are errors. Maps keep the
+formats, the audiences, the topics. A project that still has the `qm.yml` of
+earlier versions is read from it until you rename it; when both are there,
+`folio.yml` wins. Unknown keys are errors. Maps keep the
 order they are written in, and that order is the order of the render matrix
 and of the web UI's panel.
 

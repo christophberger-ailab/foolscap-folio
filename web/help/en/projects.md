@@ -25,9 +25,9 @@ folio web --addr :9000       # listen elsewhere
 
 The top bar shows the open project's title, then `Open`, then `↻ Reload`.
 
-- The title is the `title` set in the project's `qm.yml`. Without one, it is the project's folder name. Hover over it to see the full path.
+- The title is the `title` set in the project's `folio.yml`. Without one, it is the project's folder name. Hover over it to see the full path.
 - `Open` shows a folder dialog. It starts in the folder you last opened a project from, with that project selected. The first time, it starts in the current directory.
-- Folders that are projects (they hold a `qm.yml`) are shown with 📘 and in bold.
+- Folders that are projects (they hold a `folio.yml`) are shown with 📘 and in bold.
 - Click a folder to select it. Double-click it, or press `Enter`, to go into it; on a project, that opens it. `↑` or `Backspace` goes up one folder.
 - The dialog's `Open` button opens the selected folder, or the folder shown if none is selected.
 - Type or paste a path into the field at the top and press `Enter` to go there.

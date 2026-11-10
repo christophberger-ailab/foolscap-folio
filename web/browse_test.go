@@ -17,7 +17,7 @@ func TestBrowseListsSubfolders(t *testing.T) {
 	for _, d := range []string{"alpha", "beta", ".hidden"} {
 		os.Mkdir(filepath.Join(dir, d), 0o755)
 	}
-	os.WriteFile(filepath.Join(dir, "beta", "qm.yml"), nil, 0o644)
+	os.WriteFile(filepath.Join(dir, "beta", "folio.yml"), nil, 0o644)
 	os.WriteFile(filepath.Join(dir, "file.txt"), nil, 0o644)
 
 	rec := get(t, srv, "/browse?dir="+url.QueryEscape(dir))

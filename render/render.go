@@ -7,7 +7,7 @@
 //	qm render --format handout         -> handouts only
 //	qm render --audience pol --clean   -> the Polizei variants, from scratch
 //
-// The matrix is the one qm.yml declares (see internal/config); every
+// The matrix is the one folio.yml declares (see internal/config); every
 // combination is built by qm itself, without Quarto or Pandoc (see
 // internal/build).
 package render
@@ -53,11 +53,11 @@ func Register(projectFlag *string) {
 		Name:  "render",
 		Short: "Render the project's topic/format/audience matrix",
 		Long: "Render every topic × format × audience combination the project " +
-			"declares in qm.yml, or the subset selected by the flags. Usage: " +
+			"declares in folio.yml, or the subset selected by the flags. Usage: " +
 			"qm render [<topic>...]. A website covers all selected topics at " +
 			"once; a document (DOCX, PDF) is written per topic and audience. " +
 			"Which formats and audiences a topic takes part in is declared " +
-			"under the topic in qm.yml, as `formats:` and `audiences:`.",
+			"under the topic in folio.yml, as `formats:` and `audiences:`.",
 		Flags: []string{"project", "topic", "format", "audience", "clean", "dry-run"},
 		Cmd:   cli.Guard(cmd),
 	})

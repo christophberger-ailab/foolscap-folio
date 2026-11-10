@@ -23,7 +23,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// testConfig is the fixture's qm.yml.
+// testConfig is the fixture's folio.yml.
 const testConfig = "formats:\n  pdf: {type: pdf}\n  docx: {type: docx}\naudiences: [std]\ntopics:\n  chapter2:\n"
 
 func fixture(t *testing.T) string {
@@ -36,7 +36,7 @@ func fixture(t *testing.T) string {
 		"chapter2/third.qmd":  "---\ntitle: Third\norder: 2\n---\n# Third\n",
 		"chapter2/loose.qmd":  "---\ntitle: Loose\n---\n# Loose\n",
 		"chapter2/broken.qmd": "---\ntitle: Broken\norder: 3\n---\n::: {.callout-note}\nunclosed\n",
-		"qm.yml":              testConfig,
+		"folio.yml":           testConfig,
 	}
 	for name, content := range files {
 		p := filepath.Join(root, name)
@@ -812,7 +812,7 @@ func TestMediaServesProjectImages(t *testing.T) {
 // for the rest of the project.
 func TestMediaServesImagesOnly(t *testing.T) {
 	srv, root := testServer(t)
-	for _, p := range []string{"index.qmd", "qm.yml"} {
+	for _, p := range []string{"index.qmd", "folio.yml"} {
 		want, err := os.ReadFile(filepath.Join(root, p))
 		if err != nil {
 			t.Fatal(err)
