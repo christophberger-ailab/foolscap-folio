@@ -1,10 +1,14 @@
 # folio — build and manage a Markdown documentation tree
 
-![`folio web`](./docs/images/folio_web.png)
+<p align="center">
+<img src="./docs/images/foolscapfolio.png">
+</p>
 
 `folio` turns a tree of Markdown pages (`.qmd` or `.md`, in the dialect Quarto
 projects use) into a website, Word documents and PDFs. It needs neither Quarto
 nor Pandoc: the Markdown is parsed, filtered and written by `folio` itself.
+
+![`folio web`](./docs/images/folio_web.png)
 
 - **One tree, many outputs.** The folder structure and the `order:` front
   matter of the pages decide the order and the nesting of every output. A
