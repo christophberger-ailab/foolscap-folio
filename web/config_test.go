@@ -14,6 +14,13 @@ func configTestServer(t *testing.T) (*server, string) {
 	t.Helper()
 	root := fixture(t)
 	prefs := filepath.Join(t.TempDir(), configFileName)
+	// The tests set up the editing tasks they need, so they start from a
+	// config without the shipped ones.
+	blank := defaultConfig()
+	blank.Copyedit.Prompts = nil
+	if err := saveConfigFile(prefs, blank); err != nil {
+		t.Fatal(err)
+	}
 	srv, err := newServer(prefs)
 	if err != nil {
 		t.Fatal(err)
