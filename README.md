@@ -115,6 +115,9 @@ folio web ../handbook        # serve that project instead
 folio web --addr :9000       # listen elsewhere
 ```
 
+To change the default address for good, set `web: {baseurl: "localhost", port: 8200}`
+in the settings file (`config.cue`); `--addr` still wins over it.
+
 The UI shows the project's page tree, reorders pages by drag and drop (which
 rewrites the `order:` front matter and shifts the moved page's headings),
 creates, edits and deletes pages with a live Markdown preview, searches the

@@ -49,6 +49,7 @@ type storedConfig struct {
 	Copyedit copyeditConfig          `json:"copyedit"`
 	Editor   editorConfig            `json:"editor"`
 	User     userConfig              `json:"user"`
+	Web      webConfig               `json:"web"`
 }
 
 // previewConfig is the Markdown preview's own settings. The stylesheets
@@ -82,6 +83,7 @@ const configSchema = `// -------------------------------------------------------
 	copyedit: #Copyedit
 	editor:   #Editor
 	user:     #User
+	web:      #Web
 }
 
 #Project: {
@@ -118,6 +120,15 @@ const configSchema = `// -------------------------------------------------------
 	// The name the comments you write in the editor are signed with.
 	// Left empty, the name you are logged in to the computer with is used.
 	name: string | *""
+}
+
+#Web: {
+	// Where folio web listens: the host name or IP address, and the port.
+	// --addr on the command line wins over both. If the port is taken,
+	// the next ones up are tried; "0.0.0.0" listens on every interface.
+	// Read when folio web starts.
+	baseurl: (string & !="") | *"localhost"
+	port:    (int & >0 & <=65535) | *8199
 }
 
 #Copyedit: {
@@ -228,6 +239,7 @@ func defaultConfig() storedConfig {
 			Selected:    []string{},
 		},
 		Editor: editorConfig{Command: defaultEditorCommand, Image: defaultImageEditorCommand()},
+		Web:    defaultWeb,
 	}
 }
 
@@ -257,6 +269,12 @@ func (c *storedConfig) normalize() {
 	}
 	if c.Editor.Image == "" {
 		c.Editor.Image = defaultImageEditorCommand()
+	}
+	if c.Web.BaseURL == "" {
+		c.Web.BaseURL = defaultWeb.BaseURL
+	}
+	if c.Web.Port == 0 {
+		c.Web.Port = defaultWeb.Port
 	}
 	if c.Copyedit.Selected == nil {
 		c.Copyedit.Selected = []string{}

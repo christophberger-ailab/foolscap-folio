@@ -33,7 +33,8 @@ Alles, was sich `folio web` merkt, steht in einer einzigen Datei: `<user config 
 - das aktive Vorschau-Stylesheet,
 - die Lektorat-Aufgaben und -Verbindungen (einschließlich API-Schlüsseln),
 - die Kommandozeilen des externen Editors,
-- der Name, mit dem deine Kommentare gezeichnet werden (`user: name:`).
+- der Name, mit dem deine Kommentare gezeichnet werden (`user: name:`),
+- Host und Port, auf denen `folio web` lauscht (`web: baseurl:` und `web: port:`).
 
 Wegen der Schlüssel ist sie nur für dich lesbar. Die Datei wird beim ersten Start mit Standardwerten angelegt. Ältere JSON-Einstellungsdateien werden einmalig übernommen und in `*.migrated` umbenannt.
 
