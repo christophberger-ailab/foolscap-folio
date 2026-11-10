@@ -123,11 +123,11 @@ func TestTreeMarksDrafts(t *testing.T) {
 	}
 }
 
-// A page flagged by its `qm:` frontmatter, or by a ==TODO== anywhere in
+// A page flagged by its `folio:` frontmatter, or by a ==TODO== anywhere in
 // it, carries each flag's emoji once in the tree.
 func TestTreeShowsPageFlags(t *testing.T) {
 	srv, root := testServer(t)
-	page := "---\ntitle: Sketch\norder: 4\nqm:\n  todo: true\n  review: true\n---\n# Sketch\n<!-- ==TODO== -->\n==TODO==\n<!-- << Why? -->a<!-- >> --> <!-- << And? -->b<!-- >> -->\n"
+	page := "---\ntitle: Sketch\norder: 4\nfolio:\n  todo: true\n  review: true\n---\n# Sketch\n<!-- ==TODO== -->\n==TODO==\n<!-- << Why? -->a<!-- >> --> <!-- << And? -->b<!-- >> -->\n"
 	if err := os.WriteFile(filepath.Join(root, "chapter2", "sketch.qmd"), []byte(page), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -143,11 +143,11 @@ func TestTreeShowsPageFlags(t *testing.T) {
 	}
 }
 
-// A page whose frontmatter says `qm: {hide: true}` is left out of the
+// A page whose frontmatter says `folio: {hide: true}` is left out of the
 // tree, a section page with its whole branch.
 func TestTreeHidesPages(t *testing.T) {
 	srv, root := testServer(t)
-	page := "---\ntitle: Sketch\norder: 4\nqm:\n  hide: true\n---\n# Sketch\n"
+	page := "---\ntitle: Sketch\norder: 4\nfolio:\n  hide: true\n---\n# Sketch\n"
 	if err := os.WriteFile(filepath.Join(root, "chapter2", "sketch.qmd"), []byte(page), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -163,7 +163,7 @@ func TestTreeHidesPages(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	hidden := strings.Replace(string(section), "---\n", "---\nqm:\n  hide: true\n", 1)
+	hidden := strings.Replace(string(section), "---\n", "---\nfolio:\n  hide: true\n", 1)
 	if err := os.WriteFile(filepath.Join(root, "chapter2", "index.qmd"), []byte(hidden), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -176,7 +176,7 @@ func TestTreeHidesPages(t *testing.T) {
 // Saving a page that is hidden or shown again refreshes the tree.
 func TestSaveRefreshesTreeOnHide(t *testing.T) {
 	srv, _ := testServer(t)
-	hidden := "---\ntitle: Second\norder: 1\nqm:\n  hide: true\n---\n# Second\n"
+	hidden := "---\ntitle: Second\norder: 1\nfolio:\n  hide: true\n---\n# Second\n"
 	rec := post(t, srv, "/save", url.Values{"path": {"chapter2/second.qmd"}, "body": {hidden}})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("save: status %d: %s", rec.Code, rec.Body)

@@ -13,14 +13,27 @@ import (
 
 // FrontMatter holds the frontmatter fields the sorter cares about.
 // Order is nil when the file has no order field. Draft is Quarto's own
-// `draft: true`, which keeps a page out of what a render publishes. QM is
-// qm's own `qm:` mapping; its values are left untyped so that one entry
-// of an unexpected type does not cost the page its title and order.
+// `draft: true`, which keeps a page out of what a render publishes. Folio
+// is folio's own `folio:` mapping, and QM the `qm:` mapping it was called
+// before the tool was named folio, still read so that existing pages keep
+// their flags; read both through Flag. Their values are left untyped so
+// that one entry of an unexpected type does not cost the page its title
+// and order.
 type FrontMatter struct {
 	Title string         `yaml:"title"`
 	Order *int           `yaml:"order"`
 	Draft bool           `yaml:"draft"`
+	Folio map[string]any `yaml:"folio"`
 	QM    map[string]any `yaml:"qm"`
+}
+
+// Flag reports whether the frontmatter sets key to true under `folio:`,
+// or, when `folio:` does not mention key, under the legacy `qm:`.
+func (fm FrontMatter) Flag(key string) bool {
+	if v, ok := fm.Folio[key]; ok {
+		return v == true
+	}
+	return fm.QM[key] == true
 }
 
 var fmDelim = []byte("---\n")
@@ -39,7 +52,7 @@ func splitFrontmatter(src []byte) (block, body []byte) {
 	return src[:n], src[n:]
 }
 
-// ParseFrontmatter extracts title, order, draft, and the qm mapping from a
+// ParseFrontmatter extracts title, order, draft, and the folio mapping from a
 // page's frontmatter.
 func ParseFrontmatter(src []byte) FrontMatter {
 	var fm FrontMatter
