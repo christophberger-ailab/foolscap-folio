@@ -22,6 +22,7 @@ A page can carry status marks after its title:
 
 - 🚧 to do: `todo: true` under `folio:` in the frontmatter, or the text `==TODO==` anywhere in the page, even inside an HTML comment.
 - 👀 to review: `review: true` under `folio:` in the frontmatter.
+- 💬 commented: the page holds at least one comment (see the editor's help). A comment marker inside code does not count.
 
 ```yaml
 ---

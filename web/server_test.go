@@ -127,7 +127,7 @@ func TestTreeMarksDrafts(t *testing.T) {
 // it, carries each flag's emoji once in the tree.
 func TestTreeShowsPageFlags(t *testing.T) {
 	srv, root := testServer(t)
-	page := "---\ntitle: Sketch\norder: 4\nqm:\n  todo: true\n  review: true\n---\n# Sketch\n<!-- ==TODO== -->\n==TODO==\n"
+	page := "---\ntitle: Sketch\norder: 4\nqm:\n  todo: true\n  review: true\n---\n# Sketch\n<!-- ==TODO== -->\n==TODO==\n<!-- << Why? -->a<!-- >> --> <!-- << And? -->b<!-- >> -->\n"
 	if err := os.WriteFile(filepath.Join(root, "chapter2", "sketch.qmd"), []byte(page), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -137,6 +137,9 @@ func TestTreeShowsPageFlags(t *testing.T) {
 	}
 	if n := strings.Count(body, `<span class="marker flag">👀</span>`); n != 1 {
 		t.Errorf("👀 shown %d times, want 1:\n%s", n, body)
+	}
+	if n := strings.Count(body, `<span class="marker flag">💬</span>`); n != 1 {
+		t.Errorf("💬 shown %d times, want 1:\n%s", n, body)
 	}
 }
 

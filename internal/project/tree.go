@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 )
@@ -35,20 +36,20 @@ const (
 
 // pageFlags lists the status flags a page can carry, in the order the tree
 // shows them. A flag is set by `qm: {<Key>: true}` in the frontmatter, or
-// by Text appearing anywhere in the page when Text is not empty. A new
-// flag is one more entry here.
+// by In reporting true for the page's file when In is not nil. A new flag
+// is one more entry here.
 var pageFlags = []struct {
 	Key   string
 	Emoji string
-	Text  string
+	In    func(src []byte) bool
 }{
-	{Key: "todo", Emoji: "\U0001F6A7", Text: "==TODO=="}, // 🚧
-	{Key: "review", Emoji: "\U0001F440"},                 // 👀
+	{Key: "todo", Emoji: "\U0001F6A7", In: hasTodo},       // 🚧
+	{Key: "review", Emoji: "\U0001F440"},                  // 👀
+	{Key: "comment", Emoji: "\U0001F4AC", In: hasComment}, // 💬
 }
 
 // PageFlags returns the emojis of the status flags src carries, each at
-// most once, in the order of pageFlags. Text markers are matched in the
-// raw file, so one inside an HTML comment counts too.
+// most once, in the order of pageFlags.
 func PageFlags(src []byte) []string {
 	return pageFlagsOf(src, ParseFrontmatter(src))
 }
@@ -56,11 +57,62 @@ func PageFlags(src []byte) []string {
 func pageFlagsOf(src []byte, fm FrontMatter) []string {
 	var flags []string
 	for _, f := range pageFlags {
-		if fm.QM[f.Key] == true || f.Text != "" && bytes.Contains(src, []byte(f.Text)) {
+		if fm.QM[f.Key] == true || f.In != nil && f.In(src) {
 			flags = append(flags, f.Emoji)
 		}
 	}
 	return flags
+}
+
+// hasTodo reports whether src holds a `==TODO==` anywhere in the raw file,
+// so one inside an HTML comment counts too.
+func hasTodo(src []byte) bool {
+	return bytes.Contains(src, []byte("==TODO=="))
+}
+
+// commentStart matches the opening marker of a folio comment,
+// `<!-- << The comment -->`, or of a reply to one, `<!-- <<+ ... -->`.
+var commentStart = regexp.MustCompile(`<!--\s*<<`)
+
+// hasComment reports whether src's body holds a folio comment. A marker in
+// a fenced code block or a code span is code, not a comment, as it is in
+// the editor and the preview.
+func hasComment(src []byte) bool {
+	_, body := splitFrontmatter(src)
+	var text []byte
+	inFence := false
+	for _, ln := range bytes.Split(body, []byte("\n")) {
+		trimmed := bytes.TrimLeft(ln, " ")
+		if bytes.HasPrefix(trimmed, []byte("```")) || bytes.HasPrefix(trimmed, []byte("~~~")) {
+			inFence = !inFence
+			continue
+		}
+		if !inFence {
+			text = append(append(text, dropCodeSpans(ln)...), '\n')
+		}
+	}
+	return commentStart.Match(text)
+}
+
+// backticks matches a run of backticks, which opens or closes a code span.
+var backticks = regexp.MustCompile("`+")
+
+// dropCodeSpans returns ln without its code spans: a run of backticks up to
+// the next run of the same length. A run without a match is literal text.
+func dropCodeSpans(ln []byte) []byte {
+	runs := backticks.FindAllIndex(ln, -1)
+	var out []byte
+	at := 0
+	for i := 0; i < len(runs); i++ {
+		for j := i + 1; j < len(runs); j++ {
+			if runs[j][1]-runs[j][0] == runs[i][1]-runs[i][0] {
+				out = append(out, ln[at:runs[i][0]]...)
+				at, i = runs[j][1], j
+				break
+			}
+		}
+	}
+	return append(out, ln[at:]...)
 }
 
 // IsHidden reports whether src's frontmatter says `qm: {hide: true}`, which
