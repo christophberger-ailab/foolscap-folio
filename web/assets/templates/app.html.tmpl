@@ -65,30 +65,50 @@
   <main class="panes" id="main">
     {{template "main" .}}
   </main>
+  <dialog class="open-dialog" id="open-dialog" aria-label="Open a folio"><div id="open-dialog-body"></div></dialog>
 </body>
 </html>{{end}}
 
-{{/* The Open field shows the last element of the project's path -- the
-     folder name is what tells one project from another -- while the full
-     path rides along in data-full and is what a submit sends. The dropdown
-     lists the full paths: two projects may share a folder name, and the
-     list has the room the field does not. Typing or
-     pasting into the field drops the full path (app.js), so a pasted path
-     is opened as written. */}}
-{{define "open-form"}}<form class="open-form" hx-post="/open" hx-target="#main" hx-swap="innerHTML">
-  <div class="path-field">
-    <input name="path" id="open-path" placeholder="/path/to/quarto/project" autocomplete="off"
-           spellcheck="false" value="{{.Open.Label}}" data-full="{{.Open.Path}}"
-           title="{{if .Open.Path}}{{.Open.Path}}{{else}}Path of the Quarto project to open{{end}}">
-    {{if .Open.Recent}}<button type="button" class="path-menu-toggle" id="open-recent-toggle"
-            aria-haspopup="listbox" aria-expanded="false" title="Recently opened projects">▾</button>
-    <ul class="path-menu" id="open-recent" role="listbox" hidden>
-      {{range .Open.Recent}}<li><button type="button" class="path-recent" role="option" data-path="{{.Path}}" data-label="{{.Label}}" title="{{.Path}}">{{.Path}}</button></li>
-      {{end}}
-    </ul>{{end}}
+{{/* The open folio's title, the Open button, and Reload. Open fetches the
+     folder dialog into #open-dialog (app.js shows it). Reload reads the page
+     open in the editor from disk again, and the tree with it; it finds the
+     page through the editor's hidden path field, so it never has to be
+     re-pointed when another page opens, and it is out of use while none is
+     open. */}}
+{{define "open-form"}}{{if .Open.Path}}<span class="folio-title" id="folio-title" title="{{.Open.Path}}">{{.Open.Title}}</span>{{end}}
+<button type="button" id="open-button" hx-get="/browse" hx-target="#open-dialog-body" hx-swap="innerHTML"
+        title="Choose the folio to open">Open</button>
+{{if .Open.Path}}<button type="button" class="reload" id="content-reload" title="Reload the open page from disk"
+        hx-get="/content" hx-include="#content-path" hx-vals='{"reload": "1"}' hx-target="#content" hx-swap="innerHTML">↻ Reload</button>{{end}}{{end}}
+
+{{/* The folder dialog. A click selects a folder, a double click or Enter
+     goes into it -- or, on a folio, opens it -- and Open opens the selected
+     folder, else the one shown. The path field takes a typed or pasted
+     path. The projects opened before are one click away on the left. */}}
+{{define "browse"}}<div class="browse">
+  <div class="browse-bar">
+    <button type="button" class="browse-up" data-path="{{.Parent}}"{{if not .Parent}} disabled{{end}} title="Up one folder" aria-label="Up one folder">↑</button>
+    <input type="text" class="browse-dir" id="browse-dir" value="{{.Dir}}" autocomplete="off" spellcheck="false"
+           aria-label="Folder shown" title="Type or paste a path and press Enter to go there">
   </div>
-  <button type="submit">Open</button>
-</form>{{end}}
+  <div class="browse-main">
+    {{if .Recent}}<nav class="browse-recent" aria-label="Recently opened">
+      <h3>Recent</h3>
+      <ul>{{range .Recent}}<li><button type="button" class="browse-recent-entry" data-path="{{.Path}}" title="{{.Path}}">{{.Label}}</button></li>{{end}}</ul>
+    </nav>{{end}}
+    <ul class="browse-list" role="listbox" aria-label="Folders">
+      {{- range .Entries}}<li><button type="button" class="browse-entry{{if .Folio}} folio{{end}}{{if .Selected}} selected{{end}}" data-path="{{.Path}}" role="option" aria-selected="{{.Selected}}"
+              title="{{if .Folio}}Folio — double-click to open{{else}}Double-click to go into this folder{{end}}"><span class="browse-icon" aria-hidden="true">{{if .Folio}}📘{{else}}📁{{end}}</span> {{.Name}}</button></li>
+      {{- else}}{{if not .Error}}<li class="empty">No folders here.</li>{{end}}{{end}}
+    </ul>
+  </div>
+  {{if .Error}}<p class="browse-error">{{.Error}}</p>{{end}}
+  <div class="browse-actions">
+    <span class="browse-status" id="browse-status" role="status"></span>
+    <button type="button" class="browse-cancel">Cancel</button>
+    <button type="button" class="browse-open primary" id="browse-open">Open</button>
+  </div>
+</div>{{end}}
 
 {{/* The Git panel is a popup like the render one. Its body is fetched when
      the panel opens rather than with the page: the working tree changes
@@ -387,12 +407,11 @@
 
 {{/* content-path-oob re-points the open editor at a page whose file has
      just been renamed under it — a move into another book does that. Only
-     the three places that name the path are swapped; the textarea is not
+     the places that name the path are swapped; the textarea is not
      among them, because it holds edits that still have to be saved, and
      the hidden field going first is what lets them be. */}}
 {{define "content-path-oob"}}<input type="hidden" id="content-path" name="path" value="{{.Path}}" hx-swap-oob="true">
-<h2 class="content-title" id="content-title" hx-swap-oob="true">{{template "content-heading" .}}</h2>
-<button class="reload" id="content-reload" title="Reload from disk" hx-get="/content?path={{.Path}}&reload=1" hx-target="#content" hx-swap="innerHTML" hx-swap-oob="true">↻ Reload</button>{{end}}
+<h2 class="content-title" id="content-title" hx-swap-oob="true">{{template "content-heading" .}}</h2>{{end}}
 
 {{define "content"}}<div class="content-header">
   <h2 class="content-title" id="content-title">{{template "content-heading" .}}</h2>
@@ -407,7 +426,6 @@
   <button type="button" class="pane-toggle" id="preview-toggle" data-pane="preview" aria-pressed="true" title="Show or hide the Markdown preview">Preview</button>
   <button type="button" class="pane-toggle" id="copyedit-toggle" data-pane="copyedit" aria-pressed="false" title="Show or hide the copyedit tool">Copyedit</button>
   <button type="button" class="pane-toggle" id="help-toggle" data-pane="help" aria-pressed="false" title="Show or hide the help">Help</button>
-  <button class="reload" id="content-reload" title="Reload from disk" hx-get="/content?path={{.Path}}&reload=1" hx-target="#content" hx-swap="innerHTML">↻ Reload</button>
 </div>
 <div class="editor-split" id="editor-split">
   {{/* autocomplete="off" keeps the browser from putting the text a

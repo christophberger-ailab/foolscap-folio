@@ -162,16 +162,13 @@ func TestEditorButtonComesWithTheProject(t *testing.T) {
 	}
 }
 
-// The dropdown of recent projects lists them by their full paths, while
-// the field keeps showing the folder name alone.
-func TestRecentDropdownShowsFullPaths(t *testing.T) {
+// The dialog's recent list names the projects by their folder names, with
+// the full path as the tooltip.
+func TestRecentListShowsFolderNames(t *testing.T) {
 	srv, root := testServer(t)
-	body := get(t, srv, "/").Body.String()
-	if !strings.Contains(body, `data-label="`+pathLabel(root)+`" title="`+root+`">`+root+`</button>`) {
-		t.Errorf("dropdown entry does not show the full path %q:\n%s", root, body)
-	}
-	if !strings.Contains(body, `value="`+pathLabel(root)+`"`) {
-		t.Errorf("field does not show the folder name:\n%s", body)
+	body := get(t, srv, "/browse").Body.String()
+	if !strings.Contains(body, `data-path="`+root+`" title="`+root+`">`+pathLabel(root)+`</button>`) {
+		t.Errorf("recent entry for %q is not named by its folder:\n%s", root, body)
 	}
 }
 

@@ -35,7 +35,7 @@ If the file was changed outside the browser in a way the tree cannot account for
 
 ## Reload
 
-`↻ Reload` in the content header reloads the page from disk. Images in the preview are fetched again too.
+`↻ Reload` in the top bar, right of `Open`, reloads the page from disk. Images in the preview are fetched again too.
 
 ## Vim mode
 

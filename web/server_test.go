@@ -1066,7 +1066,6 @@ func TestMoveRepointsOpenEditor(t *testing.T) {
 	for _, want := range []string{
 		`<input type="hidden" id="content-path" name="path" value="second.qmd" hx-swap-oob="true">`,
 		`id="content-title" hx-swap-oob="true">Second`,
-		`hx-get="/content?path=second.qmd&reload=1"`,
 	} {
 		if !strings.Contains(rec.Body.String(), want) {
 			t.Errorf("move response is missing %q:\n%s", want, rec.Body)
@@ -1321,7 +1320,6 @@ func TestRenameRepointsOpenEditor(t *testing.T) {
 	for _, want := range []string{
 		`data-path="chapter2/zweite.qmd"`, // the tree
 		`<input type="hidden" id="content-path" name="path" value="chapter2/zweite.qmd" hx-swap-oob="true">`,
-		`hx-get="/content?path=chapter2/zweite.qmd&reload=1"`,
 	} {
 		if !strings.Contains(rec.Body.String(), want) {
 			t.Errorf("rename response is missing %q:\n%s", want, rec.Body)

@@ -20,14 +20,19 @@ folio web --addr :9000       # listen elsewhere
 - Ist dieser Port belegt, meist durch ein anderes `folio web`, wird der nächsthöhere probiert und so weiter, bis ein freier gefunden ist. Die tatsächlich verwendete Adresse wird ausgegeben.
 - Eine Adresse, die du mit `--addr` angibst, wird genau so verwendet. Ist sie belegt, ist das ein Fehler.
 
-## Das Feld Open
+## Ein Projekt öffnen
 
-Das Feld Open sitzt in der oberen Leiste.
+Die obere Leiste zeigt den Titel des offenen Projekts, dann `Open`, dann `↻ Reload`.
 
-- Es zeigt nur das letzte Element des Projektpfads, denn der Ordnername unterscheidet Projekte. Fahre mit der Maus darüber, um den vollen Pfad zu sehen.
-- Tippe oder füge einen Pfad ein und drücke `Open`, um genau diesen Pfad zu öffnen.
-- Die Schaltfläche `▾` neben dem Feld listet die zehn zuletzt geöffneten Projekte mit ihren vollen Pfaden auf, das neueste zuerst. Wähle eines, um das Feld zu füllen.
-- Ein Projekt, das du über die Kommandozeile gestartet hast, gilt als geöffnet und erscheint beim nächsten Mal in der Liste.
+- Der Titel ist der `title` aus der `qm.yml` des Projekts. Ohne ihn ist es der Ordnername des Projekts. Fahre mit der Maus darüber, um den vollen Pfad zu sehen.
+- `Open` zeigt einen Ordnerdialog. Er beginnt in dem Ordner, aus dem du zuletzt ein Projekt geöffnet hast, mit diesem Projekt ausgewählt. Beim ersten Mal beginnt er im aktuellen Verzeichnis.
+- Ordner, die Projekte sind (sie enthalten eine `qm.yml`), sind mit 📘 und fett dargestellt.
+- Ein Klick wählt einen Ordner aus. Ein Doppelklick oder `Enter` wechselt hinein; bei einem Projekt öffnet es das Projekt. `↑` oder `Backspace` geht einen Ordner nach oben.
+- Die Schaltfläche `Open` im Dialog öffnet den ausgewählten Ordner, oder den angezeigten, wenn keiner ausgewählt ist.
+- Tippe oder füge einen Pfad in das Feld oben ein und drücke `Enter`, um dorthin zu wechseln.
+- Die Liste Recent links enthält die zehn zuletzt geöffneten Projekte, das neueste zuerst. Ein Klick öffnet eines. Ein Projekt, das du über die Kommandozeile gestartet hast, gilt als geöffnet und erscheint beim nächsten Mal in der Liste.
+- `Esc` oder `Cancel` schließt den Dialog.
+- `↻ Reload` liest die offene Seite und den Baum neu von der Platte.
 
 Beim Öffnen eines Projekts wird alles aktualisiert, was dazugehört: der Seitenbaum, die Bereiche, das Render-Panel, das Git-Panel und die Schaltfläche Editor.
 
