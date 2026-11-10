@@ -183,19 +183,24 @@ func (s *server) saveConnection(c apiConnection) error {
 	// Copilot is reached through the CLI rather than at an address, so
 	// it has no base URL to give -- and a URL entered against it would
 	// be a setting that does nothing, which is worse than a field that
-	// is not there.
-	if needsEndpoint(c.Kind) {
+	// is not there. Nor does it take a key: the CLI runs as whoever it is
+	// signed in as, and the form hides the key field for it. A key kept
+	// from the connection's HTTP days would be one the user can no longer
+	// see, handed to the CLI as a GitHub token it is not, so it goes too.
+	endpoint := needsEndpoint(c.Kind)
+	if endpoint {
 		if c.BaseURL == "" {
 			return errors.New("the connection needs a base URL")
 		}
 	} else {
 		c.BaseURL = ""
+		c.Key = ""
 	}
 	if c.Model == "" {
 		return errors.New("the connection needs a model")
 	}
 	if i := s.connIndex(c.ID); i >= 0 {
-		if c.Key == "" {
+		if endpoint && c.Key == "" {
 			c.Key = s.cfg.Copyedit.Connections[i].Key
 		}
 		s.cfg.Copyedit.Connections[i] = c
@@ -285,9 +290,10 @@ type connectionView struct {
 	Model   string
 	HasKey  bool
 	Active  bool
-	// NeedsEndpoint says the form is to ask for a base URL. The Copilot
-	// kind is reached through the CLI rather than at an address, so its
-	// form leaves the field out instead of showing one that is ignored.
+	// NeedsEndpoint says the form is to ask for a base URL and a key.
+	// The Copilot kind is reached through the CLI rather than at an
+	// address, so its form hides both instead of showing fields that are
+	// ignored.
 	NeedsEndpoint bool
 }
 

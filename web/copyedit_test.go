@@ -745,3 +745,28 @@ func TestASelectionNamingNothingIsIgnored(t *testing.T) {
 		t.Errorf("the one remaining task is ticked, so Select all should be too")
 	}
 }
+
+func TestCopilotConnectionsTakeNoURLOrKey(t *testing.T) {
+	srv, _ := configTestServer(t)
+	addConnection(t, srv, "Claude", "anthropic", "https://api.anthropic.com/v1", "claude-sonnet-4-5", "sk-secret")
+
+	// Switching the connection to Copilot drops the base URL and the key
+	// with it: the form hides both, so neither could be seen or changed.
+	post(t, srv, "/config/connections", url.Values{
+		"id": {"c1"}, "name": {"Claude"}, "kind": {"copilot"},
+		"base_url": {"https://api.anthropic.com/v1"}, "model": {"gpt-5"}, "key": {""},
+	})
+	if got := srv.cfg.Copyedit.Connections[0]; got.Kind != kindCopilot || got.BaseURL != "" || got.Key != "" {
+		t.Fatalf("connection after switching to Copilot = %+v, want no base URL and no key", got)
+	}
+
+	body := get(t, srv, "/config/connections").Body.String()
+	for _, want := range []string{
+		`<label class="connection-base-url" hidden>`,
+		`<label class="connection-key" hidden>`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("connections page missing %q:\n%s", want, body)
+		}
+	}
+}

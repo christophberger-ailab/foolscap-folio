@@ -715,6 +715,13 @@ button:hover,
   font-size: 0.85rem;
 }
 
+/* The `display: block` above wins over the browser's own `[hidden]` rule,
+   so a field the form hides -- the base URL and key of a Copilot
+   connection -- says so here. */
+.config-form label[hidden] {
+  display: none;
+}
+
 .config-form input,
 .config-form select,
 .config-form textarea {

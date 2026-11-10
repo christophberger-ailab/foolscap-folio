@@ -73,22 +73,26 @@ document.addEventListener('click', function (evt) {
   }
 });
 
-// The base URL belongs to the two HTTP kinds and to neither the GitHub
-// Copilot kind nor the user: Copilot is reached through the CLI, which
-// knows where GitHub is. So the field follows the API dropdown rather
-// than standing there taking a value that would be ignored. The server
-// clears it either way; this only saves the user from filling it in.
-function showBaseURLFor(select) {
+// The base URL and the key belong to the two HTTP kinds and to neither
+// the GitHub Copilot kind nor the user: Copilot is reached through the
+// CLI, which knows where GitHub is and who the user is. So both fields
+// follow the API dropdown rather than standing there taking a value that
+// would be ignored. The server clears them either way; this only saves
+// the user from filling them in.
+function showEndpointFieldsFor(select) {
   var form = select.closest('form');
-  var field = form ? form.querySelector('.connection-base-url') : null;
-  if (field) {
-    field.hidden = select.value === 'copilot';
+  if (!form) {
+    return;
   }
+  var copilot = select.value === 'copilot';
+  form.querySelectorAll('.connection-base-url, .connection-key').forEach(function (field) {
+    field.hidden = copilot;
+  });
 }
 
 document.addEventListener('change', function (evt) {
   if (evt.target.classList && evt.target.classList.contains('connection-kind')) {
-    showBaseURLFor(evt.target);
+    showEndpointFieldsFor(evt.target);
   }
 });
 
@@ -109,5 +113,5 @@ document.addEventListener('click', function (evt) {
 
 document.addEventListener('DOMContentLoaded', initPreviewCSSEditor);
 document.addEventListener('DOMContentLoaded', function () {
-  document.querySelectorAll('select.connection-kind').forEach(showBaseURLFor);
+  document.querySelectorAll('select.connection-kind').forEach(showEndpointFieldsFor);
 });
