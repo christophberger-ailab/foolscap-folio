@@ -35,7 +35,7 @@ Wurde die Datei außerhalb des Browsers so geändert, dass der Baum es nicht ber
 
 ## Neu laden
 
-`↻ Reload` im Inhaltskopf lädt die Seite neu von der Platte. Auch Bilder in der Vorschau werden neu geholt.
+`↻ Reload` in der oberen Leiste, rechts von `Open`, lädt die Seite neu von der Platte. Auch Bilder in der Vorschau werden neu geholt.
 
 ## Vim-Modus
 

@@ -139,6 +139,7 @@ func newServer(configFile string) (*server, error) {
 	s.mux.HandleFunc("GET /help", s.helpTopicsHandler)
 	s.mux.HandleFunc("GET /help/{lang}/{name}", s.helpPageHandler)
 	s.mux.HandleFunc("POST /open", s.open)
+	s.mux.HandleFunc("GET /browse", s.browse)
 	s.mux.HandleFunc("GET /tree", s.treeHandler)
 	s.mux.HandleFunc("GET /watch", s.watch)
 	s.mux.HandleFunc("POST /move", s.move)
@@ -169,8 +170,7 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // state bundles everything the page templates need.
 type state struct {
 	Root string
-	// Open is the Open field: the project it shows and the recently
-	// opened ones its dropdown offers.
+	// Open is the top bar's title of the open project.
 	Open openView
 	Tree *project.Tree
 	// Page is the page the editor opens with — the one this project last
@@ -188,31 +188,24 @@ type state struct {
 	User string
 }
 
-// openView is the Open field in the top bar. The field itself shows only
-// the last element of a path — the project's folder name is what tells one
-// project from another, and the rest of the path is what makes the field
-// too narrow to read — while the full path travels with it, so a submit
-// still opens the project the label stands for. Recent lists the projects
-// opened before, most recent first.
+// openView is the top bar's part about the open folio: its title, shown
+// left of the Open button, and its full path, the title's tooltip.
 type openView struct {
 	// Path is the full path of the open project, "" when none is open.
 	Path string
-	// Label is what the field shows: the last element of Path.
-	Label string
-	// Recent are the projects the dropdown offers.
-	Recent []recentPath
+	// Title is the folio's title from its qm.yml, else its folder name.
+	Title string
 }
 
-// recentPath is one entry of the Open field's dropdown: the folder name it
-// shows, and the full path it opens.
+// recentPath is one entry of the folder dialog's recent list: the folder
+// name it shows, and the full path it opens.
 type recentPath struct {
 	Path  string
 	Label string
 }
 
-// pathLabel is the last element of a path: what the Open field shows. A
-// path that has no last element to speak of — the root directory, an empty
-// path — is shown as it is.
+// pathLabel is the last element of a path. A path that has no last element
+// to speak of — the root directory, an empty path — is shown as it is.
 func pathLabel(p string) string {
 	if p == "" {
 		return ""
@@ -224,14 +217,26 @@ func pathLabel(p string) string {
 	return base
 }
 
-// openViewFor assembles the Open field from the project now open and the
-// recently opened ones. The caller must hold s.mu.
+// openViewFor assembles the top bar's view of the open project. The caller
+// must hold s.mu.
 func (s *server) openViewFor() openView {
-	v := openView{Path: s.root, Label: pathLabel(s.root)}
-	for _, p := range s.cfg.Recent {
-		v.Recent = append(v.Recent, recentPath{Path: p, Label: pathLabel(p)})
+	v := openView{Path: s.root, Title: pathLabel(s.root)}
+	if s.root != "" {
+		if cfg, err := config.Load(s.root); err == nil && cfg.Title != "" {
+			v.Title = cfg.Title
+		}
 	}
 	return v
+}
+
+// recentPaths are the projects opened before, most recent first. The
+// caller must hold s.mu.
+func (s *server) recentPaths() []recentPath {
+	var r []recentPath
+	for _, p := range s.cfg.Recent {
+		r = append(r, recentPath{Path: p, Label: pathLabel(p)})
+	}
+	return r
 }
 
 // contentView is the editor pane: a page's title, its project-relative
@@ -617,7 +622,7 @@ func (s *server) open(w http.ResponseWriter, r *http.Request) {
 	// The top bar is not reached by the #main swap, so the parts of it
 	// that describe the project just opened are sent out of band: the
 	// render panel, the Git panel, the external editor button, and the
-	// Open field, whose label and dropdown have both moved on.
+	// title beside the Open button.
 	fmt.Fprint(w, `<div hx-swap-oob="innerHTML:#render-panel">`)
 	s.render(w, "render", st)
 	fmt.Fprint(w, `</div>`)
@@ -810,8 +815,7 @@ func (s *server) rename(w http.ResponseWriter, r *http.Request) {
 }
 
 // renderPathOOB re-points the open editor at rel: the hidden field
-// autosave posts, the heading above it, and the reload button that reads
-// the page from disk. The editor's text is deliberately left alone — it
+// autosave posts and the Reload button reads, and the heading above it. The editor's text is deliberately left alone — it
 // holds edits that are not on disk yet, and this response exists to get
 // them saved, not to discard them. The caller must hold s.mu.
 func (s *server) renderPathOOB(w http.ResponseWriter, rel string) {

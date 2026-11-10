@@ -194,9 +194,12 @@ The tasks and the connections are stored in the settings file (below),
 readable by its owner alone since it holds the keys, and a stored key is never
 sent back to the browser.
 
-The Open field shows the last element of the project's path and offers the ten
-projects opened before, listed by their full paths and remembered in the
-settings file; a full path can still be typed or pasted into it. The Git button beside Render
+The top bar names the open project by the `title` in its qm.yml, or by its
+folder name. The Open button beside it shows a folder dialog that starts where
+the last project was opened from (the current directory the first time), marks
+the folders that are projects, offers the ten projects opened before, and takes
+a typed or pasted path. Reload, to the right of Open, reads the open page and
+the tree from disk again. The Git button beside Render
 opens a panel that lists the changes since the last commit, stages and unstages
 them file by file or all at once, commits them, and pushes the branch. Clicking
 a path shows that file's diff, coloured line by line, with a button that opens

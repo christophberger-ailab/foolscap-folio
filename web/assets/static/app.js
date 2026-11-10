@@ -1,41 +1,31 @@
 // Foolscap Folio - app behavior (plain ES6, no build step)
 
-// Open field
+// Folder dialog
 //
-// The field shows the last element of the open project's path: the folder
-// name is what tells one project from another, and the whole path only
-// makes the field too narrow to read. The full path rides along in
-// data-full and is what the submit sends, so the short label still opens
-// the right project. Typing or pasting drops the full path, which is what
-// lets a pasted path be opened as written.
+// The Open button fetches the dialog's body into #open-dialog; this shows
+// it, and drives it: a click selects a folder, a double click or Enter goes
+// into it -- or opens it, if it is a folio -- the path field goes where
+// it is told, and a recent entry opens at once. Open opens the selected
+// folder, else the one shown. A failed open is reported in the dialog, which
+// stays up so the user can choose again.
 
-function openPathInput() {
-  return document.getElementById('open-path');
+function openDialog() {
+  return document.getElementById('open-dialog');
 }
 
-// showRecent opens or closes the dropdown of recently opened projects.
-function showRecent(on) {
-  var menu = document.getElementById('open-recent');
-  var toggle = document.getElementById('open-recent-toggle');
-  if (menu) {
-    menu.hidden = !on;
-  }
-  if (toggle) {
-    toggle.setAttribute('aria-expanded', on ? 'true' : 'false');
-  }
+function browseTo(dir) {
+  htmx.ajax('GET', '/browse?dir=' + encodeURIComponent(dir), {
+    target: '#open-dialog-body',
+    swap: 'innerHTML'
+  });
 }
 
-// pickRecent puts a chosen project into the field -- short label, full
-// path, full path as the tooltip -- and opens it. The dropdown itself lists
-// the full paths, so the label rides along on each entry.
-function pickRecent(path, label) {
-  var input = openPathInput();
-  if (input) {
-    input.value = label;
-    input.dataset.full = path;
-    input.title = path;
+function openFolio(path) {
+  var status = document.getElementById('browse-status');
+  if (status) {
+    status.textContent = 'Opening…';
+    status.classList.remove('failed');
   }
-  showRecent(false);
   htmx.ajax('POST', '/open', {
     target: '#main',
     swap: 'innerHTML',
@@ -43,33 +33,134 @@ function pickRecent(path, label) {
   });
 }
 
-document.body.addEventListener('click', function (evt) {
-  var toggle = evt.target.closest('#open-recent-toggle');
-  if (toggle) {
-    var menu = document.getElementById('open-recent');
-    showRecent(!!menu && menu.hidden);
+function selectEntry(entry) {
+  document.querySelectorAll('#open-dialog .browse-entry.selected').forEach(function (e) {
+    e.classList.remove('selected');
+    e.setAttribute('aria-selected', 'false');
+  });
+  entry.classList.add('selected');
+  entry.setAttribute('aria-selected', 'true');
+}
+
+// enterEntry goes into a folder, or opens it when it is a folio.
+function enterEntry(entry) {
+  if (entry.classList.contains('folio')) {
+    openFolio(entry.dataset.path);
+  } else {
+    browseTo(entry.dataset.path);
+  }
+}
+
+document.body.addEventListener('htmx:afterSwap', function (evt) {
+  if (evt.detail.target.id !== 'open-dialog-body') {
     return;
   }
-  var entry = evt.target.closest('.path-recent');
-  if (entry) {
-    pickRecent(entry.dataset.path, entry.dataset.label || entry.dataset.path);
-    return;
+  var dialog = openDialog();
+  if (!dialog.open) {
+    dialog.showModal();
   }
-  // A click anywhere else closes the dropdown, the way a menu closes.
-  if (!evt.target.closest('.path-field')) {
-    showRecent(false);
+  var first = dialog.querySelector('.browse-entry.selected') || dialog.querySelector('.browse-entry');
+  if (first) {
+    first.focus();
+    first.scrollIntoView({ block: 'nearest' });
   }
 });
 
-// A field the user has typed or pasted into no longer stands for the
-// project it was showing, so the full path behind it is dropped and the
-// text itself is what gets opened.
-document.body.addEventListener('input', function (evt) {
-  if (evt.target.id === 'open-path') {
-    evt.target.dataset.full = '';
-    evt.target.title = evt.target.value;
+// The dialog closes once a folio has opened; a refusal stays in it.
+document.body.addEventListener('htmx:afterRequest', function (evt) {
+  var dialog = openDialog();
+  if (!dialog || !dialog.open || evt.detail.pathInfo.requestPath !== '/open') {
+    return;
+  }
+  if (evt.detail.successful) {
+    dialog.close();
+    return;
+  }
+  var status = document.getElementById('browse-status');
+  if (status) {
+    status.textContent = (evt.detail.xhr.responseText || 'Could not open the folder').trim();
+    status.classList.add('failed');
   }
 });
+
+document.body.addEventListener('click', function (evt) {
+  if (!evt.target.closest('#open-dialog')) {
+    return;
+  }
+  var entry = evt.target.closest('.browse-entry');
+  if (entry) {
+    selectEntry(entry);
+    return;
+  }
+  var up = evt.target.closest('.browse-up');
+  if (up) {
+    browseTo(up.dataset.path);
+    return;
+  }
+  var recent = evt.target.closest('.browse-recent-entry');
+  if (recent) {
+    openFolio(recent.dataset.path);
+    return;
+  }
+  if (evt.target.closest('.browse-cancel')) {
+    openDialog().close();
+    return;
+  }
+  if (evt.target.closest('#browse-open')) {
+    var selected = document.querySelector('#open-dialog .browse-entry.selected');
+    openFolio(selected ? selected.dataset.path : document.getElementById('browse-dir').value);
+  }
+});
+
+document.body.addEventListener('dblclick', function (evt) {
+  var entry = evt.target.closest('#open-dialog .browse-entry');
+  if (entry) {
+    enterEntry(entry);
+  }
+});
+
+document.body.addEventListener('keydown', function (evt) {
+  if (!evt.target.closest || !evt.target.closest('#open-dialog')) {
+    return;
+  }
+  if (evt.key === 'Enter' && evt.target.id === 'browse-dir') {
+    evt.preventDefault();
+    browseTo(evt.target.value);
+    return;
+  }
+  var entry = evt.target.closest('.browse-entry');
+  if (!entry) {
+    return;
+  }
+  if (evt.key === 'Enter') {
+    evt.preventDefault();
+    enterEntry(entry);
+  } else if (evt.key === 'ArrowDown' || evt.key === 'ArrowUp') {
+    evt.preventDefault();
+    var li = entry.parentElement[evt.key === 'ArrowDown' ? 'nextElementSibling' : 'previousElementSibling'];
+    var next = li && li.querySelector('.browse-entry');
+    if (next) {
+      selectEntry(next);
+      next.focus();
+    }
+  } else if (evt.key === 'Backspace') {
+    var parent = document.querySelector('#open-dialog .browse-up');
+    if (parent && !parent.disabled) {
+      evt.preventDefault();
+      browseTo(parent.dataset.path);
+    }
+  }
+});
+
+// Reload has nothing to read while no page is open.
+function syncReloadButton() {
+  var reload = document.getElementById('content-reload');
+  if (reload) {
+    reload.disabled = !document.getElementById('content-path');
+  }
+}
+document.addEventListener('DOMContentLoaded', syncReloadButton);
+document.body.addEventListener('htmx:afterSettle', syncReloadButton);
 
 var sortableInstances = [];
 
@@ -1896,14 +1987,6 @@ document.body.addEventListener('htmx:configRequest', function (evt) {
   // along, as it does with every other search request.
   if (elt && elt.id === 'search-input' && searchCased()) {
     evt.detail.parameters['case'] = '1';
-  }
-  // The Open field posts the label it shows; the project it stands for is
-  // the full path behind it, which is what the server has to be given.
-  if (elt && elt.classList && elt.classList.contains('open-form')) {
-    var input = openPathInput();
-    if (input && input.dataset.full) {
-      evt.detail.parameters.path = input.dataset.full;
-    }
   }
 });
 

@@ -62,7 +62,7 @@ constraints:
       1-7-2: Saving a page that is hidden or shown again refreshes the tree at once
       2: Dragging a page updates the `order` frontmatter of the affected pages and the Markdown heading levels of the moved page
       2-1: A drag that moves a page to another parent renames its file on disk; if the page open in the editor is the moved one, or sits inside a moved section, the editor is re-pointed at the new path, so autosave keeps writing to the file instead of to a path that no longer exists
-      2-2: The re-pointing replaces the editor's path, heading, and reload button only, never its text, which may hold edits that are not on disk yet; an autosave that the rename had already broken is retried at the new path
+      2-2: The re-pointing replaces the editor's path and heading only, never its text, which may hold edits that are not on disk yet; an autosave that the rename had already broken is retried at the new path
       2-3: A pencil button after the path in the editor's heading turns the page's file name -- and only the file name, the directory staying text -- into a field; Enter renames the file on disk within its directory, Esc or leaving the field cancels and puts the path back
       2-3-1: A name typed without the .qmd extension gets it; a name that is not a plain file name, starts with "_" or ".", or is index.qmd is refused
       2-3-2: The page's children directory (name/ beside name.qmd) is renamed with it, so its children stay its children; the page's frontmatter and headings are left as they are
@@ -171,13 +171,17 @@ constraints:
       8-7-1: Enter in the field runs the search again even when the query did not change, reading the project anew, so the hits and their counts describe the pages as they are now
       8-8: The hits of the current query are highlighted in the editor as well, and opening a page scrolls its editor to the first hit
       8-9: While the field holds a query, an x inside its right end clears it, as does Escape in the field; clearing ends the search, so the tree takes the list's place again
-      9: The Open field in the top bar offers the projects opened before, most recent first
-      9-1: The field itself shows only the last element of the open project's path, since the folder name is what tells one project from another; the full path is its tooltip and is what a submit opens
-      9-1-1: The dropdown lists the projects by their full paths, since two projects may share a folder name and the list has the room the field does not; picking one shows its folder name in the field as usual
-      9-2: A path typed or pasted into the field is opened as written, whatever the field showed before
-      9-3: The dropdown holds the ten most recently opened projects, no project twice, and is remembered across restarts in the settings file (see SETTINGS)
-      9-4: A project opened from the command line counts as opened, so it is in the dropdown of the next session
-      9-5: Opening a project updates the field and its dropdown along with the panes, the render panel, the Git panel, and the Editor button, all of which describe the project just opened
+      9: The top bar shows the open project's title, then an Open button, then a Reload button
+      9-1: The title is the `title` of the project's qm.yml, else the last element of its path; the full path is its tooltip
+      9-1-1: Reload reads the page open in the editor and the tree from disk again; it is out of use while no page is open
+      9-2: The Open button shows a folder dialog listing the subfolders of one folder, hidden ones left out, in name order; folders holding a qm.yml are marked as projects
+      9-2-1: The dialog starts in the folder the last project was opened from, with that project selected; before any project was opened, it starts in the current directory
+      9-2-2: A click selects a folder; a double click or Enter goes into it, or opens it if it is a project; Up and Backspace go to the folder above; the dialog's Open button opens the selected folder, else the one shown
+      9-2-3: A path typed or pasted into the dialog's path field is gone to on Enter; a folder that cannot be listed is reported in the dialog
+      9-2-4: The dialog closes once a project has opened; a refused open is reported in the dialog, which stays open
+      9-3: The dialog lists the ten most recently opened projects by folder name, full path as tooltip, no project twice, and one click opens one; the list is remembered across restarts in the settings file (see SETTINGS)
+      9-4: A project opened from the command line counts as opened, so it is in the list of the next session
+      9-5: Opening a project updates the title along with the panes, the render panel, the Git panel, and the Editor button, all of which describe the project just opened
       10: A Git button to the right of the Render button opens a popup, like the render panel and below its own button as the render panel is, that shows the changes since the last commit
       10-1: The changes are shown in two lists -- staged, which is what the next commit would carry, and not staged, which is what it would leave behind -- each entry with its porcelain status letters and the path; a file changed in both the index and the working tree appears in both lists
       10-2: Each entry can be staged or unstaged individually, and each list as a whole

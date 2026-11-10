@@ -94,58 +94,150 @@ body {
   align-items: center;
 }
 
-.open-form {
+/* The open folio's title, the Open button, and Reload. */
+#open-panel {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  min-width: 0;
+}
+
+.folio-title {
+  font-weight: 600;
+  max-width: 18rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+button:disabled,
+button:disabled:hover {
+  opacity: 0.5;
+  cursor: default;
+  background: var(--hover);
+}
+
+/* The folder dialog the Open button shows. */
+.open-dialog {
+  width: min(44rem, calc(100vw - 2rem));
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--fg);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 25%);
+}
+
+.open-dialog::backdrop {
+  background: rgb(0 0 0 / 30%);
+}
+
+.browse {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.8rem;
+}
+
+.browse-bar {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.browse-bar .browse-dir {
+  flex: 1;
+  min-width: 0;
+}
+
+.browse-main {
+  display: flex;
+  gap: 0.6rem;
+  height: min(24rem, 60vh);
+}
+
+.browse-recent {
+  width: 11rem;
+  flex: none;
+  overflow: auto;
+  border-right: 1px solid var(--border);
+  padding-right: 0.4rem;
+}
+
+.browse-recent h3 {
+  margin: 0.2rem 0 0.4rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.browse-recent ul,
+.browse-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.browse-list {
+  flex: 1;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.2rem;
+}
+
+.browse-list .empty {
+  padding: 0.4rem;
+  color: var(--muted);
+}
+
+.browse-recent-entry,
+.browse-entry {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  border: none;
+  background: none;
+}
+
+.browse-entry.folio {
+  font-weight: 600;
+}
+
+.browse-entry.selected,
+.browse-entry.selected:hover {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.browse-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+.browse-actions {
   display: flex;
   gap: 0.4rem;
   align-items: center;
 }
 
-/* The Open field and the dropdown of recently opened projects, which hangs
-   below it like the render panel hangs below its button. */
-.path-field {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 0.2rem;
+.browse-status {
+  flex: 1;
+  color: var(--muted);
+  font-size: 0.85rem;
 }
 
-.path-field input {
-  width: 11rem;
+.browse-status.failed {
+  color: var(--danger);
 }
 
-.path-menu-toggle {
-  padding: 0.3rem 0.4rem;
-}
-
-.path-menu {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  z-index: 10;
-  margin: 0.3rem 0 0;
-  padding: 0.2rem;
-  list-style: none;
-  min-width: 100%;
-  max-width: min(44rem, 90vw);
-  max-height: 60vh;
-  overflow: auto;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  box-shadow: 0 6px 20px rgb(0 0 0 / 18%);
-}
-
-.path-menu button {
-  display: block;
-  width: 100%;
-  justify-content: flex-start;
-  border: none;
-  background: none;
-  white-space: nowrap;
-}
-
-.path-menu button:hover {
-  background: var(--hover);
+.browse-open {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
 }
 
 /* Search */
@@ -567,7 +659,6 @@ body {
 input[type="text"],
 input[type="search"],
 input:not([type]),
-.open-form input,
 .new-file-form input {
   font-size: 0.85rem;
   padding: 0.3rem 0.5rem;
