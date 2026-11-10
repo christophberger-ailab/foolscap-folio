@@ -11,8 +11,8 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/christophberger-ailab/qm/internal/docrender"
-	"github.com/christophberger-ailab/qm/internal/qmcore"
+	"github.com/christophberger-ailab/foolscap-folio/internal/docrender"
+	"github.com/christophberger-ailab/foolscap-folio/internal/foliocore"
 )
 
 // BrandFile is the Quarto brand file (https://posit-dev.github.io/brand-yml/)
@@ -131,7 +131,7 @@ func brandFonts(root string) (map[string]string, []string, error) {
 			continue
 		}
 		for _, file := range f.Files {
-			path, err := qmcore.ProjectPath(root, file.Path)
+			path, err := foliocore.ProjectPath(root, file.Path)
 			if err != nil {
 				return nil, nil, fmt.Errorf("%s: font %s: %w", BrandFile, f.Family, err)
 			}

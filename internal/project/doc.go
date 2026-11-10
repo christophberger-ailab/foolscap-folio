@@ -5,5 +5,5 @@
 // The package comes from quarto-sorter
 // (https://github.com/christophberger-ailab/quarto-sorter), which was merged
 // into qm as the `qm web` command. It backs the web UI; the command-line
-// subcommands read the tree through internal/qmcore instead.
+// subcommands read the tree through internal/foliocore instead.
 package project

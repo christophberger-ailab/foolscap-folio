@@ -1,4 +1,4 @@
-package qmcore
+package foliocore
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ import (
 )
 
 // This file reads the parts of a `_quarto-<axis>-<value>.yml` profile that
-// qm itself acts on.
+// folio itself acts on.
 //
 // Two of them are Quarto's:
 //
@@ -23,14 +23,14 @@ import (
 //	                axis scheme work at all.
 //	book: title:    the book's title, used as the slide deck's title too.
 //
-// One is qm's own:
+// One is qm's own (the key keeps the tool's former name):
 //
 //	qm:             what Quarto cannot express. `project: output-dir` and
 //	                format-level keys such as `reference-doc` do *not*
 //	                resolve `{{< var >}}` (only `book: output-file` and
 //	                `book: title` do), so everything that has to vary along
 //	                two axes at once is declared here and carried out by
-//	                `qm prepare` / `qm finalize`.
+//	                `folio prepare` / `folio finalize`.
 //
 // Quarto ignores the unknown root key `qm:`; it travels into the pandoc
 // metadata and is otherwise inert.
@@ -42,8 +42,8 @@ type QM struct {
 	//	quarto (or empty)  Quarto writes the output.
 	//	qm                 Quarto writes the DOCX, the project's hooks add the
 	//	                   Go-laid-out PDF and the cover. See bookrender.LoadNative.
-	//	pandoc             qm drives Pandoc itself: no Quarto, no hooks. Pandoc
-	//	                   writes the DOCX or PPTX, and for a DOCX qm lays out the
+	//	pandoc             folio drives Pandoc itself: no Quarto, no hooks. Pandoc
+	//	                   writes the DOCX or PPTX, and for a DOCX folio lays out the
 	//	                   PDF and adds the cover. See bookrender.RenderPandoc.
 	Renderer string `yaml:"renderer"`
 	// PDF holds the options of the PDF the qm and pandoc renderers write.
@@ -60,7 +60,7 @@ type QM struct {
 	// address the whole project (a website render).
 	Folder string `yaml:"folder"`
 
-	// Formats, Audiences, and Topics restrict the matrix `qm render`
+	// Formats, Audiences, and Topics restrict the matrix `folio render`
 	// builds. A topic profile names the formats and audiences it takes part
 	// in — sysadmin has no agency variants and no dark slide deck — and a
 	// format profile may do the same from its side, e.g. the authors'
@@ -71,7 +71,7 @@ type QM struct {
 	Audiences []string `yaml:"audiences"`
 	Topics    []string `yaml:"topics"`
 
-	// Copy is a target→source map of files `qm prepare` copies into place
+	// Copy is a target→source map of files `folio prepare` copies into place
 	// before Quarto runs (format axis). It exists because format-level
 	// keys do not resolve `{{< var >}}`: a PPTX reference template that
 	// depends on both the format (dark or not) and the audience (POL, FW)
@@ -97,7 +97,7 @@ type QM struct {
 	OutputDirSuffix string `yaml:"output-dir-suffix"`
 }
 
-// Profile is one `_quarto-<axis>-<value>.yml` file, as far as qm reads it.
+// Profile is one `_quarto-<axis>-<value>.yml` file, as far as folio reads it.
 type Profile struct {
 	// Name is the profile name as Quarto knows it, e.g. "topic-calltaker".
 	Name  string
@@ -126,7 +126,7 @@ type Profile struct {
 }
 
 // FormatOptions are the options of one output format (`format: docx:`), as
-// far as qm reads them. The Pandoc renderer (`qm: renderer: pandoc`) hands
+// far as folio reads them. The Pandoc renderer (`qm: renderer: pandoc`) hands
 // them to Pandoc itself; Quarto reads them for the other renderers.
 type FormatOptions struct {
 	TOC bool `yaml:"toc"`

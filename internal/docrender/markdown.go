@@ -8,7 +8,7 @@ import (
 	"github.com/yuin/goldmark/ast"
 	east "github.com/yuin/goldmark/extension/ast"
 
-	"github.com/christophberger-ailab/qm/internal/markdown"
+	"github.com/christophberger-ailab/foolscap-folio/internal/markdown"
 )
 
 // PDFMarkdown lays out a parsed and prepared Markdown document as a PDF.

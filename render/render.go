@@ -18,9 +18,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/christophberger-ailab/qm/internal/build"
-	"github.com/christophberger-ailab/qm/internal/cli"
-	"github.com/christophberger-ailab/qm/internal/config"
+	"github.com/christophberger-ailab/foolscap-folio/internal/build"
+	"github.com/christophberger-ailab/foolscap-folio/internal/cli"
+	"github.com/christophberger-ailab/foolscap-folio/internal/config"
 	"github.com/christophberger/start"
 	flag "github.com/spf13/pflag"
 )

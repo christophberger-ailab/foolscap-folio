@@ -17,8 +17,8 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/christophberger-ailab/qm/internal/cli"
-	"github.com/christophberger-ailab/qm/internal/qmcore"
+	"github.com/christophberger-ailab/foolscap-folio/internal/cli"
+	"github.com/christophberger-ailab/foolscap-folio/internal/foliocore"
 	"github.com/christophberger/start"
 	"gopkg.in/yaml.v3"
 )
@@ -67,7 +67,7 @@ func cmd(c *start.Command) error {
 // Run performs the insert operation. folderPath must be the absolute path
 // of the target folder; docPath is the absolute project root.
 func Run(docPath, folderPath string) error {
-	items, err := qmcore.ScanFolderChapters(docPath, folderPath)
+	items, err := foliocore.ScanFolderChapters(docPath, folderPath)
 	if err != nil {
 		return fmt.Errorf("scanning folder: %w", err)
 	}
@@ -92,39 +92,39 @@ func Run(docPath, folderPath string) error {
 
 // findInsertCandidate returns the chapter item that has insert-at:<n> set
 // and no order set. Errors if there is not exactly one such candidate.
-func findInsertCandidate(docPath string, items []qmcore.ChapterItem) (qmcore.ChapterItem, int, error) {
+func findInsertCandidate(docPath string, items []foliocore.ChapterItem) (foliocore.ChapterItem, int, error) {
 	type match struct {
-		item     qmcore.ChapterItem
+		item     foliocore.ChapterItem
 		insertAt int
 	}
 	var matches []match
 	for _, it := range items {
 		full := filepath.Join(docPath, filepath.FromSlash(it.RelPath))
-		fm, err := qmcore.ReadFrontmatter(full)
+		fm, err := foliocore.ReadFrontmatter(full)
 		if err != nil {
-			return qmcore.ChapterItem{}, 0, fmt.Errorf("reading %s: %w", it.RelPath, err)
+			return foliocore.ChapterItem{}, 0, fmt.Errorf("reading %s: %w", it.RelPath, err)
 		}
 		if fm.InsertAt == nil {
 			continue
 		}
 		if fm.Order != nil {
-			return qmcore.ChapterItem{}, 0, fmt.Errorf("%s has both `order` and `insert-at`; remove `order` first", it.RelPath)
+			return foliocore.ChapterItem{}, 0, fmt.Errorf("%s has both `order` and `insert-at`; remove `order` first", it.RelPath)
 		}
 		matches = append(matches, match{item: it, insertAt: *fm.InsertAt})
 	}
 	switch len(matches) {
 	case 0:
-		return qmcore.ChapterItem{}, 0, fmt.Errorf("no chapter with `insert-at:` frontmatter found in folder")
+		return foliocore.ChapterItem{}, 0, fmt.Errorf("no chapter with `insert-at:` frontmatter found in folder")
 	case 1:
 		return matches[0].item, matches[0].insertAt, nil
 	default:
-		return qmcore.ChapterItem{}, 0, fmt.Errorf("multiple chapters with `insert-at:` found; resolve before inserting")
+		return foliocore.ChapterItem{}, 0, fmt.Errorf("multiple chapters with `insert-at:` found; resolve before inserting")
 	}
 }
 
 // renumberForInsert shifts every existing chapter with order >= insertAt by
 // +1. The new chapter is skipped (its order is set separately).
-func renumberForInsert(docPath string, items []qmcore.ChapterItem, newRel string, insertAt int) error {
+func renumberForInsert(docPath string, items []foliocore.ChapterItem, newRel string, insertAt int) error {
 	for _, it := range items {
 		if it.RelPath == newRel {
 			continue
@@ -145,16 +145,16 @@ func renumberForInsert(docPath string, items []qmcore.ChapterItem, newRel string
 }
 
 func setOrder(path string, order int) error {
-	return qmcore.UpdateFrontmatter(path, func(n *yaml.Node) error {
-		return qmcore.SetMappingScalar(n, "order", strconv.Itoa(order))
+	return foliocore.UpdateFrontmatter(path, func(n *yaml.Node) error {
+		return foliocore.SetMappingScalar(n, "order", strconv.Itoa(order))
 	})
 }
 
 // convertInsertAtToOrder rewrites the new chapter's frontmatter, removing
 // `insert-at` and writing `order: <insertAt>`.
 func convertInsertAtToOrder(path string, insertAt int) error {
-	return qmcore.UpdateFrontmatter(path, func(n *yaml.Node) error {
-		qmcore.RemoveMappingKey(n, "insert-at")
-		return qmcore.SetMappingScalar(n, "order", strconv.Itoa(insertAt))
+	return foliocore.UpdateFrontmatter(path, func(n *yaml.Node) error {
+		foliocore.RemoveMappingKey(n, "insert-at")
+		return foliocore.SetMappingScalar(n, "order", strconv.Itoa(insertAt))
 	})
 }

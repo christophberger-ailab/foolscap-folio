@@ -14,7 +14,7 @@ import (
 // selection and the page last opened in the editor.
 //
 // The render selection is a point in the project's three-axis matrix (see
-// internal/qmcore): topics, formats, and — per topic, because not every
+// internal/foliocore): topics, formats, and — per topic, because not every
 // topic has the same ones — audiences.
 type projectPrefs struct {
 	// Topics are the selected topic names.

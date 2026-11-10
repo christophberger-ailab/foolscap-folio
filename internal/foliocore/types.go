@@ -1,7 +1,7 @@
-// Package qmcore contains the shared logic used by the qm subcommands.
+// Package foliocore contains the shared logic used by the folio subcommands.
 // It is deliberately *not* named after the user-facing object ("chapters");
 // per the spec, object names are not subcommand or package names.
-package qmcore
+package foliocore
 
 import (
 	"path/filepath"

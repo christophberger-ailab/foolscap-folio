@@ -1,9 +1,9 @@
-// Package migrate implements the `qm migrate` subcommand.
+// Package migrate implements the `folio migrate` subcommand.
 //
 // It reads the old Quarto-based configuration of a project — one
 // _quarto.yml plus one profile file per axis value (_quarto-topic-<t>.yml,
 // _quarto-format-<f>.yml, _quarto-audience-<a>.yml) — and writes the
-// equivalent qm.yml, so a project does not have to be converted by hand.
+// equivalent folio.yml, so a project does not have to be converted by hand.
 package migrate
 
 import (
@@ -17,9 +17,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/christophberger-ailab/qm/internal/cli"
-	"github.com/christophberger-ailab/qm/internal/config"
-	"github.com/christophberger-ailab/qm/internal/qmcore"
+	"github.com/christophberger-ailab/foolscap-folio/internal/cli"
+	"github.com/christophberger-ailab/foolscap-folio/internal/config"
+	"github.com/christophberger-ailab/foolscap-folio/internal/foliocore"
 	"github.com/christophberger/start"
 	flag "github.com/spf13/pflag"
 	"gopkg.in/yaml.v3"
@@ -33,22 +33,22 @@ var (
 // Register wires the `migrate` command into start.
 func Register(projectFlag *string) {
 	projectPath = projectFlag
-	forceFlag = flag.Bool("force", false, "Overwrite an existing qm.yml")
+	forceFlag = flag.Bool("force", false, "Overwrite an existing folio.yml")
 	// `render` defines --dry-run too; a flag can only be defined once.
 	if f := flag.Lookup("dry-run"); f != nil {
 		dryRunLookup = func() bool { return f.Value.String() == "true" }
 	} else {
-		d := flag.Bool("dry-run", false, "Print the qm.yml instead of writing it")
+		d := flag.Bool("dry-run", false, "Print the folio.yml instead of writing it")
 		dryRunLookup = func() bool { return *d }
 	}
 
 	start.Add(&start.Command{
 		Name:  "migrate",
-		Short: "Write qm.yml from the project's Quarto configuration",
+		Short: "Write folio.yml from the project's Quarto configuration",
 		Long: "Read _quarto.yml and the _quarto-topic-*.yml, _quarto-format-*.yml " +
 			"and _quarto-audience-*.yml profiles and write the equivalent " +
-			"qm.yml. Use --dry-run to print it instead, --force to overwrite " +
-			"an existing qm.yml.",
+			"folio.yml. Use --dry-run to print it instead, --force to overwrite " +
+			"an existing folio.yml.",
 		Flags: []string{"project", "force", "dry-run"},
 		Cmd:   cli.Guard(cmd),
 	})
@@ -81,7 +81,7 @@ func cmd(c *start.Command) error {
 
 // Options control Run.
 type Options struct {
-	Force  bool // overwrite an existing qm.yml
+	Force  bool // overwrite an existing folio.yml
 	DryRun bool // do not write the file
 }
 
@@ -95,12 +95,12 @@ type Result struct {
 // varRef matches Quarto's `{{< var name >}}` shortcode.
 var varRef = regexp.MustCompile(`\{\{<\s*var\s+([^\s>]+)\s*>\}\}`)
 
-var builtins = map[string]qmcore.Axis{
-	"topic": qmcore.AxisTopic, "format": qmcore.AxisFormat, "audience": qmcore.AxisAudience,
+var builtins = map[string]foliocore.Axis{
+	"topic": foliocore.AxisTopic, "format": foliocore.AxisFormat, "audience": foliocore.AxisAudience,
 }
 
-// rawQuarto is the part of a Quarto config file qm.yml needs beyond what
-// qmcore reads.
+// rawQuarto is the part of a Quarto config file folio.yml needs beyond what
+// foliocore reads.
 type rawQuarto struct {
 	Project struct {
 		Type string `yaml:"type"`
@@ -170,7 +170,7 @@ func Run(root string, opts Options) (*Result, error) {
 	// Verify: parse what would be written.
 	dir := root
 	if opts.DryRun {
-		dir, err = os.MkdirTemp("", "qm-migrate-")
+		dir, err = os.MkdirTemp("", "folio-migrate-")
 		if err != nil {
 			return res, err
 		}
@@ -180,34 +180,34 @@ func Run(root string, opts Options) (*Result, error) {
 		return res, err
 	}
 	if _, err := config.Load(dir); err != nil {
-		return res, fmt.Errorf("generated qm.yml does not load: %w", err)
+		return res, fmt.Errorf("generated folio.yml does not load: %w", err)
 	}
 	res.Written = !opts.DryRun
 	return res, nil
 }
 
 type profiles struct {
-	topics, formats, audiences []*qmcore.Profile
+	topics, formats, audiences []*foliocore.Profile
 }
 
 func loadAll(root string) (profiles, error) {
 	var ps profiles
-	for _, ax := range qmcore.Axes {
-		names, err := qmcore.AxisValues(root, ax)
+	for _, ax := range foliocore.Axes {
+		names, err := foliocore.AxisValues(root, ax)
 		if err != nil {
 			return ps, err
 		}
 		for _, n := range names {
-			p, err := qmcore.LoadProfile(root, ax.ProfileName(n))
+			p, err := foliocore.LoadProfile(root, ax.ProfileName(n))
 			if err != nil {
 				return ps, err
 			}
 			switch ax {
-			case qmcore.AxisTopic:
+			case foliocore.AxisTopic:
 				ps.topics = append(ps.topics, p)
-			case qmcore.AxisFormat:
+			case foliocore.AxisFormat:
 				ps.formats = append(ps.formats, p)
-			case qmcore.AxisAudience:
+			case foliocore.AxisAudience:
 				ps.audiences = append(ps.audiences, p)
 			}
 		}
@@ -216,7 +216,7 @@ func loadAll(root string) (profiles, error) {
 }
 
 func (m *migrator) build(root string) (*yaml.Node, error) {
-	base, err := qmcore.LoadBase(root)
+	base, err := foliocore.LoadBase(root)
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +254,7 @@ func (m *migrator) build(root string) (*yaml.Node, error) {
 	for _, f := range base.Filters {
 		addFilter(f)
 	}
-	all := append(append(append([]*qmcore.Profile{}, ps.topics...), ps.formats...), ps.audiences...)
+	all := append(append(append([]*foliocore.Profile{}, ps.topics...), ps.formats...), ps.audiences...)
 	for _, p := range all {
 		sources = append(sources, filepath.Base(p.Path))
 		for _, f := range p.Filters {
@@ -272,7 +272,7 @@ func (m *migrator) build(root string) (*yaml.Node, error) {
 			m.renames[k] = k + "_suffix"
 		}
 	}
-	vars := func(p *qmcore.Profile) *yaml.Node {
+	vars := func(p *foliocore.Profile) *yaml.Node {
 		out := map[string]string{}
 		for k, v := range p.Vars {
 			if ax, ok := builtins[k]; ok && ax == p.Axis && v == p.Value {
@@ -289,7 +289,7 @@ func (m *migrator) build(root string) (*yaml.Node, error) {
 	// Which topics and formats and audiences survive.
 	topicNames := map[string]bool{}
 	for _, p := range ps.topics {
-		if !qmcore.IsWholeProject(p.Value) {
+		if !foliocore.IsWholeProject(p.Value) {
 			topicNames[p.Value] = true
 		}
 	}
@@ -309,7 +309,7 @@ func (m *migrator) build(root string) (*yaml.Node, error) {
 		var out []string
 		for _, n := range in {
 			switch {
-			case qmcore.IsWholeProject(n) && kind == "topic":
+			case foliocore.IsWholeProject(n) && kind == "topic":
 			case known[n]:
 				out = append(out, n)
 			default:
@@ -455,7 +455,7 @@ func (m *migrator) build(root string) (*yaml.Node, error) {
 	// topics
 	tm := &yaml.Node{Kind: yaml.MappingNode}
 	for _, p := range ps.topics {
-		if qmcore.IsWholeProject(p.Value) {
+		if foliocore.IsWholeProject(p.Value) {
 			continue
 		}
 		e := &yaml.Node{Kind: yaml.MappingNode}
@@ -494,9 +494,9 @@ func (m *migrator) build(root string) (*yaml.Node, error) {
 
 	// Header comment.
 	var h strings.Builder
-	h.WriteString("Generated by `qm migrate` from: " + strings.Join(sources, ", ") + ".\n")
-	h.WriteString("Once you have checked that `qm render` produces what it used to, delete\n")
-	h.WriteString("these files; qm no longer reads them.\n")
+	h.WriteString("Generated by `folio migrate` from: " + strings.Join(sources, ", ") + ".\n")
+	h.WriteString("Once you have checked that `folio render` produces what it used to, delete\n")
+	h.WriteString("these files; folio no longer reads them.\n")
 	if len(filters) > 0 {
 		h.WriteString("\nThe project's Lua filters are no longer run: " + strings.Join(filters, ", ") + ".\n")
 		h.WriteString("Conditional content is selected by `show:` of the format and the audience.\n")
@@ -523,7 +523,7 @@ type formatInfo struct {
 }
 
 // analyze derives what a format profile writes; nil when it is skipped.
-func (m *migrator) analyze(p *qmcore.Profile, rawBase rawQuarto) *formatInfo {
+func (m *migrator) analyze(p *foliocore.Profile, rawBase rawQuarto) *formatInfo {
 	raw := readRaw(p.Path)
 	_, hasHTML := p.Format["html"]
 	docx, hasDOCX := p.Format["docx"]

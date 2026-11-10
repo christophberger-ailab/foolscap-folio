@@ -416,7 +416,7 @@ document.addEventListener('dragstart', function (evt) {
   draggedPane = pane.dataset.pane;
   evt.dataTransfer.effectAllowed = 'move';
   // A type of its own, so the editor does not take the drop for text.
-  evt.dataTransfer.setData('application/x-qm-pane', draggedPane);
+  evt.dataTransfer.setData('application/x-folio-pane', draggedPane);
   pane.classList.add('pane-dragging');
 });
 
@@ -1023,7 +1023,7 @@ function sendChat() {
     var failed = document.createElement('div');
     failed.className = 'chat-turn chat-assistant';
     failed.innerHTML = '<div class="error"></div>';
-    failed.firstChild.textContent = 'The question did not reach qm: ' + err;
+    failed.firstChild.textContent = 'The question did not reach folio: ' + err;
     waiting.parentNode.insertBefore(failed, waiting);
   }).then(function () {
     waiting.remove();
@@ -1315,7 +1315,7 @@ function bumpMediaVersion() {
 // is announced by /watch, the tree's poll, as an event. The preview then
 // fetches its images again: a new stamp, and a render that puts it into
 // the image URLs. The editor's text is left as it is.
-document.body.addEventListener('qm-media-changed', function () {
+document.body.addEventListener('folio-media-changed', function () {
   bumpMediaVersion();
   updatePreview();
 });
@@ -1340,7 +1340,7 @@ document.body.addEventListener('dblclick', function (evt) {
 // A click on a commented passage in the preview puts the cursor at the
 // start of its comment in the editor, where the comment is read and edited.
 document.body.addEventListener('click', function (evt) {
-  var passage = evt.target.closest && evt.target.closest('#preview .qm-comment');
+  var passage = evt.target.closest && evt.target.closest('#preview .folio-comment');
   if (!passage) {
     return;
   }
@@ -2122,7 +2122,7 @@ document.body.addEventListener('click', function (evt) {
 var saveFailed = false;
 
 // rebaseNotice is what the last save had to put back: the server sends it
-// as a qm:rebased event, which htmx fires before the request finishes, so
+// as a folio:rebased event, which htmx fires before the request finishes, so
 // it is held here until there is a "Saved" to say it alongside.
 var rebaseNotice = '';
 
@@ -2255,7 +2255,7 @@ function startRename(button, typed, problem) {
 // the headings. The server replays the edit onto those rather than let it
 // undo them, and says so here: the editor still shows the text from before,
 // and only a reload brings it in line.
-document.body.addEventListener('qm:rebased', function (evt) {
+document.body.addEventListener('folio:rebased', function (evt) {
   var d = evt.detail || {};
   rebaseNotice = d.headings
     ? ' — the move\'s heading levels were kept; ↻ Reload to see them'

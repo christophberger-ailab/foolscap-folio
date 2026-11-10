@@ -1,4 +1,4 @@
-package qmcore
+package foliocore
 
 import (
 	"fmt"
@@ -40,7 +40,7 @@ type Matrix struct {
 // stable order: topics outermost, then formats, then audiences.
 //
 // A name that no profile file backs is an error rather than a silently
-// empty result: `qm render --topic calltakr` should say so.
+// empty result: `folio render --topic calltakr` should say so.
 func BuildMatrix(docRoot string, req Matrix) ([]Selection, error) {
 	available := map[Axis][]string{}
 	for _, a := range Axes {

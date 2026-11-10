@@ -8,7 +8,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/christophberger-ailab/qm/internal/gitrepo"
+	"github.com/christophberger-ailab/foolscap-folio/internal/gitrepo"
 )
 
 // gitView is what the Git panel shows: where the branch stands, the files
@@ -261,7 +261,14 @@ func (s *server) gitPath(rel string) (gitFile, error) {
 		return gitFile{}, err
 	}
 	f := gitFile{root: s.root, abs: filepath.Join(top, filepath.FromSlash(rel))}
-	if in, err := filepath.Rel(s.root, f.abs); err == nil && safeRel(filepath.ToSlash(in)) {
+	// Git reports the top with every symlink resolved, so the project has
+	// to be seen the same way before the file can be found inside it: a
+	// project opened as /var/... on macOS is /private/var/... to git.
+	root := s.root
+	if real, err := filepath.EvalSymlinks(root); err == nil {
+		root = real
+	}
+	if in, err := filepath.Rel(root, f.abs); err == nil && safeRel(filepath.ToSlash(in)) {
 		f.edit = filepath.ToSlash(in)
 	}
 	return f, nil

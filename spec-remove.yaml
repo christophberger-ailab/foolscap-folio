@@ -4,7 +4,7 @@ feature:
 
 components:
   COMMAND:
-    description: qm chapters remove <path-to-folder> <order number>
+    description: folio chapters remove <path-to-folder> <order number>
     requirements:
       1: Object name is "chapters"
       2: Subcommand name is "remove"

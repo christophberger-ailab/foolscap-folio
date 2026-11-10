@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/christophberger-ailab/qm/internal/build"
-	"github.com/christophberger-ailab/qm/internal/config"
+	"github.com/christophberger-ailab/foolscap-folio/internal/build"
+	"github.com/christophberger-ailab/foolscap-folio/internal/config"
 )
 
 // fixture builds a small project with two topics. `chapter2` takes part in

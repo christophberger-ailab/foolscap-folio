@@ -1,4 +1,4 @@
-// Package remove implements the `qm chapters remove` subcommand.
+// Package remove implements the `folio chapters remove` subcommand.
 //
 // Spec: spec-remove.yaml. Removes a chapter (file or subfolder/index.qmd)
 // at a given order number. Confirms with the user before deletion. Tries
@@ -16,8 +16,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/christophberger-ailab/qm/internal/cli"
-	"github.com/christophberger-ailab/qm/internal/qmcore"
+	"github.com/christophberger-ailab/foolscap-folio/internal/cli"
+	"github.com/christophberger-ailab/foolscap-folio/internal/foliocore"
 	"github.com/christophberger/start"
 )
 
@@ -40,7 +40,7 @@ func Register(parent string, projectFlag *string) {
 
 func cmd(c *start.Command) error {
 	if len(c.Args) < 2 {
-		return fmt.Errorf("usage: qm chapters remove <folder> <order>")
+		return fmt.Errorf("usage: folio chapters remove <folder> <order>")
 	}
 	if projectPath == nil {
 		return fmt.Errorf("remove: --project flag not initialised")
@@ -70,12 +70,12 @@ func cmd(c *start.Command) error {
 // Run performs the remove operation, prompting via in/out for confirmation.
 // Separated from cmd so tests can drive it with synthetic input.
 func Run(docPath, folderPath string, order int, in io.Reader, out io.Writer) error {
-	items, err := qmcore.ScanFolderChapters(docPath, folderPath)
+	items, err := foliocore.ScanFolderChapters(docPath, folderPath)
 	if err != nil {
 		return fmt.Errorf("scanning folder: %w", err)
 	}
 
-	var target *qmcore.ChapterItem
+	var target *foliocore.ChapterItem
 	for i := range items {
 		if items[i].Order != nil && *items[i].Order == order {
 			target = &items[i]
@@ -126,7 +126,7 @@ func readYesNo(in io.Reader) (bool, error) {
 // deleteChapter removes the chapter, deleting the containing subfolder when
 // the chapter is a directory (its frontmatter lives in index.qmd inside the
 // folder).
-func deleteChapter(docPath string, item qmcore.ChapterItem) error {
+func deleteChapter(docPath string, item foliocore.ChapterItem) error {
 	target := filepath.Join(docPath, filepath.FromSlash(item.RelPath))
 	if item.IsDir {
 		target = filepath.Dir(target)

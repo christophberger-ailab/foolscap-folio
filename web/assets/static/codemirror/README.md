@@ -13,19 +13,19 @@ and loaded with `<script>` tags, the same way `marked.umd.js`,
 `htmx.min.js`, and `sortable.min.js` are. CodeMirror 6 is ESM-only and would
 require a bundler, and with it a Node build step in a Go repository.
 
-| file | tarball path |
-| --- | --- |
-| `codemirror.js`, `codemirror.css` | `lib/` |
-| `vim.js` | `keymap/vim.js` |
-| `markdown.js`, `gfm.js`, `yaml.js`, `yaml-frontmatter.js`, `xml.js` | `mode/` |
-| `css.js` | `mode/css/css.js` |
-| `meta.js` | `mode/meta.js` |
-| `overlay.js` | `addon/mode/overlay.js` |
-| `dialog.js`, `dialog.css` | `addon/dialog/` |
-| `searchcursor.js` | `addon/search/searchcursor.js` |
-| `matchbrackets.js`, `continuelist.js` | `addon/edit/` |
-| `show-hint.js`, `show-hint.css` | `addon/hint/` |
-| `LICENSE` | `LICENSE` |
+| file                                                                | tarball path                   |
+| ------------------------------------------------------------------- | ------------------------------ |
+| `codemirror.js`, `codemirror.css`                                   | `lib/`                         |
+| `vim.js`                                                            | `keymap/vim.js`                |
+| `markdown.js`, `gfm.js`, `yaml.js`, `yaml-frontmatter.js`, `xml.js` | `mode/`                        |
+| `css.js`                                                            | `mode/css/css.js`              |
+| `meta.js`                                                           | `mode/meta.js`                 |
+| `overlay.js`                                                        | `addon/mode/overlay.js`        |
+| `dialog.js`, `dialog.css`                                           | `addon/dialog/`                |
+| `searchcursor.js`                                                   | `addon/search/searchcursor.js` |
+| `matchbrackets.js`, `continuelist.js`                               | `addon/edit/`                  |
+| `show-hint.js`, `show-hint.css`                                     | `addon/hint/`                  |
+| `LICENSE`                                                           | `LICENSE`                      |
 
 The set is what the editors need and no more. `yaml-frontmatter` over `gfm`
 is the mode a `.qmd` page is read with; `css` is used by the custom preview
@@ -47,5 +47,5 @@ indication of why.
 Download the tarball for the new version, copy the files in the table above
 to the same names, and update the version at the top of this file. Then run
 `go test ./web/` -- it checks that every dependency is present and that the
-page loads them in dependency order -- and open a page in `qm web` to
+page loads them in dependency order -- and open a page in `folio web` to
 confirm the editor still mounts.

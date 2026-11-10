@@ -15,7 +15,7 @@ import (
 
 	"github.com/yuin/goldmark/ast"
 
-	"github.com/christophberger-ailab/qm/internal/markdown"
+	"github.com/christophberger-ailab/foolscap-folio/internal/markdown"
 )
 
 const (

@@ -1,23 +1,23 @@
 # Native document rendering
 
 > **Status (2026-11).** This page records how the native PDF and DOCX pipeline
-> came about, in two stages that qm has since left behind. Pandoc is no longer
-> the main path: qm now needs neither Quarto nor Pandoc, and a document is
+> came about, in two stages that folio has since left behind. Pandoc is no longer
+> the main path: folio now needs neither Quarto nor Pandoc, and a document is
 > parsed in Go (`internal/markdown`, goldmark) and written by `internal/docx`
 > (DOCX) and `internal/docrender` (PDF, gopdf). The Pandoc-JSON capture, the
-> capture filter, `qm prepare`/`qm finalize` and `internal/bookrender` described
+> capture filter, `folio prepare`/`folio finalize` and `internal/bookrender` described
 > below no longer exist; the library research, the cover packaging and the PDF
 > layout still apply. Current behaviour is in the [README](../README.md).
 
 ## Library research (2026-09-30)
 
-| Library | Finding | Decision |
-| --- | --- | --- |
-| [signintech/gopdf](https://github.com/signintech/gopdf) | MIT; repository pushed September 2026; Unicode TrueType embedding, PNG/JPEG, links and outlines | PDF backend, pinned to v0.38.1 |
-| [johnfercher/maroto](https://github.com/johnfercher/maroto) | MIT; repository pushed September 2026; higher-level grid layout | Viable alternative; direct gopdf gives control over flowing book text |
-| [gomutex/godocx](https://github.com/gomutex/godocx) | MIT; repository last pushed August 2025 | Investigated, but not added as a dependency |
-| [fumiama/go-docx](https://github.com/fumiama/go-docx) | AGPL-3.0; repository last pushed May 2025 | Not selected |
-| [unidoc/unioffice](https://github.com/unidoc/unioffice) | Active, commercial licensing | Not selected |
+| Library                                                     | Finding                                                                                         | Decision                                                              |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| [signintech/gopdf](https://github.com/signintech/gopdf)     | MIT; repository pushed September 2026; Unicode TrueType embedding, PNG/JPEG, links and outlines | PDF backend, pinned to v0.38.1                                        |
+| [johnfercher/maroto](https://github.com/johnfercher/maroto) | MIT; repository pushed September 2026; higher-level grid layout                                 | Viable alternative; direct gopdf gives control over flowing book text |
+| [gomutex/godocx](https://github.com/gomutex/godocx)         | MIT; repository last pushed August 2025                                                         | Investigated, but not added as a dependency                           |
+| [fumiama/go-docx](https://github.com/fumiama/go-docx)       | AGPL-3.0; repository last pushed May 2025                                                       | Not selected                                                          |
+| [unidoc/unioffice](https://github.com/unidoc/unioffice)     | Active, commercial licensing                                                                    | Not selected                                                          |
 
 Repository activity is a snapshot, not a maintenance guarantee. At the time,
 the selected DOCX writer was **Pandoc**, already bundled with Quarto. It has
@@ -31,8 +31,8 @@ Quarto book projects reject `--to json`. Rendering Markdown and parsing it again
 would also lose structure and require another interpretation of attributes.
 Instead, the format profile renders DOCX only and declares a Lua filter at
 Quarto's last entry point, `post-finalize`. The filter, written to `_build/` by
-`qm prepare`, saves the filtered Pandoc AST to `_build/qm-document.json`, and
-`qm finalize` lays out the PDF from it. Quarto's existing audience
+`folio prepare`, saves the filtered Pandoc AST to `_build/folio-document.json`, and
+`folio finalize` lays out the PDF from it. Quarto's existing audience
 filter, includes, variables and book assembly run normally once. The final AST
 contains some DOCX-specific callout layout fragments: these are accepted only
 when they contain known layout elements, while content-bearing unsupported
@@ -42,13 +42,13 @@ border color and the title cell's shading), so it uses Quarto's own values for
 note, tip, warning, important and caution, and draws the callout as a box.
 
 Because the whole pipeline runs in the project's pre- and post-render hooks, a
-plain `quarto render --profile …` produces the same PDF and DOCX as `qm render`.
+plain `quarto render --profile …` produces the same PDF and DOCX as `folio render`.
 The AST captured at `post-finalize` differs from one captured by a command-line
 `--lua-filter` only by Quarto's empty, hidden file-metadata `Div`. The filter
 drops that `Div`, so the two captures are byte-identical.
 
 Today `internal/build` owns the pipeline; `internal/docrender` owns PDF layout
-and DOCX cover insertion, and `qm render` and `qm web` share it.
+and DOCX cover insertion, and `folio render` and `folio web` share it.
 
 ## Cover packaging
 
@@ -82,15 +82,15 @@ LibreOffice build could not start in the test environment. The sysadmin render
 stopped during Quarto preprocessing because Chrome (needed for diagrams) was
 not installed; this dependency is independent of PDF typesetting.
 
-## Without Quarto: `qm: renderer: pandoc` (2026-10-28, historical)
+## Without Quarto: `folio: renderer: pandoc` (2026-10-28, historical)
 
 The pipeline above runs Pandoc *inside* Quarto: Quarto reads the book, runs
 its filters, and writes the DOCX, and the project's hooks capture the document
-and lay out the PDF. A format with `qm: renderer: pandoc` takes Quarto out of
-the loop. `qm` flattens the topic itself, resolves the few shortcodes the
+and lay out the PDF. A format with `folio: renderer: pandoc` takes Quarto out of
+the loop. `folio` flattens the topic itself, resolves the few shortcodes the
 content uses, runs Pandoc with the project's own filter chain, and lays out
 the PDF from the document that chain captures. This renderer, too, has been
-replaced: the content is now read by qm's own parser and no Pandoc is run (see
+replaced: the content is now read by folio's own parser and no Pandoc is run (see
 [the README](../README.md#documents-docx-and-pdf)). The comparison below is kept
 because the behaviours it found are the ones the Go writers imitate.
 
@@ -133,6 +133,6 @@ them) stay code blocks; shortcodes other than `include`, `pagebreak` and
 is rejected.
 
 One defect of the *generated decks* shows in both renderers and is left as it
-is: `qm` writes an HTML comment before a deck's front matter, so Pandoc does
+is: `folio` writes an HTML comment before a deck's front matter, so Pandoc does
 not read the front matter, and the deck gets a slide titled
 `title: 'Calltaker Polizei'` after its real title slide.

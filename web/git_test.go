@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/christophberger-ailab/qm/internal/gitrepo"
+	"github.com/christophberger-ailab/foolscap-folio/internal/gitrepo"
 )
 
 // The Git button sits in the top bar beside Render, and its body is

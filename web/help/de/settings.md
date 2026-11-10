@@ -11,7 +11,7 @@
 
 ## Comments: Your name
 
-`qm web` läuft auf deinem eigenen Rechner, daher gibt es keine Anmeldung. Die Kommentare und Antworten, die du im Editor schreibst, werden mit dem Namen gezeichnet, den du hier einträgst, zusammen mit dem Datum. Bleibt das Feld leer, wird der Name verwendet, mit dem du am Rechner angemeldet bist. Doppelte Anführungszeichen, geschweifte Klammern und Zeilenumbrüche sind im Namen nicht erlaubt.
+`folio web` läuft auf deinem eigenen Rechner, daher gibt es keine Anmeldung. Die Kommentare und Antworten, die du im Editor schreibst, werden mit dem Namen gezeichnet, den du hier einträgst, zusammen mit dem Datum. Bleibt das Feld leer, wird der Name verwendet, mit dem du am Rechner angemeldet bist. Doppelte Anführungszeichen, geschweifte Klammern und Zeilenumbrüche sind im Namen nicht erlaubt.
 
 ## Preview: Custom CSS
 
@@ -22,11 +22,11 @@ Hier schreibst du CSS, das die eingebauten Stile der Vorschau überschreibt. Es 
 - Das aktive Stylesheet wählst du mit dem Dropdown unter der Vorschau.
 - Regeln wie `.quarto.pol:before { content: "..." }` liefern auch die Symbole, die der [Seitenbaum](tree.md) für Spans zeigt.
 
-Stylesheets sind Dateien mit dem Namen `<user config dir>/qm/custom-css/*.css`. Eine Standarddatei `custom.css` wird beim ersten Start von `qm web` angelegt.
+Stylesheets sind Dateien mit dem Namen `<user config dir>/folio/custom-css/*.css`. Eine Standarddatei `custom.css` wird beim ersten Start von `folio web` angelegt.
 
 ## Die Einstellungsdatei
 
-Alles, was sich `qm web` merkt, steht in einer einzigen Datei: `<user config dir>/qm/config.cue`. Sie enthält:
+Alles, was sich `folio web` merkt, steht in einer einzigen Datei: `<user config dir>/folio/config.cue`. Sie enthält:
 
 - die zuletzt geöffneten Projekte,
 - die Render-Auswahl und die zuletzt geöffnete Seite jedes Projekts,
@@ -48,6 +48,6 @@ Du darfst die Datei selbst bearbeiten.
 
 ## Fehler halten die App an
 
-Besteht die Datei die Prüfung nicht, hält `qm web` an, statt sie zu ersetzen, denn sie ist die einzige Kopie deiner Verbindungen und Auswahlen. Behebe die gemeldete Zeile und starte erneut. Ein Speichern, das die App selbst nicht wieder einlesen konnte, wird abgelehnt.
+Besteht die Datei die Prüfung nicht, hält `folio web` an, statt sie zu ersetzen, denn sie ist die einzige Kopie deiner Verbindungen und Auswahlen. Behebe die gemeldete Zeile und starte erneut. Ein Speichern, das die App selbst nicht wieder einlesen konnte, wird abgelehnt.
 
 Zurück zum [Inhalt](index.md).

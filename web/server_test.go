@@ -14,7 +14,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/christophberger-ailab/qm/internal/project"
+	"github.com/christophberger-ailab/foolscap-folio/internal/project"
 )
 
 // Keep test files out of the real system trash.
@@ -118,7 +118,7 @@ func TestTreeMarksDrafts(t *testing.T) {
 		t.Errorf("second.qmd wrongly marked draft:\n%s", body)
 	}
 	css := get(t, srv, "/static/app.css").Body.String()
-	if !strings.Contains(css, "li.page.draft>.row") {
+	if !cssContains(css, "li.page.draft>.row") {
 		t.Error("the stylesheet does not grey out a draft page")
 	}
 }
@@ -233,7 +233,7 @@ func TestPreviewWrapsATargetGroupPage(t *testing.T) {
 func TestHiddenButtonsStayHidden(t *testing.T) {
 	srv, _ := testServer(t)
 	css := get(t, srv, "/static/app.css").Body.String()
-	if !strings.Contains(css, "button[hidden]") {
+	if !cssContains(css, "button[hidden]") {
 		t.Error("the stylesheet does not hide a button carrying the hidden attribute")
 	}
 	body := get(t, srv, "/content?path=chapter2/second.qmd").Body.String()
@@ -534,7 +534,7 @@ func TestPreviewCaptionsAStandaloneImage(t *testing.T) {
 
 	srv, _ := testServer(t)
 	css := get(t, srv, "/static/app.css").Body.String()
-	if !strings.Contains(css, ".markdown-preview figcaption") {
+	if !cssContains(css, ".markdown-preview figcaption") {
 		t.Error("the stylesheet does not style the preview's image captions")
 	}
 }
@@ -569,7 +569,7 @@ func TestPreviewDrawsCalloutsLikeQuarto(t *testing.T) {
 		"--callout-color: #FC5300;\n  --callout-header: #ffe5d0;",
 		".markdown-preview .callout-icon",
 	} {
-		if !strings.Contains(css, want) {
+		if !cssContains(css, want) {
 			t.Errorf("the stylesheet does not draw callouts in Quarto's colors, missing %q", want)
 		}
 	}
@@ -1375,16 +1375,16 @@ func TestRenameSectionRepointsOpenEditor(t *testing.T) {
 // stylesheet still do it.
 func TestTodoHighlightedInEditorAndPreview(t *testing.T) {
 	for file, wants := range map[string][]string{
-		"assets/static/editor.js":  {"var todoOverlay", "cm.addOverlay(todoOverlay);", "return 'qm-todo';"},
+		"assets/static/editor.js":  {"var todoOverlay", "cm.addOverlay(todoOverlay);", "return 'folio-todo';"},
 		"assets/static/preview.js": {"function markTodos(root)", "markTodos(el);", "Node.COMMENT_NODE"},
-		"assets/static/app.css":    {"--todo:", ".cm-qm-todo", "mark.qm-todo", "mark.qm-todo-hidden"},
+		"assets/static/app.css":    {"--todo:", ".cm-folio-todo", "mark.folio-todo", "mark.folio-todo-hidden"},
 	} {
 		src, err := assets.ReadFile(file)
 		if err != nil {
 			t.Fatal(err)
 		}
 		for _, want := range wants {
-			if !strings.Contains(string(src), want) {
+			if !assetContains(file, string(src), want) {
 				t.Errorf("%s does not mark ==TODO==, missing %q", file, want)
 			}
 		}

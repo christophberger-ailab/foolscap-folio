@@ -20,13 +20,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/christophberger-ailab/qm/internal/bookmaker"
-	"github.com/christophberger-ailab/qm/internal/config"
-	"github.com/christophberger-ailab/qm/internal/docrender"
-	"github.com/christophberger-ailab/qm/internal/docx"
-	"github.com/christophberger-ailab/qm/internal/markdown"
-	"github.com/christophberger-ailab/qm/internal/shortcode"
-	"github.com/christophberger-ailab/qm/internal/site"
+	"github.com/christophberger-ailab/foolscap-folio/internal/bookmaker"
+	"github.com/christophberger-ailab/foolscap-folio/internal/config"
+	"github.com/christophberger-ailab/foolscap-folio/internal/docrender"
+	"github.com/christophberger-ailab/foolscap-folio/internal/docx"
+	"github.com/christophberger-ailab/foolscap-folio/internal/markdown"
+	"github.com/christophberger-ailab/foolscap-folio/internal/shortcode"
+	"github.com/christophberger-ailab/foolscap-folio/internal/site"
 )
 
 // Logf receives the render's progress, one line per call, in the format of

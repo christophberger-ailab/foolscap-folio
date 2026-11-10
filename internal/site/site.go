@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/christophberger-ailab/qm/internal/bookmaker"
-	"github.com/christophberger-ailab/qm/internal/markdown"
+	"github.com/christophberger-ailab/foolscap-folio/internal/bookmaker"
+	"github.com/christophberger-ailab/foolscap-folio/internal/markdown"
 	"github.com/yuin/goldmark/ast"
 	"go.yaml.in/yaml/v4"
 )

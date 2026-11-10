@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/christophberger-ailab/qm/internal/cli"
-	"github.com/christophberger-ailab/qm/internal/qmcore"
+	"github.com/christophberger-ailab/foolscap-folio/internal/cli"
+	"github.com/christophberger-ailab/foolscap-folio/internal/foliocore"
 	"github.com/christophberger/start"
 	"gopkg.in/yaml.v3"
 )
@@ -73,13 +73,13 @@ func Run(docPath, folderPath string, oldOrder, newOrder int) error {
 		return nil
 	}
 
-	items, err := qmcore.ScanFolderChapters(docPath, folderPath)
+	items, err := foliocore.ScanFolderChapters(docPath, folderPath)
 	if err != nil {
 		return fmt.Errorf("scanning folder: %w", err)
 	}
 
 	// Locate the chapter at oldOrder.
-	var moved *qmcore.ChapterItem
+	var moved *foliocore.ChapterItem
 	for i := range items {
 		if items[i].Order != nil && *items[i].Order == oldOrder {
 			moved = &items[i]
@@ -130,8 +130,8 @@ func Run(docPath, folderPath string, oldOrder, newOrder int) error {
 func applyOrderUpdates(docPath string, updates map[string]int) error {
 	for relPath, newOrder := range updates {
 		full := filepath.Join(docPath, filepath.FromSlash(relPath))
-		err := qmcore.UpdateFrontmatter(full, func(n *yaml.Node) error {
-			return qmcore.SetMappingScalar(n, "order", strconv.Itoa(newOrder))
+		err := foliocore.UpdateFrontmatter(full, func(n *yaml.Node) error {
+			return foliocore.SetMappingScalar(n, "order", strconv.Itoa(newOrder))
 		})
 		if err != nil {
 			return fmt.Errorf("updating %s: %w", relPath, err)

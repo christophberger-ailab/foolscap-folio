@@ -141,7 +141,7 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      # qm is pure Go (the only embedded data comes from //go:embed in
+      # folio is pure Go (the only embedded data comes from //go:embed in
       # web/server.go), so CGO_ENABLED=0 gives a static binary and lets all
       # four targets cross-compile from the same ubuntu runner.
       - name: Build
@@ -151,8 +151,8 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
         run: |
           set -euo pipefail
-          BIN=qm
-          if [ "$GOOS" = "windows" ]; then BIN=qm.exe; fi
+          BIN=folio
+          if [ "$GOOS" = "windows" ]; then BIN=folio.exe; fi
           mkdir -p dist
           go build \
             -trimpath \
@@ -167,9 +167,9 @@ jobs:
           mkdir -p out
           cd dist
           if [ "${{ matrix.goos }}" = "windows" ]; then
-            zip -q "../out/${NAME}.zip" qm.exe
+            zip -q "../out/${NAME}.zip" folio.exe
           else
-            tar -czf "../out/${NAME}.tar.gz" qm
+            tar -czf "../out/${NAME}.tar.gz" folio
           fi
 
       - uses: actions/upload-artifact@v7

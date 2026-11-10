@@ -742,7 +742,7 @@ function markComments(root) {
     var inner = item;
     active.slice().reverse().forEach(function (marker) {
       var span = document.createElement('span');
-      span.className = 'qm-comment';
+      span.className = 'folio-comment';
       span.setAttribute('data-comment', String(marker.index));
       span.title = commentTooltip(marker);
       inner.parentNode.replaceChild(span, inner);
@@ -1102,7 +1102,7 @@ function restoreFolds(root, states) {
 // blocks inside a fenced div are top-level blocks too -- convertDivs turns
 // the fences into HTML blocks of their own -- so a callout's paragraphs are
 // marked like any other.
-var lineMark = 'qm-line:';
+var lineMark = 'folio-line:';
 
 // renderBlocks renders src, the converted body, block by block. lineMap
 // takes a line of src back to a line of the body (see convertDivs), and
@@ -1161,7 +1161,7 @@ var todoText = '==TODO==';
 
 function todoMarker(hidden, tip) {
   var mark = document.createElement('mark');
-  mark.className = hidden ? 'qm-todo qm-todo-hidden' : 'qm-todo';
+  mark.className = hidden ? 'folio-todo folio-todo-hidden' : 'folio-todo';
   mark.textContent = 'TODO';
   if (tip) {
     mark.title = tip;

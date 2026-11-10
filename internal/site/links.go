@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/christophberger-ailab/qm/internal/markdown"
+	"github.com/christophberger-ailab/foolscap-folio/internal/markdown"
 	"github.com/yuin/goldmark/ast"
 )
 

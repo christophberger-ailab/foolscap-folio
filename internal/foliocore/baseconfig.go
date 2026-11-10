@@ -1,4 +1,4 @@
-package qmcore
+package foliocore
 
 import (
 	"fmt"
@@ -8,10 +8,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Base is the project's own `_quarto.yml`, as far as qm reads it: what every
+// Base is the project's own `_quarto.yml`, as far as folio reads it: what every
 // selection inherits before its profiles are merged in.
 //
-// qm reads the three profiles itself (see Profile). The base matters to the
+// folio reads the three profiles itself (see Profile). The base matters to the
 // Pandoc renderer because it is where the project declares the document
 // language, the audience classes of the content filter (`make: audiences:`),
 // and the filters themselves.

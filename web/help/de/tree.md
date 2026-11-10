@@ -20,13 +20,13 @@ Eine Seite mit `draft: true` im Frontmatter wird ausgegraut. Sie gehört zum Pro
 
 Eine Seite kann nach ihrem Titel Statusmarken tragen:
 
-- 🚧 zu erledigen: `todo: true` unter `qm:` im Frontmatter, oder der Text `==TODO==` irgendwo in der Seite, auch in einem HTML-Kommentar.
-- 👀 zu prüfen: `review: true` unter `qm:` im Frontmatter.
+- 🚧 zu erledigen: `todo: true` unter `folio:` im Frontmatter, oder der Text `==TODO==` irgendwo in der Seite, auch in einem HTML-Kommentar.
+- 👀 zu prüfen: `review: true` unter `folio:` im Frontmatter.
 
 ```yaml
 ---
 title: Meine Seite
-qm:
+folio:
   todo: true
   review: true
 ---
@@ -36,12 +36,12 @@ Jede Marke erscheint einmal pro Seite, egal wie viele `==TODO==` die Seite enth�
 
 ## Seiten ausblenden
 
-Eine Seite mit `hide: true` unter `qm:` im Frontmatter erscheint nicht im Baum. Standard ist `false`. Eine ausgeblendete Abschnittsseite blendet ihren ganzen Zweig aus. Das Ausblenden betrifft nur den Baum: Die Seite wird weiterhin gerendert, und die [Suche](search.md) findet sie, sodass du sie dort öffnen und die Einstellung wieder entfernen kannst.
+Eine Seite mit `hide: true` unter `folio:` im Frontmatter erscheint nicht im Baum. Standard ist `false`. Eine ausgeblendete Abschnittsseite blendet ihren ganzen Zweig aus. Das Ausblenden betrifft nur den Baum: Die Seite wird weiterhin gerendert, und die [Suche](search.md) findet sie, sodass du sie dort öffnen und die Einstellung wieder entfernen kannst.
 
 ```yaml
 ---
 title: Meine Seite
-qm:
+folio:
   hide: true
 ---
 ```

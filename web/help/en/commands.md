@@ -1,9 +1,9 @@
-# The qm command line in brief
+# The folio command line in brief
 
-`qm web` is one of several commands. They all work on the same project.
+`folio web` is one of several commands. They all work on the same project.
 
 ```
-qm <object> <subcommand> [flags] [args]
+folio <object> <subcommand> [flags] [args]
 ```
 
 ## Global flag
@@ -16,20 +16,20 @@ qm <object> <subcommand> [flags] [args]
 
 | command | what it does |
 | --- | --- |
-| `qm render [<topic>…]` | render the project's topic × format × audience matrix |
-| `qm flatten <topic>` | write the Markdown a document render of one topic parses, to `_build/<topic>.md`, without rendering |
-| `qm migrate` | write `qm.yml` from the project's old `_quarto*.yml` files (`--dry-run` prints it, `--force` overwrites) |
-| `qm lint [<topic>]` | check the `.qmd` sources (currently: unclosed `:::` fences) |
-| `qm chapters insert <folder>` | give a new page its `order:`, renumbering its siblings |
-| `qm chapters move <folder> <old> <new>` | move a chapter to another order position |
-| `qm chapters remove <folder> <order>` | remove a chapter, after confirmation |
-| `qm web [<path>]` | serve the local sorting, editing and rendering UI |
+| `folio render [<topic>…]` | render the project's topic × format × audience matrix |
+| `folio flatten <topic>` | write the Markdown a document render of one topic parses, to `_build/<topic>.md`, without rendering |
+| `folio migrate` | write `folio.yml` from the project's old `_quarto*.yml` files (`--dry-run` prints it, `--force` overwrites) |
+| `folio lint [<topic>]` | check the `.qmd` sources (currently: unclosed `:::` fences) |
+| `folio chapters insert <folder>` | give a new page its `order:`, renumbering its siblings |
+| `folio chapters move <folder> <old> <new>` | move a chapter to another order position |
+| `folio chapters remove <folder> <order>` | remove a chapter, after confirmation |
+| `folio web [<path>]` | serve the local sorting, editing and rendering UI |
 
 Every command takes `--help`, which lists its flags and arguments.
 
 ## In this help
 
-- [Opening projects](projects.md) covers `qm web`.
-- [Rendering](render.md) is the web version of `qm render`.
+- [Opening projects](projects.md) covers `folio web`.
+- [Rendering](render.md) is the web version of `folio render`.
 
 Back to [Contents](index.md).

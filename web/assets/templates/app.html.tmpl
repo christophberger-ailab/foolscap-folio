@@ -187,7 +187,7 @@
 </div>{{end}}
 
 {{define "render"}}{{with .Render}}{{if .Error}}<details class="render">
-  <summary title="qm.yml cannot be read">Render</summary>
+  <summary title="folio.yml cannot be read">Render</summary>
   <div class="render-body"><pre class="render-error">{{.Error}}</pre></div>
 </details>{{else if .Books}}<details class="render">
   <summary title="Render the selected topics in the selected formats and audiences">Render</summary>
@@ -715,7 +715,7 @@
   </header>
   <main class="config-main">
     <h2>Your name</h2>
-    <p class="config-intro">The comments and replies you write in the editor are signed with this name and the date, so that everyone working on the project can tell who wrote what. qm runs on your own computer, so there is nothing to log in to: the name is all it needs.</p>
+    <p class="config-intro">The comments and replies you write in the editor are signed with this name and the date, so that everyone working on the project can tell who wrote what. folio runs on your own computer, so there is nothing to log in to: the name is all it needs.</p>
     <p class="config-intro">Leave it empty to sign with the name you are logged in to this computer with{{if .Fallback}} (<code>{{.Fallback}}</code>){{end}}.</p>
     {{if .Error}}<div class="error">{{.Error}}</div>{{end}}
     {{if .Message}}<div class="notice">{{.Message}}</div>{{end}}

@@ -16,7 +16,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/christophberger-ailab/qm/internal/markdown"
+	"github.com/christophberger-ailab/foolscap-folio/internal/markdown"
 )
 
 type Node struct {

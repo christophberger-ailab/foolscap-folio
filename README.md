@@ -1,18 +1,18 @@
-# qm — build and manage a Markdown documentation tree
+# folio — build and manage a Markdown documentation tree
 
-![`qm web`](./docs/images/qm_web.png)
+![`folio web`](./docs/images/qm_web.png)
 
-`qm` turns a tree of Markdown pages (`.qmd` or `.md`, in the dialect Quarto
+`folio` turns a tree of Markdown pages (`.qmd` or `.md`, in the dialect Quarto
 projects use) into a website, Word documents and PDFs. It needs neither Quarto
-nor Pandoc: the Markdown is parsed, filtered and written by `qm` itself.
+nor Pandoc: the Markdown is parsed, filtered and written by `folio` itself.
 
 - **One tree, many outputs.** The folder structure and the `order:` front
   matter of the pages decide the order and the nesting of every output. A
   website, a DOCX and a PDF all come from the same pages, with the headings
   demoted to the level the folder depth implies.
 - **A three-axis render matrix.** A render is addressed by *topic* (what),
-  *format* (how) and *audience* (for whom). One file, `qm.yml`, declares them;
-  `qm render` builds any part of the matrix, and `qm web` does the same from a
+  *format* (how) and *audience* (for whom). One file, `folio.yml`, declares them;
+  `folio render` builds any part of the matrix, and `folio web` does the same from a
   panel.
 - **Conditional content.** A block or span can be marked for a format
   (`explanation`) or an audience (`pol`); a render keeps only what the
@@ -21,24 +21,24 @@ nor Pandoc: the Markdown is parsed, filtered and written by `qm` itself.
   matter consistent, a linter for unclosed block fences, and a local web UI
   for reordering pages by drag and drop, editing them, copyediting them with
   an LLM, and rendering.
-- **Migration.** `qm migrate` writes `qm.yml` from an older Quarto setup
+- **Migration.** `folio migrate` writes `folio.yml` from an older Quarto setup
   (`_quarto.yml` and its profiles).
 
 ## Install
 
 Pre-built binaries for Linux and Windows (amd64 and arm64) are attached to
-each [release](../../releases). Download, unpack, put `qm` on your `PATH`.
+each [release](../../releases). Download, unpack, put `folio` on your `PATH`.
 
 To build from source, with Go 1.27 or newer:
 
 ```sh
-go install github.com/christophberger-ailab/qm@latest
+go install github.com/christophberger-ailab/foolscap-folio@latest
 ```
 
 or, from a clone:
 
 ```sh
-go build -o qm .
+go build -o folio .
 ```
 
 The binary is self-contained: the web UI's templates and assets, the website's
@@ -49,50 +49,50 @@ permanent removal.
 ## Usage
 
 ```
-qm <object> <subcommand> [flags] [args]
+folio <object> <subcommand> [flags] [args]
 ```
 
 Global flags apply to every command:
 
-| flag | env | default | meaning |
-| --- | --- | --- | --- |
-| `--project`, `-p` | `QM_PROJECT` | `.` | path to the document tree |
+| flag              | env          | default | meaning                   |
+| ----------------- | ------------ | ------- | ------------------------- |
+| `--project`, `-p` | `QM_PROJECT` | `.`     | path to the document tree |
 
 ### Commands
 
-| command | what it does |
-| --- | --- |
-| `qm render [<topic>…]` | render the project's topic × format × audience matrix |
-| `qm flatten <topic>` | write the Markdown a document render of one topic parses, to `_build/<topic>.md`, without rendering |
-| `qm migrate` | write `qm.yml` from the project's old `_quarto*.yml` files |
-| `qm lint [<topic>]` | check the `.qmd` sources (currently: unclosed `:::` fences) |
-| `qm chapters insert <folder>` | give a new page its `order:`, renumbering its siblings |
-| `qm chapters move <folder> <old> <new>` | move a chapter to another order position |
-| `qm chapters remove <folder> <order>` | remove a chapter, after confirmation |
-| `qm web [<path>]` | serve the local sorting, editing and rendering UI |
+| command                                    | what it does                                                                                        |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| `folio render [<topic>…]`                  | render the project's topic × format × audience matrix                                               |
+| `folio flatten <topic>`                    | write the Markdown a document render of one topic parses, to `_build/<topic>.md`, without rendering |
+| `folio migrate`                            | write `folio.yml` from the project's old `_quarto*.yml` files                                       |
+| `folio lint [<topic>]`                     | check the `.qmd` sources (currently: unclosed `:::` fences)                                         |
+| `folio chapters insert <folder>`           | give a new page its `order:`, renumbering its siblings                                              |
+| `folio chapters move <folder> <old> <new>` | move a chapter to another order position                                                            |
+| `folio chapters remove <folder> <order>`   | remove a chapter, after confirmation                                                                |
+| `folio web [<path>]`                       | serve the local sorting, editing and rendering UI                                                   |
 
 Every command takes `--help`.
 
-#### `qm render`
+#### `folio render`
 
 ```sh
-qm render                              # every combination the project declares
-qm render calltaker dispatcher         # those two topics, all their formats
-qm render --format handout             # handouts only
-qm render --audience pol --clean       # the pol variants, from scratch
-qm render --dry-run                    # print what would be written, write nothing
+folio render                              # every combination the project declares
+folio render calltaker dispatcher         # those two topics, all their formats
+folio render --format handout             # handouts only
+folio render --audience pol --clean       # the pol variants, from scratch
+folio render --dry-run                    # print what would be written, write nothing
 ```
 
 Positional arguments name topics and are added to `--topic`. `--topic`,
-`--format` and `--audience` take comma-separated lists; a name `qm.yml` does not
+`--format` and `--audience` take comma-separated lists; a name `folio.yml` does not
 define is an error. Without them every topic, format and audience the project
 offers is rendered, cut down to what each topic and format declares (see
-[`qm.yml`](#qmyml)).
+[`folio.yml`](#qmyml)).
 
 A **website** format covers all selected topics in one site, one site per
 selected audience. A **document** format (DOCX, PDF) is written per topic and
 audience. The topic `all` has no folder: `--topic=all` selects every topic, and
-a topic `all` declared in `qm.yml` puts every topic into the websites it takes
+a topic `all` declared in `folio.yml` puts every topic into the websites it takes
 part in (`all: {formats: [website]}`), whatever the topics restrict themselves
 to. A failing combination does not stop the others; the command reports
 how many failed and exits non-zero. `--clean` empties each selected format's
@@ -100,26 +100,26 @@ output directory once, before the first render; it refuses a directory that is
 not below the output directory. `--dry-run` prints the files that would be
 written.
 
-`qm flatten <topic>` writes `_build/<topic>.md`: the topic's pages in folder
+`folio flatten <topic>` writes `_build/<topic>.md`: the topic's pages in folder
 order, with demoted headings, in-book links turned into anchors and shortcodes
 resolved. It is the text a document render parses, so it is the way to look at
 what a render works from. Conditional content is still in it; a render removes
 what the selected format and audience do not show.
 
-#### `qm web`
+#### `folio web`
 
 ```sh
-qm web                    # serve the project at --project on localhost:8199,
+folio web                    # serve the project at --project on localhost:8199,
                           # or the next free port up if that one is taken
-qm web ../handbook        # serve that project instead
-qm web --addr :9000       # listen elsewhere
+folio web ../handbook        # serve that project instead
+folio web --addr :9000       # listen elsewhere
 ```
 
 The UI shows the project's page tree, reorders pages by drag and drop (which
 rewrites the `order:` front matter and shifts the moved page's headings),
 creates, edits and deletes pages with a live Markdown preview, searches the
 whole project, and runs renders in the background from the same flow
-`qm render` uses. The render selection and the page last open are remembered
+`folio render` uses. The render selection and the page last open are remembered
 per project in the settings file (below).
 
 A page marked `draft: true` in its front matter is greyed out in the tree: it
@@ -173,7 +173,7 @@ are endpoints — Anthropic (`<base URL>/messages`) or OpenAI-compatible
 OpenRouter all speak) — and take a base URL, the model, and the key. A local
 model usually needs no key.
 
-The third is **GitHub Copilot**, which is not an endpoint at all: qm runs the
+The third is **GitHub Copilot**, which is not an endpoint at all: folio runs the
 GitHub Copilot CLI as a child process and talks to it over its own protocol.
 It must be installed and on your `PATH` (or named by `COPILOT_CLI_PATH`) and
 signed in — running `copilot` once is enough to check. A connection of this
@@ -182,7 +182,7 @@ CLI knows where GitHub is, and no key, since a run is made as whoever the CLI
 is signed in as. A GitHub token in the key field is used in that user's place.
 The model is one the CLI offers, `gpt-5.4` or `claude-sonnet-5`; `copilot
 --help` lists them. Copilot is an agent that reads files and edits
-repositories, and a copyedit run wants none of that, so the session qm opens
+repositories, and a copyedit run wants none of that, so the session folio opens
 has no tools at all, a system message that replaces the CLI's coding persona
 with the copyediting instruction, and an empty scratch directory to sit in: it
 can read the page it is sent and nothing else on the machine. The price is the
@@ -205,7 +205,7 @@ kept in a subdirectory of a larger one is managed just the same. It runs the
 as they do in a terminal.
 
 The Editor button opens the project, and the page open in the app, in an
-external editor — for `qm.yml`, stylesheets, and whatever else
+external editor — for `folio.yml`, stylesheets, and whatever else
 the app does not edit. *Config → External editor* sets the command line it
 runs, with `{root}` for the project directory and `{file}` for the page;
 the default is VS Code's `code {root} --goto {file}`, and the page offers
@@ -221,7 +221,7 @@ version within a couple of seconds, without a reload.
 ### Settings
 
 Everything the UI remembers between runs lives in one file,
-`<user config dir>/qm/config.cue`: the projects opened before, the render
+`<user config dir>/folio/config.cue`: the projects opened before, the render
 selection and last open page per project, which preview stylesheet is active,
 the copyediting setup, and the external editors' command lines. The stylesheets themselves stay beside it in
 `custom-css/`, being CSS rather than settings.
@@ -253,28 +253,28 @@ whenever a setting changes in the UI, schema and all — values you edited by
 hand are read back, comments you left among the settings are not.
 
 The file is created with the defaults on first run. Settings from the JSON
-files qm used to keep (`render.json`, `recent.json`, `copyedit.json`, and the
+files folio used to keep (`render.json`, `recent.json`, `copyedit.json`, and the
 `custom-css/.active` marker) are carried over into it once and those files are
 renamed `*.migrated`; they are no longer read and can be deleted.
 
-## qm.yml
+## folio.yml
 
-One file in the project root, `qm.yml`, configures everything: the output
+One file in the project root, `folio.yml`, configures everything: the output
 formats, the audiences, the topics. Unknown keys are errors. Maps keep the
 order they are written in, and that order is the order of the render matrix
 and of the web UI's panel.
 
 Top level keys:
 
-| key | meaning |
-| --- | --- |
-| `title` | the site title and, for documents, the default document title |
-| `lang` | the document language (`de`, `en-US`, …); sets the proofing language and the contents heading |
-| `output` | the directory renders are written below; default `_output` |
-| `vars` | variables for `{{< var name >}}` and `{name}` placeholders |
-| `formats` | how a render is produced |
-| `audiences` | for whom |
-| `topics` | what: one content folder each |
+| key         | meaning                                                                                       |
+| ----------- | --------------------------------------------------------------------------------------------- |
+| `title`     | the site title and, for documents, the default document title                                 |
+| `lang`      | the document language (`de`, `en-US`, …); sets the proofing language and the contents heading |
+| `output`    | the directory renders are written below; default `_output`                                    |
+| `vars`      | variables for `{{< var name >}}` and `{name}` placeholders                                    |
+| `formats`   | how a render is produced                                                                      |
+| `audiences` | for whom                                                                                      |
+| `topics`    | what: one content folder each                                                                 |
 
 A **format** has a `type`: `html` (a website), `docx`, `pdf`, or a list
 `[docx, pdf]` that writes both from the same document. `html` cannot be
@@ -349,12 +349,12 @@ topics:
 `file` and `cover` use it. The project-level default keeps `{suffix}` defined
 for the audience `std`, which sets none.)
 
-A minimal project needs no `qm.yml` at all. Without one, every top-level
+A minimal project needs no `folio.yml` at all. Without one, every top-level
 content folder (one holding a `.qmd` or `.md` file, and not starting with `_`
 or `.`) is a topic, the only format is `web` (HTML), and there is one
-audience, `all`. A project that has no `qm.yml` but still has `_quarto.yml` or
+audience, `all`. A project that has no `folio.yml` but still has `_quarto.yml` or
 `_quarto-*.yml` files is an error rather than a render on the defaults: run
-`qm migrate` first (see below). A `qm.yml` states only what differs:
+`folio migrate` first (see below). A `folio.yml` states only what differs:
 
 ```yaml
 title: Handbook
@@ -414,7 +414,7 @@ ends up as `####`. A page whose front-matter `title:` is not spelled out by a
 heading at its top level gets a generated title heading, and its own headings
 stay below it.
 
-`qm flatten <topic>` shows the result for a document.
+`folio flatten <topic>` shows the result for a document.
 
 ### The website
 
@@ -461,7 +461,7 @@ the site's own: a `.scss` file is not compiled, so it has to be plain CSS, and
 A document format flattens one topic into one Markdown text, resolves its
 shortcodes, parses it, removes the conditional content the selection does not
 show, and writes it. The shortcodes `include`, `var` and `pagebreak` are
-resolved by `qm`:
+resolved by `folio`:
 
 - `{{< include path/file.md >}}` includes a file, nested up to eight deep. A
   path starting with `/` is project-absolute; any other path is relative to
@@ -526,25 +526,25 @@ research and rationale: [docs/native-rendering.md](docs/native-rendering.md).
 ### Migrating an existing project
 
 ```sh
-qm migrate --dry-run     # print the qm.yml that would be written
-qm migrate               # write it
-qm migrate --force       # overwrite an existing qm.yml
+folio migrate --dry-run     # print the folio.yml that would be written
+folio migrate               # write it
+folio migrate --force       # overwrite an existing folio.yml
 ```
 
-`qm migrate` reads `_quarto.yml` and the profile files
+`folio migrate` reads `_quarto.yml` and the profile files
 `_quarto-topic-<t>.yml`, `_quarto-format-<f>.yml` and
-`_quarto-audience-<a>.yml` and writes the equivalent `qm.yml`: `qm:` keys such
+`_quarto-audience-<a>.yml` and writes the equivalent `folio.yml`: `folio:` keys such
 as `folder`, `formats`, `audiences` and `cover`, the `make:` flags that are
 true, the `_quarto-vars`, and the output directories. It refuses to
-overwrite an existing `qm.yml` without `--force`, checks that the result loads,
+overwrite an existing `folio.yml` without `--force`, checks that the result loads,
 and prints a warning for everything it could not carry over: a title that
 contains a variable, an output directory outside the common output directory,
 a template generated into `_build/`, a slide deck format (skipped) or a PPTX
 output (dropped).
 
-The old `_quarto*.yml` files are **not read anymore** by `qm` itself. Delete
+The old `_quarto*.yml` files are **not read anymore** by `folio` itself. Delete
 them once you no longer render with Quarto; the `project: pre-render` and
-`post-render` hooks (`qm prepare`, `qm finalize`) no longer exist and must go
+`post-render` hooks (`folio prepare`, `folio finalize`) no longer exist and must go
 from `_quarto.yml` if you keep the file for other tools.
 
 ### Known differences from Quarto
@@ -576,8 +576,8 @@ from `_quarto.yml` if you keep the file for other tools.
 ```
 main.go                 command wiring: flags, the `chapters` object, registration
 internal/cli/           the exit-status guard every command body is wrapped in
-internal/config/        qm.yml: formats, audiences, topics, the render matrix, selections
-internal/qmcore/        front matter, page scans, the chapters' ordering (and the old profiles, for migrate)
+internal/config/        folio.yml: formats, audiences, topics, the render matrix, selections
+internal/foliocore/        front matter, page scans, the chapters' ordering (and the old profiles, for migrate)
 internal/bookmaker/     folder tree → one flat document, headings demoted by depth
 internal/markdown/      the Markdown parser (goldmark plus divs, spans, attributes, callouts) and the conditional filter
 internal/shortcode/     include, var, pagebreak
@@ -588,7 +588,7 @@ internal/docrender/     PDF layout, covers, and the Markdown → PDF input
 internal/project/       the editable page tree behind the web UI
 internal/gitrepo/       the `git` command behind the web UI's Git panel
 web/                    the local web UI: server, settings (CUE), copyediting
-insert/ move/ remove/   the `qm chapters` subcommands
+insert/ move/ remove/   the `folio chapters` subcommands
 lint/ flatten/ render/ migrate/ web/   the leaf commands
 spec.yaml, spec-*.yaml  the specification each package implements
 testdata/               a miniature project and the flattener's golden files
@@ -620,8 +620,8 @@ workflow can pick the bump or set an exact `v0.Y.Z` version.
 
 ## Origins
 
-`qm web` is the [quarto-sorter](https://github.com/christophberger-ailab/quarto-sorter)
-tool merged into `qm`; `internal/bookmaker` is a copy of the
+`folio web` is the [quarto-sorter](https://github.com/christophberger-ailab/quarto-sorter)
+tool merged into `folio`; `internal/bookmaker` is a copy of the
 [quarto-bookmaker](https://github.com/christophberger-ailab/quarto-bookmaker)
 internal package (MIT), which Go's `internal` rule prevents importing directly.
 Keep changes to it in sync with upstream.

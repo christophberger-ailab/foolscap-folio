@@ -50,7 +50,7 @@ function initEditor() {
 
   // The server just sent this page's text, and that text is the one the
   // editor must open with. A browser restoring form state across a reload
-  // -- which is what a `qm web` restart ends in -- overwrites the
+  // -- which is what a `folio web` restart ends in -- overwrites the
   // textarea's value with whatever the last page left in it, while the
   // hidden path beside it keeps the page the server chose, because
   // browsers do not restore hidden inputs. Mounting on that value would
@@ -107,7 +107,7 @@ function initEditor() {
 var todoOverlay = {
   token: function (stream) {
     if (stream.match('==TODO==')) {
-      return 'qm-todo';
+      return 'folio-todo';
     }
     var next = stream.string.indexOf('==TODO==', stream.pos + 1);
     stream.pos = next < 0 ? stream.string.length : next;

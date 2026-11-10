@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/christophberger-ailab/qm/internal/build"
+	"github.com/christophberger-ailab/foolscap-folio/internal/build"
 )
 
 // job is the single background render the server runs at a time. The tree

@@ -11,7 +11,7 @@
 
 ## Comments: Your name
 
-`qm web` runs on your own computer, so there is no login. The comments and replies you write in the editor are signed with the name you enter here, together with the date. Leave the field empty to sign with the name you are logged in to the computer with. Double quotes, braces, and line breaks are not allowed in the name.
+`folio web` runs on your own computer, so there is no login. The comments and replies you write in the editor are signed with the name you enter here, together with the date. Leave the field empty to sign with the name you are logged in to the computer with. Double quotes, braces, and line breaks are not allowed in the name.
 
 ## Preview: Custom CSS
 
@@ -22,11 +22,11 @@ Here you write CSS that overrides the preview's built-in styles. It is loaded do
 - The active stylesheet is chosen with the dropdown below the preview.
 - Rules like `.quarto.pol:before { content: "..." }` also supply the symbols the [page tree](tree.md) shows for spans.
 
-Stylesheets are files named `<user config dir>/qm/custom-css/*.css`. A default `custom.css` is created the first time `qm web` runs.
+Stylesheets are files named `<user config dir>/folio/custom-css/*.css`. A default `custom.css` is created the first time `folio web` runs.
 
 ## The settings file
 
-Everything `qm web` remembers lives in one file: `<user config dir>/qm/config.cue`. It holds:
+Everything `folio web` remembers lives in one file: `<user config dir>/folio/config.cue`. It holds:
 
 - the recently opened projects,
 - the render selection and last open page of each project,
@@ -48,6 +48,6 @@ You may edit the file yourself.
 
 ## Errors stop the app
 
-If the file does not check out, `qm web` stops instead of replacing it, because it is the only copy of your connections and selections. Fix the reported line and start again. A save that the app itself could not read back is refused.
+If the file does not check out, `folio web` stops instead of replacing it, because it is the only copy of your connections and selections. Fix the reported line and start again. A save that the app itself could not read back is refused.
 
 Back to [Contents](index.md).

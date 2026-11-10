@@ -17,9 +17,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/christophberger-ailab/qm/internal/build"
-	"github.com/christophberger-ailab/qm/internal/config"
-	"github.com/christophberger-ailab/qm/internal/project"
+	"github.com/christophberger-ailab/foolscap-folio/internal/build"
+	"github.com/christophberger-ailab/foolscap-folio/internal/config"
+	"github.com/christophberger-ailab/foolscap-folio/internal/project"
 )
 
 //go:embed assets

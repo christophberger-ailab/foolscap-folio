@@ -1,13 +1,13 @@
 # Projekte öffnen
 
-Ein Projekt ist ein Dokumentbaum aus Markdown-Seiten, optional mit einer `qm.yml`. `qm web` zeigt jeweils ein Projekt.
+Ein Projekt ist ein Dokumentbaum aus Markdown-Seiten, optional mit einer `folio.yml`. `folio web` zeigt jeweils ein Projekt.
 
-## qm web starten
+## folio web starten
 
 ```sh
-qm web                    # serve the project given by --project (default: the current directory)
-qm web ../handbook        # serve that project instead
-qm web --addr :9000       # listen elsewhere
+folio web                    # serve the project given by --project (default: the current directory)
+folio web ../handbook        # serve that project instead
+folio web --addr :9000       # listen elsewhere
 ```
 
 - Ein Pfad nach `web` benennt das zu öffnende Projekt. Er hat Vorrang vor `--project`.
@@ -16,8 +16,8 @@ qm web --addr :9000       # listen elsewhere
 
 ## Adresse und Port
 
-- Standardmäßig lauscht `qm web` auf `localhost:8199`.
-- Ist dieser Port belegt, meist durch ein anderes `qm web`, wird der nächsthöhere probiert und so weiter, bis ein freier gefunden ist. Die tatsächlich verwendete Adresse wird ausgegeben.
+- Standardmäßig lauscht `folio web` auf `localhost:8199`.
+- Ist dieser Port belegt, meist durch ein anderes `folio web`, wird der nächsthöhere probiert und so weiter, bis ein freier gefunden ist. Die tatsächlich verwendete Adresse wird ausgegeben.
 - Eine Adresse, die du mit `--addr` angibst, wird genau so verwendet. Ist sie belegt, ist das ein Fehler.
 
 ## Das Feld Open

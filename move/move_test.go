@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/christophberger-ailab/qm/internal/qmcore"
+	"github.com/christophberger-ailab/foolscap-folio/internal/foliocore"
 )
 
 func writeQmd(t *testing.T, dir, name string, order int) {
@@ -23,7 +23,7 @@ func writeQmd(t *testing.T, dir, name string, order int) {
 
 func readOrder(t *testing.T, path string) int {
 	t.Helper()
-	o, err := qmcore.ReadOrder(path)
+	o, err := foliocore.ReadOrder(path)
 	if err != nil {
 		t.Fatalf("read %s: %v", path, err)
 	}
@@ -34,7 +34,7 @@ func readOrder(t *testing.T, path string) int {
 }
 
 // MoveDown: spec PROCESS.2-1
-// `qm chapters move sysadmin/intro 4 2` -> rename 4->2, 2->3, 3->4.
+// `folio chapters move sysadmin/intro 4 2` -> rename 4->2, 2->3, 3->4.
 func TestRun_MoveDown(t *testing.T) {
 	doc := t.TempDir()
 	writeQmd(t, doc, "f/index.qmd", 0)
@@ -62,7 +62,7 @@ func TestRun_MoveDown(t *testing.T) {
 }
 
 // MoveUp: spec PROCESS.2-2
-// `qm chapters move sysadmin 4 6` -> rename 5->4, then 6->5? No:
+// `folio chapters move sysadmin 4 6` -> rename 5->4, then 6->5? No:
 // 2-2-1: renumber chapters after the new order (>=6 -> +1)
 // 2-2-2: renumber chapters between (5 -> 4)
 // 2-2-3: change order 4 -> 6

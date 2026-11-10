@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/christophberger-ailab/qm/internal/project"
+	"github.com/christophberger-ailab/foolscap-folio/internal/project"
 )
 
 // The page tree shows a page's title as text, so the Quarto spans a title

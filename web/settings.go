@@ -389,7 +389,7 @@ func openConfig(path string) (storedConfig, error) {
 	}
 	if found {
 		retireLegacy(filepath.Dir(path))
-		fmt.Fprintf(os.Stderr, "qm: settings moved into %s; the files they came from are kept beside it as *.migrated\n", path)
+		fmt.Fprintf(os.Stderr, "folio: settings moved into %s; the files they came from are kept beside it as *.migrated\n", path)
 	}
 	return cfg, nil
 }

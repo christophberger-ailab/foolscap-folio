@@ -4,7 +4,7 @@ feature:
 
 components:
   COMMAND:
-    description: qm chapters insert
+    description: folio chapters insert
     requirements:
       1: Object name is "chapters"
       2: Subcommand name is "insert"

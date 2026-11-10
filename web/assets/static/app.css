@@ -1808,13 +1808,13 @@ li.CodeMirror-hint-active {
    spot (see markTodos in preview.js): one color for both, so a TODO is
    found in either pane. The editor's mark is translucent for the same
    reason as the copyedit marks below. */
-.cm-qm-todo {
+.cm-folio-todo {
   background: color-mix(in srgb, var(--todo) 28%, transparent);
   border-bottom: 2px solid var(--todo);
   border-radius: 2px;
 }
 
-mark.qm-todo {
+mark.folio-todo {
   display: inline-block;
   padding: 0 0.35em;
   border-radius: 3px;
@@ -1829,7 +1829,7 @@ mark.qm-todo {
 
 /* A TODO inside an HTML comment: the text it stands in does not render,
    so the marker is outlined rather than filled. */
-mark.qm-todo-hidden {
+mark.folio-todo-hidden {
   background: color-mix(in srgb, var(--todo) 15%, transparent);
   color: var(--todo);
   border: 1px dashed var(--todo);
@@ -2202,7 +2202,7 @@ mark.qm-todo-hidden {
   display: none;
 }
 
-.markdown-preview .qm-comment {
+.markdown-preview .folio-comment {
   background: color-mix(in srgb, var(--comment) 22%, transparent);
   border-bottom: 2px solid var(--comment);
   cursor: pointer;

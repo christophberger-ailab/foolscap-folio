@@ -24,7 +24,7 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/christophberger-ailab/qm/internal/cli"
+	"github.com/christophberger-ailab/foolscap-folio/internal/cli"
 	"github.com/christophberger/start"
 	flag "github.com/spf13/pflag"
 )
@@ -98,7 +98,7 @@ func Serve(listenAddr string, searchPort bool, root string) error {
 	if err != nil {
 		return fmt.Errorf("web: %w", err)
 	}
-	fmt.Fprintf(os.Stderr, "qm web running on http://%s\n", servedAddr(listenAddr, ln.Addr()))
+	fmt.Fprintf(os.Stderr, "folio web running on http://%s\n", servedAddr(listenAddr, ln.Addr()))
 	if err := http.Serve(ln, srv); err != nil {
 		return fmt.Errorf("web: %w", err)
 	}

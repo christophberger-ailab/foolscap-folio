@@ -13,7 +13,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/christophberger-ailab/qm/internal/qmcore"
+	"github.com/christophberger-ailab/foolscap-folio/internal/foliocore"
 )
 
 // The shortcodes:
@@ -124,7 +124,7 @@ func (s *Expander) include(arg, dir string, depth int, stack []string) (string, 
 		return "", fmt.Errorf("{{< include >}} names no file")
 	}
 	rel := ResolveInclude(dir, path)
-	abs, err := qmcore.ProjectPath(s.root, rel)
+	abs, err := foliocore.ProjectPath(s.root, rel)
 	if err != nil {
 		return "", fmt.Errorf("{{< include %s >}}: %w", path, err)
 	}

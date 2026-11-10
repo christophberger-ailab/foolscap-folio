@@ -16,9 +16,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/christophberger-ailab/qm/internal/cli"
-	"github.com/christophberger-ailab/qm/internal/config"
-	"github.com/christophberger-ailab/qm/internal/qmcore"
+	"github.com/christophberger-ailab/foolscap-folio/internal/cli"
+	"github.com/christophberger-ailab/foolscap-folio/internal/config"
+	"github.com/christophberger-ailab/foolscap-folio/internal/foliocore"
 	"github.com/christophberger/start"
 	flag "github.com/spf13/pflag"
 )
@@ -135,11 +135,11 @@ func topicFiles(docPath, topicArg, audience string) ([]string, error) {
 		return nil, fmt.Errorf("content folder %q not found in document tree %q", folder, docPath)
 	}
 
-	excludePattern, err := regexp.Compile(qmcore.DefaultExcludePattern)
+	excludePattern, err := regexp.Compile(foliocore.DefaultExcludePattern)
 	if err != nil {
 		return nil, err
 	}
-	entries, err := qmcore.ScanFiles(docPath, baseFolderPath, audience, excludePattern)
+	entries, err := foliocore.ScanFiles(docPath, baseFolderPath, audience, excludePattern)
 	if err != nil {
 		return nil, fmt.Errorf("scanning files: %w", err)
 	}
@@ -158,7 +158,7 @@ func topicFiles(docPath, topicArg, audience string) ([]string, error) {
 // relative to docPath, in sorted order. Files whose basename matches the
 // default exclude pattern are skipped.
 func allDocFiles(docPath string) ([]string, error) {
-	excludePattern, err := regexp.Compile(qmcore.DefaultExcludePattern)
+	excludePattern, err := regexp.Compile(foliocore.DefaultExcludePattern)
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +178,7 @@ func allDocFiles(docPath string) ([]string, error) {
 			return err
 		}
 		rel = filepath.ToSlash(rel)
-		if qmcore.ShouldExcludeChapter(rel, excludePattern) {
+		if foliocore.ShouldExcludeChapter(rel, excludePattern) {
 			return nil
 		}
 		out = append(out, rel)

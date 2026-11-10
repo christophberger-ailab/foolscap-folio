@@ -274,7 +274,7 @@ func TestRenderPanelDimsTheAudiencesOfAnUncheckedTopic(t *testing.T) {
 
 	css := get(t, srv, "/static/app.css").Body.String()
 	rule := `.render-body .book:not(:has(> legend input[name="book"]:checked)) .variants`
-	if !strings.Contains(css, rule) {
+	if !cssContains(css, rule) {
 		t.Errorf("the stylesheet does not dim the audiences of an unchecked topic: %s", rule)
 	}
 }

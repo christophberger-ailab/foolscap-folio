@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/christophberger-ailab/qm/internal/markdown"
+	"github.com/christophberger-ailab/foolscap-folio/internal/markdown"
 )
 
 func TestPDFMarkdown(t *testing.T) {

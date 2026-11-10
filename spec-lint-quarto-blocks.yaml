@@ -5,7 +5,7 @@ feature:
 
 components:
   COMMAND:
-    description: a linter for qm lint
+    description: a linter for folio lint
     requirements: same as for the lint feature
 
 constraints:

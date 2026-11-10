@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/christophberger-ailab/qm/internal/qmcore"
+	"github.com/christophberger-ailab/foolscap-folio/internal/foliocore"
 )
 
 func write(t *testing.T, dir, name, content string) {
@@ -34,7 +34,7 @@ func TestRun_InsertsAndRenumbers(t *testing.T) {
 
 	check := func(rel string, want int) {
 		t.Helper()
-		o, err := qmcore.ReadOrder(filepath.Join(doc, rel))
+		o, err := foliocore.ReadOrder(filepath.Join(doc, rel))
 		if err != nil {
 			t.Fatalf("read %s: %v", rel, err)
 		}

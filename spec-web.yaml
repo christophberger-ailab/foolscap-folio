@@ -4,14 +4,14 @@ feature:
 
 components:
   COMMAND:
-    description: qm web [--addr <host:port>] [<path>]
+    description: folio web [--addr <host:port>] [<path>]
     requirements:
       1: Object name is "web"
       2: No subcommand
       3: Parameters
       3-1: Flag --project sets the path to the document tree. Defaults to the current directory
       3-2: Flag --addr sets the listen address. Defaults to "localhost:8199"
-      3-2-1: When the default port is taken -- by another qm web, most likely -- the next port up is tried, and so on, until a free one is found; the address actually served is printed. An address given with --addr is used as given, and a taken one is an error
+      3-2-1: When the default port is taken -- by another folio web, most likely -- the next port up is tried, and so on, until a free one is found; the address actually served is printed. An address given with --addr is used as given, and a taken one is an error
       3-3: A positional path names the project to open and takes precedence over --project
       4: The command serves until it is interrupted, printing the URL it listens on to stderr
 
@@ -23,7 +23,7 @@ constraints:
       Everything the UI remembers between runs lives in one CUE file, which
       carries the schema it is checked against.
     requirements:
-      1: 'The settings are one file: `<user config dir>/qm/config.cue`. Nothing else is written beside it but the preview stylesheets, which are CSS rather than settings'
+      1: 'The settings are one file: `<user config dir>/folio/config.cue`. Nothing else is written beside it but the preview stylesheets, which are CSS rather than settings'
       2: The file holds the recently opened projects, the per-project render selection and last open page, the active preview stylesheet, the copyediting setup, the external editors' command lines, and the name comments are signed with
       3: The file is written for its owner alone, since the copyediting setup holds API keys
       4: 'The file carries its own schema: the CUE definitions the settings are checked against are written into it above them, so the file says what belongs in it and in what shape'
@@ -39,11 +39,11 @@ constraints:
       7: Hand-edited values are read back as they stand; comments written among the settings are not kept, the app replacing them whenever a setting changes in the UI
 
   ORIGIN:
-    description: The command is the quarto-sorter tool (github.com/christophberger-ailab/quarto-sorter) merged into qm.
+    description: The command is the quarto-sorter tool (github.com/christophberger-ailab/quarto-sorter) merged into folio.
     requirements:
       1: The UI, its templates, and its static assets are embedded in the binary; no files are read from disk at run time
       2: The page tree, page editing, and the render panel keep the behavior they had in quarto-sorter
-      3: The render panel and `qm render` drive the same flow (internal/build), so both produce identical output
+      3: The render panel and `folio render` drive the same flow (internal/build), so both produce identical output
 
   UI:
     requirements:
@@ -53,10 +53,10 @@ constraints:
       1-3: A Quarto span in a title is shown as the symbol its class carries followed by the span's text, so `# [Polizei-]{.pol}[Feuerwehr-]{.fw}Spickzettel` shows as "🚔Polizei-🚒Feuerwehr-Spickzettel"
       1-4: The symbols are read from the `.quarto.<class>:before { content: "..." }` rules of the active custom preview stylesheet, so the tree and the preview mark a class alike and an edit to the stylesheet moves both; a span whose classes no rule names is shown as written
       1-5: 'A page whose frontmatter says `draft: true` is shown greyed out in the tree, since it is part of the project but not part of what a render publishes; the page is listed, opened, moved, and searched like any other'
-      1-6: 'A page whose frontmatter sets `qm: {todo: true}`, or whose file contains `==TODO==` anywhere -- inside an HTML comment too -- is marked 🚧 in the tree; one whose frontmatter sets `qm: {review: true}` is marked 👀'
+      1-6: 'A page whose frontmatter sets `folio: {todo: true}`, or whose file contains `==TODO==` anywhere -- inside an HTML comment too -- is marked 🚧 in the tree; one whose frontmatter sets `folio: {review: true}` is marked 👀'
       1-6-1: Each mark is shown at most once per page, however many reasons the page gives for it; a page with both shows both, 🚧 before 👀
       1-6-2: Saving a page that gains or loses a mark refreshes the tree at once
-      1-7: 'A page whose frontmatter sets `qm: {hide: true}` is left out of the tree; a section page takes its whole branch with it, and a folder without a section page goes once all its pages are hidden. The default is `false`'
+      1-7: 'A page whose frontmatter sets `folio: {hide: true}` is left out of the tree; a section page takes its whole branch with it, and a folder without a section page goes once all its pages are hidden. The default is `false`'
       1-7-1: A hidden page is still part of the project -- it renders, keeps its place in the order a move renumbers, and is found by the search, which lists it under its path
       1-7-2: Saving a page that is hidden or shown again refreshes the tree at once
       2: Dragging a page updates the `order` frontmatter of the affected pages and the Markdown heading levels of the moved page
@@ -129,14 +129,14 @@ constraints:
       4: The tree is polled for outside changes and refreshed when the project changed on disk
       5: The render panel selects a point in the project's three-axis matrix: topics, the audiences of each topic, and the output formats
       5-1: The selection is remembered per project in the settings file (see SETTINGS)
-      5-2: The topics and the formats are those of the project's qm.yml, or the defaults of a project without one (every content folder; `web` only)
-      5-3: For each topic, only the audiences the topic declares under `audiences:` in qm.yml are offered or submitted for it; a topic that declares none offers every audience the project has
+      5-2: The topics and the formats are those of the project's folio.yml, or the defaults of a project without one (every content folder; `web` only)
+      5-3: For each topic, only the audiences the topic declares under `audiences:` in folio.yml are offered or submitted for it; a topic that declares none offers every audience the project has
       5-4: A topic the user never configured defaults to every audience it takes part in
       5-5: A topic with two or more audiences shows them as checkboxes in the open, directly below the topic's own checkbox; every checked audience is one render run per checked format
       5-5-1: While the topic's own checkbox is unchecked its audience checkboxes are shown dimmed, since nothing is rendered for them; they stay usable, so the audiences can be chosen before the topic is checked
       5-6: A topic with exactly one audience shows no checkbox, but the form submits that audience through a hidden input
       5-7: A selection is turned into renders per topic for document formats, and once for the website formats, which cover all ticked topics in one site per ticked audience; a topic that takes no part in the ticked formats is skipped, and a selection that matches nothing is reported in the log
-      5-8: If qm.yml cannot be read, the panel shows the error instead of the matrix
+      5-8: If folio.yml cannot be read, the panel shows the error instead of the matrix
       6: A render runs in the background; the panel polls its log while it runs
       6-1: Only one render runs at a time
       6-2: The log follows its newest line as it grows; scrolling up stops it following and holds the position across the polls, until the user scrolls back to the bottom or starts another render
@@ -145,7 +145,7 @@ constraints:
       7-2: 'The config list contains an entry named "Preview: Custom CSS" that opens the custom preview stylesheet editor'
       7-3: The custom preview stylesheet editor uses the embedded CodeMirror CSS mode, offers Save, and links back to the config page and the app
       7-3-1: The stylesheet editor can be dragged taller or shorter by its corner; the height is remembered in the browser for the next visit
-      7-4: Custom preview stylesheets are stored beside the settings file as `<user config dir>/qm/custom-css/*.css` -- they are CSS rather than settings, so they stay files of their own; the app ships a baked-in default that is materialized as `custom.css` the first time the app runs with a config directory that does not exist yet, and is never rewritten afterwards
+      7-4: Custom preview stylesheets are stored beside the settings file as `<user config dir>/folio/custom-css/*.css` -- they are CSS rather than settings, so they stay files of their own; the app ships a baked-in default that is materialized as `custom.css` the first time the app runs with a config directory that does not exist yet, and is never rewritten afterwards
       7-4-1: The editor lets the user add an alternate stylesheet by name and switch which one it is editing once more than one exists
       7-5: The app links the active custom preview stylesheet document-wide after `/static/app.css`, the route serves only the requested stored stylesheet as `text/css`, and an empty or absent stylesheet has no effect
       7-6: The editor tells the user to scope rules with `.markdown-preview` when they should affect only the preview
@@ -207,9 +207,9 @@ constraints:
       11-4-1: 'The API kinds are Anthropic (`<base URL>/messages`) and OpenAI-compatible (`<base URL>/chat/completions`), which is what OpenAI, Ollama, LM Studio, and OpenRouter all speak; a local model needs no key'
       11-4-1-1: A base URL that already ends in the API's own path is taken as it stands, since what a provider documents is the whole endpoint and that is what gets pasted in; the path is never appended twice
       11-4-1-2: 'A call the API refused names the URL it was answered for: the key is the user''s, but the address is composed from the connection, and a 404 is about the address'
-      11-4-1-3: A kind that names none of those qm knows is taken as the OpenAI-compatible one, that being what an unfamiliar provider most likely speaks
+      11-4-1-3: A kind that names none of those folio knows is taken as the OpenAI-compatible one, that being what an unfamiliar provider most likely speaks
       11-4-4: 'A third kind is GitHub Copilot, which is not an endpoint but the GitHub Copilot CLI, started as a child process and spoken to over its own protocol; everything from the answer on -- reading the JSON, locating the passages, attributing the suggestions -- is the same for it as for the two HTTP kinds'
-      11-4-4-1: 'The CLI is the user''s own installation: qm finds it at COPILOT_CLI_PATH or on PATH and names it to the SDK, rather than leaving the SDK to look for a runtime bundled into the qm binary, which there is none of; a CLI that is not there is reported as that rather than as a missing bundle'
+      11-4-4-1: 'The CLI is the user''s own installation: folio finds it at COPILOT_CLI_PATH or on PATH and names it to the SDK, rather than leaving the SDK to look for a runtime bundled into the folio binary, which there is none of; a CLI that is not there is reported as that rather than as a missing bundle'
       11-4-4-2: 'A Copilot connection is a name and a model: it is given no base URL, the CLI knowing where GitHub is, and one entered against it is dropped rather than stored as a setting that does nothing'
       11-4-4-3: A Copilot connection needs no key either, a run being made as whoever the CLI is signed in as; a GitHub token in the key field is used in that user's place
       11-4-4-4: 'The session is shut down to a chat: it is created with no tools, its system message replaces the CLI''s coding-agent persona with the copyediting instruction rather than appending to it, and it is given an empty scratch directory as its working directory, so the page it is sent is the only thing it can read'

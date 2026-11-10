@@ -49,7 +49,7 @@ func try(t *testing.T, label string, mode copilot.ClientMode, models []string) {
 
 	for _, model := range models {
 		cfg := &copilot.SessionConfig{
-			ClientName:          "qm",
+			ClientName:          "folio",
 			Model:               model,
 			WorkingDirectory:    scratch,
 			OnPermissionRequest: refuseEverything,

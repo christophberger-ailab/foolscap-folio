@@ -18,7 +18,7 @@ import (
 	dx "github.com/mmonterroca/docxgo/v2"
 	"github.com/mmonterroca/docxgo/v2/domain"
 
-	"github.com/christophberger-ailab/qm/internal/markdown"
+	"github.com/christophberger-ailab/foolscap-folio/internal/markdown"
 )
 
 // build writes Markdown to a DOCX and returns its parts by name. Every XML

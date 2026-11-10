@@ -4,7 +4,7 @@ import (
 	"html/template"
 	"strings"
 
-	"github.com/christophberger-ailab/qm/internal/bookmaker"
+	"github.com/christophberger-ailab/foolscap-folio/internal/bookmaker"
 )
 
 type labels struct {

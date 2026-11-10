@@ -31,7 +31,7 @@ import (
 
 	copilot "github.com/github/copilot-sdk/go"
 
-	"github.com/christophberger-ailab/qm/internal/project"
+	"github.com/christophberger-ailab/foolscap-folio/internal/project"
 )
 
 // chatSystem is the chat's instruction. Like suggestionFormat it is ours

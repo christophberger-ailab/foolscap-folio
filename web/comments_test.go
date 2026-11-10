@@ -1,9 +1,6 @@
 package web
 
-import (
-	"strings"
-	"testing"
-)
+import "testing"
 
 // A passage is commented in the editor, signed, replied to, and
 // highlighted in the preview (spec-web.yaml 3-8). Both happen in the browser; what a Go test can check
@@ -13,14 +10,14 @@ func TestCommentsInEditorAndPreview(t *testing.T) {
 		"assets/static/editor.js":  {"function addComment(", "function focusComment(", "'Ctrl-Alt-M': addComment", "mountCommentRail();", "function replyToComment(", "'Ctrl-Alt-R': replyToComment", "getAttribute('data-user')", "function commentMeta(instance)"},
 		"assets/static/preview.js": {"function parseCommentMarker(", "function markComments(", "markComments(el);", "marked.lexer(unblockComments(src))", "'<<+': 'reply'", "function threadReply(", "function commentReply("},
 		"assets/static/app.js":     {"focusComment(Number("},
-		"assets/static/app.css":    {"--comment:", ".comment-rail", ".comment-add", ".qm-comment"},
+		"assets/static/app.css":    {"--comment:", ".comment-rail", ".comment-add", ".folio-comment"},
 	} {
 		src, err := assets.ReadFile(file)
 		if err != nil {
 			t.Fatal(err)
 		}
 		for _, want := range wants {
-			if !strings.Contains(string(src), want) {
+			if !assetContains(file, string(src), want) {
 				t.Errorf("%s does not handle comments, missing %q", file, want)
 			}
 		}

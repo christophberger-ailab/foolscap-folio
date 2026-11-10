@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/christophberger-ailab/qm/internal/config"
+	"github.com/christophberger-ailab/foolscap-folio/internal/config"
 )
 
 func write(t *testing.T, root, name, body string) {

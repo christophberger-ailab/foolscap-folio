@@ -20,13 +20,13 @@ A page with `draft: true` in its frontmatter is greyed out. It is part of the pr
 
 A page can carry status marks after its title:
 
-- 🚧 to do: `todo: true` under `qm:` in the frontmatter, or the text `==TODO==` anywhere in the page, even inside an HTML comment.
-- 👀 to review: `review: true` under `qm:` in the frontmatter.
+- 🚧 to do: `todo: true` under `folio:` in the frontmatter, or the text `==TODO==` anywhere in the page, even inside an HTML comment.
+- 👀 to review: `review: true` under `folio:` in the frontmatter.
 
 ```yaml
 ---
 title: My page
-qm:
+folio:
   todo: true
   review: true
 ---
@@ -36,12 +36,12 @@ Each mark is shown once per page, however many `==TODO==` the page holds.
 
 ## Hiding pages
 
-A page with `hide: true` under `qm:` in its frontmatter is left out of the tree. The default is `false`. A hidden section page hides its whole branch. Hiding only affects the tree: the page is still rendered, and the [search](search.md) still finds it, so you can open it there and remove the setting again.
+A page with `hide: true` under `folio:` in its frontmatter is left out of the tree. The default is `false`. A hidden section page hides its whole branch. Hiding only affects the tree: the page is still rendered, and the [search](search.md) still finds it, so you can open it there and remove the setting again.
 
 ```yaml
 ---
 title: My page
-qm:
+folio:
   hide: true
 ---
 ```
