@@ -6,7 +6,7 @@ Der Copyedit-Bereich schickt die Seite an ein Sprachmodell und zeigt dessen Vors
 
 Du brauchst mindestens eine Aufgabe und eine Verbindung. Beides findest du auf den [Konfigurationsseiten](settings.md); gespeichert wird es in deiner eigenen Einstellungsdatei, nicht im Projekt.
 
-**Editing tasks** (Config, dann Copyedit: Editing tasks). Eine Aufgabe besteht aus einem Titel und einem Prompt, zum Beispiel „Passiv“ mit einer Anweisung, worauf zu achten ist. Du kannst Aufgaben hinzufügen, bearbeiten und löschen. Eine Aufgabe braucht Titel und Prompt. Der Bereich listet die Aufgaben nach Titel auf; der Prompt erscheint als Tooltip.
+**Editing tasks** (Config, dann Copyedit: Editing tasks). Eine Aufgabe besteht aus einem Titel und einem Prompt, zum Beispiel „Passiv“ mit einer Anweisung, worauf zu achten ist. Du kannst Aufgaben hinzufügen, bearbeiten und löschen. Eine Aufgabe braucht Titel und Prompt. Der Bereich listet die Aufgaben nach Titel auf; der Prompt erscheint als Tooltip. Eine frische Installation bringt acht Aufgaben mit, von Rechtschreibung und Zeichensetzung bis zu Kürze und Satzbau. Es sind gewöhnliche Aufgaben: Du kannst sie bearbeiten oder löschen wie deine eigenen.
 
 **API connections** (Config, dann Copyedit: API connections). Eine Verbindung hat einen Namen, eine API-Art, ein Modell und meist eine Basis-URL und einen Schlüssel. Du kannst beliebig viele speichern.
 

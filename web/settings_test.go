@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -236,5 +237,35 @@ func TestTheOldJSONFilesAreCarriedOverOnce(t *testing.T) {
 		if _, err := os.Stat(filepath.Join(dir, name+".migrated")); err != nil {
 			t.Errorf("%s was not kept: %v", name, err)
 		}
+	}
+}
+
+// A fresh installation comes with the editing tasks qm ships, written into
+// config.cue like any the user adds, so they can be edited or deleted.
+func TestFreshConfigShipsTheDefaultEditingTasks(t *testing.T) {
+	path := filepath.Join(t.TempDir(), configFileName)
+	cfg, err := openConfig(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := cfg.Copyedit.Prompts
+	if len(got) != 8 || got[0].ID != "p1" || got[7].ID != "p8" {
+		t.Fatalf("prompts = %+v, want the eight shipped ones", got)
+	}
+	if !strings.Contains(got[0].Prompt, "- No Oxford comma.\n- Always use straight quotes.") || strings.Contains(got[0].Prompt, "\r") {
+		t.Errorf("p1 prompt not kept line by line:\n%q", got[0].Prompt)
+	}
+	reread, err := loadConfigFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(reread.Copyedit.Prompts, got) {
+		t.Errorf("written prompts read back as %+v", reread.Copyedit.Prompts)
+	}
+	// Each call hands out its own list, so changing one config's tasks
+	// cannot change the next fresh one.
+	cfg.Copyedit.Prompts[0].Title = "changed"
+	if defaultConfig().Copyedit.Prompts[0].Title == "changed" {
+		t.Error("defaultConfig shares its prompts between calls")
 	}
 }

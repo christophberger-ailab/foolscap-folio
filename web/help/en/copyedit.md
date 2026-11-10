@@ -6,7 +6,7 @@ The copyedit pane sends the page to a language model and shows its suggestions. 
 
 You need at least one task and one connection. Both are on [config pages](settings.md) and are stored in your own settings file, not in the project.
 
-**Editing tasks** (Config, then Copyedit: Editing tasks). A task is a title and a prompt, for example "Passive voice" with an instruction about what to look for. You can add, edit, and delete tasks. A task needs both a title and a prompt. The pane lists tasks by title, and the prompt is shown as a tooltip.
+**Editing tasks** (Config, then Copyedit: Editing tasks). A task is a title and a prompt, for example "Passive voice" with an instruction about what to look for. You can add, edit, and delete tasks. A task needs both a title and a prompt. The pane lists tasks by title, and the prompt is shown as a tooltip. A fresh installation comes with eight tasks, from spelling and punctuation to concision and sentence shape. They are ordinary tasks: edit or delete them like your own.
 
 **API connections** (Config, then Copyedit: API connections). A connection has a name, an API kind, a model, and usually a base URL and a key. You can save any number of them.
 

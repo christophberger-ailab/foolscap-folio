@@ -215,14 +215,14 @@ func defaultConfigFile() string {
 }
 
 // defaultConfig is what a fresh installation starts with: nothing opened,
-// nothing selected, and the copyediting tool waiting to be configured.
+// nothing selected, the shipped editing tasks, and no model to run them on.
 func defaultConfig() storedConfig {
 	return storedConfig{
 		Recent:   []string{},
 		Projects: map[string]projectPrefs{},
 		Preview:  previewConfig{CSS: defaultCSSName},
 		Copyedit: copyeditConfig{
-			Prompts:     []copyeditPrompt{},
+			Prompts:     defaultCopyeditPrompts(),
 			Connections: []apiConnection{},
 			Mode:        modeBatched,
 			Selected:    []string{},
