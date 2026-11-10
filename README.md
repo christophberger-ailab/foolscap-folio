@@ -6,7 +6,10 @@
 
 Foolscap Folio turns a tree of pages in extended Markdown (`.qmd` or `.md` into a website, Word documents and PDFs. 
 
-![`folio web`](./docs/images/folio_web.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./docs/images/folio_web_dark.png">
+  <img alt="folio web" src="./docs/images/folio_web.png">
+</picture>
 
 - **One tree, many outputs.** The folder structure and the `order:` front matter of the pages decide the order and the nesting of every output. A website, a DOCX and a PDF all come from the same pages, with the headings demoted to the level the folder depth implies.
 
