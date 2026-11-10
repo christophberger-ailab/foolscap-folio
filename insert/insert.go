@@ -1,4 +1,4 @@
-// Package insert implements the `qm chapters insert` subcommand.
+// Package insert implements the `folio chapters insert` subcommand.
 //
 // Spec: spec-insert.yaml. The new chapter is a file the user has already
 // created in the target folder, with an `insert-at: <n>` frontmatter entry
@@ -42,7 +42,7 @@ func Register(parent string, projectFlag *string) {
 
 func cmd(c *start.Command) error {
 	if len(c.Args) < 1 {
-		return fmt.Errorf("usage: qm chapters insert <folder>")
+		return fmt.Errorf("usage: folio chapters insert <folder>")
 	}
 	if projectPath == nil {
 		return fmt.Errorf("insert: --project flag not initialised")

@@ -1,4 +1,4 @@
-// Package shortcode resolves the Quarto shortcodes qm's content uses, on
+// Package shortcode resolves the Quarto shortcodes folio's content uses, on
 // the text, before the Markdown is parsed.
 package shortcode
 
@@ -35,7 +35,7 @@ import (
 
 // pagebreakDiv is the marker a page-break shortcode becomes: an empty div
 // that every writer turns into its own page break.
-const pagebreakDiv = "\n\n::: {.qm-pagebreak}\n:::\n\n"
+const pagebreakDiv = "\n\n::: {.folio-pagebreak}\n:::\n\n"
 
 // maxIncludeDepth stops an include that includes itself, however indirectly.
 const maxIncludeDepth = 8

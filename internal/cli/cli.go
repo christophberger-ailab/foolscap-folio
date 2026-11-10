@@ -1,4 +1,4 @@
-// Package cli holds the small pieces every qm subcommand shares.
+// Package cli holds the small pieces every folio subcommand shares.
 package cli
 
 import (
@@ -16,7 +16,7 @@ var failed atomic.Bool
 //
 // github.com/christophberger/start prints a command's error and then
 // returns from Up() normally, leaving the exit status at 0. For most
-// commands that is merely wrong; for `qm prepare` it is dangerous. Quarto
+// commands that is merely wrong; for `folio prepare` it is dangerous. Quarto
 // decides whether to abort a render by the pre-render hook's *exit status*,
 // so a validation failure that exits 0 lets the render continue — with the
 // build documents of whatever was rendered before still in `_build/`. The
