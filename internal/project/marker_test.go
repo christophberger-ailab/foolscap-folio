@@ -119,7 +119,7 @@ func TestLoadHeadingFallback(t *testing.T) {
 }
 
 func TestPageFlags(t *testing.T) {
-	todo, review := "\U0001F6A7", "\U0001F440"
+	todo, review, comment := "\U0001F6A7", "\U0001F440", "\U0001F4AC"
 	cases := []struct {
 		name string
 		src  string
@@ -138,6 +138,20 @@ func TestPageFlags(t *testing.T) {
 		{"text twice and key", "---\nqm:\n  todo: true\n---\n==TODO== ==TODO==\n", []string{todo}},
 		{"text and review", "---\nqm:\n  review: true\n---\n==TODO==\n", []string{todo, review}},
 		{"lowercase text", "==todo==\n", nil},
+		{"comment", "# A\n\n<!-- << Check this -->the passage<!-- >> -->\n", []string{comment}},
+		{"comment with attrs", "<!--<<{#c1 author=\"Ann\"} Hm -->x<!-- >> {#c1} -->\n", []string{comment}},
+		{"comment over lines", "<!--\n<< Hm\n-->x<!-- >> -->\n", []string{comment}},
+		{"comments twice", "<!-- << A -->x<!-- >> --> <!-- << B -->y<!-- >> -->\n", []string{comment}},
+		{"all three", "---\nqm:\n  review: true\n---\n==TODO== <!-- << A -->x<!-- >> -->\n", []string{todo, review, comment}},
+		{"plain html comment", "<!-- a note << not a comment -->\n", nil},
+		{"end marker alone", "<!-- >> -->\n", nil},
+		{"comment in code span", "Write `<!-- << A -->` to comment.\n", nil},
+		{"comment in double code span", "Write ``<!-- << ` -->`` to comment.\n", nil},
+		{"comment in code block", "```\n<!-- << A -->x<!-- >> -->\n```\n", nil},
+		{"comment in tilde block", "~~~ markdown\n<!-- << A -->\n~~~\n", nil},
+		{"comment after code block", "```\ncode\n```\n<!-- << A -->x<!-- >> -->\n", []string{comment}},
+		{"comment after code span", "`code` <!-- << A -->x<!-- >> -->\n", []string{comment}},
+		{"unclosed backtick", "a ` b <!-- << A -->x<!-- >> -->\n", []string{comment}},
 	}
 	for _, c := range cases {
 		got := PageFlags([]byte(c.src))
