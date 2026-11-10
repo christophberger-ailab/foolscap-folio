@@ -47,6 +47,8 @@ folio:
 ---
 ```
 
+Pages written for earlier versions say `qm:` instead of `folio:`. They are still read; when a page has both, `folio:` wins.
+
 ## Reordering and moving
 
 Drag a page by its `⠿` handle.

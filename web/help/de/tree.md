@@ -47,6 +47,8 @@ folio:
 ---
 ```
 
+Seiten aus früheren Versionen schreiben `qm:` statt `folio:`. Sie werden weiterhin gelesen; hat eine Seite beides, gilt `folio:`.
+
 ## Umordnen und Verschieben
 
 Ziehe eine Seite am Griff `⠿`.

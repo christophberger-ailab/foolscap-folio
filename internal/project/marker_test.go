@@ -127,22 +127,24 @@ func TestPageFlags(t *testing.T) {
 	}{
 		{"none", "---\ntitle: A\n---\n# A\n", nil},
 		{"no frontmatter", "# A\n", nil},
-		{"todo", "---\nqm:\n  todo: true\n---\n", []string{todo}},
-		{"review", "---\nqm:\n  review: true\n---\n", []string{review}},
-		{"both", "---\nqm:\n  review: true\n  todo: true\n---\n", []string{todo, review}},
-		{"false", "---\nqm:\n  todo: false\n  review: false\n---\n", nil},
-		{"not a bool", "---\nqm:\n  todo: yes please\n---\n", nil},
-		{"unknown key", "---\nqm:\n  later: true\n---\n", nil},
+		{"todo", "---\nfolio:\n  todo: true\n---\n", []string{todo}},
+		{"review", "---\nfolio:\n  review: true\n---\n", []string{review}},
+		{"both", "---\nfolio:\n  review: true\n  todo: true\n---\n", []string{todo, review}},
+		{"false", "---\nfolio:\n  todo: false\n  review: false\n---\n", nil},
+		{"not a bool", "---\nfolio:\n  todo: yes please\n---\n", nil},
+		{"unknown key", "---\nfolio:\n  later: true\n---\n", nil},
+		{"legacy qm", "---\nqm:\n  review: true\n---\n", []string{review}},
+		{"folio wins over qm", "---\nfolio:\n  review: false\nqm:\n  review: true\n  todo: true\n---\n", []string{todo}},
 		{"text", "# A\n\nSome ==TODO== here.\n", []string{todo}},
 		{"text in comment", "# A\n\n<!-- ==TODO== fix -->\n", []string{todo}},
-		{"text twice and key", "---\nqm:\n  todo: true\n---\n==TODO== ==TODO==\n", []string{todo}},
-		{"text and review", "---\nqm:\n  review: true\n---\n==TODO==\n", []string{todo, review}},
+		{"text twice and key", "---\nfolio:\n  todo: true\n---\n==TODO== ==TODO==\n", []string{todo}},
+		{"text and review", "---\nfolio:\n  review: true\n---\n==TODO==\n", []string{todo, review}},
 		{"lowercase text", "==todo==\n", nil},
 		{"comment", "# A\n\n<!-- << Check this -->the passage<!-- >> -->\n", []string{comment}},
 		{"comment with attrs", "<!--<<{#c1 author=\"Ann\"} Hm -->x<!-- >> {#c1} -->\n", []string{comment}},
 		{"comment over lines", "<!--\n<< Hm\n-->x<!-- >> -->\n", []string{comment}},
 		{"comments twice", "<!-- << A -->x<!-- >> --> <!-- << B -->y<!-- >> -->\n", []string{comment}},
-		{"all three", "---\nqm:\n  review: true\n---\n==TODO== <!-- << A -->x<!-- >> -->\n", []string{todo, review, comment}},
+		{"all three", "---\nfolio:\n  review: true\n---\n==TODO== <!-- << A -->x<!-- >> -->\n", []string{todo, review, comment}},
 		{"plain html comment", "<!-- a note << not a comment -->\n", nil},
 		{"end marker alone", "<!-- >> -->\n", nil},
 		{"comment in code span", "Write `<!-- << A -->` to comment.\n", nil},
@@ -163,7 +165,7 @@ func TestPageFlags(t *testing.T) {
 
 func TestLoadFlags(t *testing.T) {
 	root := t.TempDir()
-	src := "---\ntitle: Flagged\norder: 1\nqm:\n  review: true\n---\n# Flagged\n<!-- ==TODO== -->\n"
+	src := "---\ntitle: Flagged\norder: 1\nfolio:\n  review: true\n---\n# Flagged\n<!-- ==TODO== -->\n"
 	if err := os.WriteFile(filepath.Join(root, "flagged.qmd"), []byte(src), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -186,12 +188,13 @@ func TestLoadFlags(t *testing.T) {
 func TestLoadHidden(t *testing.T) {
 	root := t.TempDir()
 	pages := map[string]string{
-		"shown.qmd":           "---\ntitle: Shown\norder: 1\nqm:\n  hide: false\n---\n",
-		"secret.qmd":          "---\ntitle: Secret\norder: 2\nqm:\n  hide: true\n---\n",
+		"shown.qmd":           "---\ntitle: Shown\norder: 1\nfolio:\n  hide: false\n---\n",
+		"secret.qmd":          "---\ntitle: Secret\norder: 2\nfolio:\n  hide: true\n---\n",
+		"old.qmd":             "---\ntitle: Old\norder: 5\nqm:\n  hide: true\n---\n",
 		"sec/index.qmd":       "---\ntitle: Sec\norder: 3\n---\n",
-		"sec/gone.qmd":        "---\ntitle: Gone\nqm:\n  hide: true\n---\n",
-		"loose/only.qmd":      "---\ntitle: Only\nqm:\n  hide: true\n---\n",
-		"mixed/hidden.qmd":    "---\ntitle: Hidden\nqm:\n  hide: true\n---\n",
+		"sec/gone.qmd":        "---\ntitle: Gone\nfolio:\n  hide: true\n---\n",
+		"loose/only.qmd":      "---\ntitle: Only\nfolio:\n  hide: true\n---\n",
+		"mixed/hidden.qmd":    "---\ntitle: Hidden\nfolio:\n  hide: true\n---\n",
 		"mixed/visible.qmd":   "---\ntitle: Visible\n---\n",
 		"plain/no-option.qmd": "---\ntitle: Plain\n---\n",
 	}
@@ -211,6 +214,7 @@ func TestLoadHidden(t *testing.T) {
 	for p, want := range map[string]bool{
 		"shown.qmd":           false,
 		"secret.qmd":          true,
+		"old.qmd":             true,
 		"sec/index.qmd":       false,
 		"sec/gone.qmd":        true,
 		"mixed/visible.qmd":   false,

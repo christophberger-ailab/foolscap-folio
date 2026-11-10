@@ -23,8 +23,8 @@ type Page struct {
 	BadFences bool     // the file has unmatched Quarto block fences
 	Draft     bool     // the page's frontmatter says `draft: true`
 	Marker    string   // emoji marker from a _FW/_POL suffix (own or inherited)
-	Flags     []string // status emojis from the qm: frontmatter and the body, see PageFlags
-	Hidden    bool     // the page's frontmatter says `qm: {hide: true}`
+	Flags     []string // status emojis from the folio: frontmatter and the body, see PageFlags
+	Hidden    bool     // the page's frontmatter says `folio: {hide: true}`
 	Children  []*Page
 }
 
@@ -35,7 +35,7 @@ const (
 )
 
 // pageFlags lists the status flags a page can carry, in the order the tree
-// shows them. A flag is set by `qm: {<Key>: true}` in the frontmatter, or
+// shows them. A flag is set by `folio: {<Key>: true}` in the frontmatter, or
 // by In reporting true for the page's file when In is not nil. A new flag
 // is one more entry here.
 var pageFlags = []struct {
@@ -57,7 +57,7 @@ func PageFlags(src []byte) []string {
 func pageFlagsOf(src []byte, fm FrontMatter) []string {
 	var flags []string
 	for _, f := range pageFlags {
-		if fm.QM[f.Key] == true || f.In != nil && f.In(src) {
+		if fm.Flag(f.Key) || f.In != nil && f.In(src) {
 			flags = append(flags, f.Emoji)
 		}
 	}
@@ -115,14 +115,14 @@ func dropCodeSpans(ln []byte) []byte {
 	return append(out, ln[at:]...)
 }
 
-// IsHidden reports whether src's frontmatter says `qm: {hide: true}`, which
+// IsHidden reports whether src's frontmatter says `folio: {hide: true}`, which
 // leaves the page out of the tree view.
 func IsHidden(src []byte) bool {
 	return isHidden(ParseFrontmatter(src))
 }
 
 func isHidden(fm FrontMatter) bool {
-	return fm.QM["hide"] == true
+	return fm.Flag("hide")
 }
 
 // HasVisibleChildren reports whether any of the page's children is shown
