@@ -1,6 +1,6 @@
-// Command qm manages and renders a Markdown documentation tree.
+// Command folio manages and renders a Markdown documentation tree.
 //
-// Usage: qm <object> <subcommand> [flags] [args]
+// Usage: folio <object> <subcommand> [flags] [args]
 //
 // The object "chapters" carries the subcommands `insert`, `move`, and
 // `remove`; "lint", "flatten", "render", "migrate", and "web" have no
@@ -37,8 +37,8 @@ func main() {
 	projectFlag := flag.StringP("project", "p", ".",
 		"Path to the document tree (default: current directory)")
 
-	start.SetDescription("qm manages and renders a Markdown documentation tree. " +
-		"Usage: qm <object> <subcommand> [flags] [args].")
+	start.SetDescription("folio manages and renders a Markdown documentation tree. " +
+		"Usage: folio <object> <subcommand> [flags] [args].")
 	start.SetVersion(version)
 	start.SetInitFunc(func() error { return nil })
 
@@ -73,7 +73,7 @@ func main() {
 	// The `flatten` object saves render's generated inputs without rendering.
 	flatten.Register(projectFlag)
 
-	// `migrate` writes qm.yml from a project's old Quarto configuration.
+	// `migrate` writes folio.yml from a project's old Quarto configuration.
 	migrate.Register(projectFlag)
 
 	// The `web` object serves the sorter UI; no sub-commands either.
