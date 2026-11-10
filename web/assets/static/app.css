@@ -1,4 +1,4 @@
-/* Quarto Manager - app styles */
+/* Foolscap Folio - app styles */
 
 :root {
   color-scheme: light dark;
@@ -56,7 +56,9 @@ body {
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
   color: var(--fg);
   background: var(--bg);
   display: flex;
@@ -194,7 +196,7 @@ body {
   background: none;
 }
 
-.search-box input:placeholder-shown+.search-clear {
+.search-box input:placeholder-shown + .search-clear {
   display: none;
 }
 
@@ -221,8 +223,8 @@ body {
 
 /* Render panel */
 
-.render>summary,
-.git>summary {
+.render > summary,
+.git > summary {
   cursor: pointer;
   padding: 0.25rem 0.6rem;
   border: 1px solid var(--border);
@@ -232,8 +234,8 @@ body {
   user-select: none;
 }
 
-.render>summary:hover,
-.git>summary:hover {
+.render > summary:hover,
+.git > summary:hover {
   background: var(--hover);
 }
 
@@ -929,11 +931,11 @@ ul.children {
 }
 
 /* A collapsed branch hides its subtree. */
-li.page.collapsed>ul.children {
+li.page.collapsed > ul.children {
   display: none;
 }
 
-#tree>ul.children {
+#tree > ul.children {
   margin-left: 0;
   padding-left: 0;
   border-left: none;
@@ -968,16 +970,16 @@ li.page {
 
 /* Only nodes with children get an interactive triangle; leaf nodes keep an
    empty toggle as a spacer so their rows stay aligned. */
-li.page.has-children>.row>.toggle {
+li.page.has-children > .row > .toggle {
   cursor: pointer;
 }
 
-li.page.has-children>.row>.toggle::before {
+li.page.has-children > .row > .toggle::before {
   content: "\25BE";
   /* ▾ expanded */
 }
 
-li.page.has-children.collapsed>.row>.toggle::before {
+li.page.has-children.collapsed > .row > .toggle::before {
   content: "\25B8";
   /* ▸ collapsed */
 }
@@ -999,7 +1001,7 @@ li.page.has-children.collapsed>.row>.toggle::before {
   min-width: 1rem;
 }
 
-li.page.ordered>.row>.num::before {
+li.page.ordered > .row > .num::before {
   content: counters(chap, ".") ". ";
 }
 
@@ -1007,12 +1009,12 @@ li.page.ordered {
   counter-increment: chap;
 }
 
-li.page.unordered>.row>.num::before {
+li.page.unordered > .row > .num::before {
   content: "\26A0";
   color: var(--warn);
 }
 
-li.page.unordered>.row>.title {
+li.page.unordered > .row > .title {
   color: var(--muted);
 }
 
@@ -1022,14 +1024,14 @@ li.page.unordered>.row>.title {
    one whether it is numbered or not. Placed before the bad-fences rule,
    which keeps unmatched fences visible as the warning they are even on a
    draft. */
-li.page.draft>.row,
-li.page.draft>.row>.title {
+li.page.draft > .row,
+li.page.draft > .row > .title {
   color: var(--muted);
 }
 
 /* Unmatched Quarto block fences: muted orange title. Placed after the
    unordered rule so it wins for pages that are both. */
-li.page.bad-fences>.row>.title {
+li.page.bad-fences > .row > .title {
   color: var(--fence-warn);
 }
 
@@ -1064,7 +1066,7 @@ li.page.bad-fences>.row>.title {
   background: transparent;
 }
 
-li.selected>.row {
+li.selected > .row {
   background: var(--accent-bg);
 }
 
@@ -1302,8 +1304,8 @@ div.CodeMirror-selected {
 }
 
 .CodeMirror-line::selection,
-.CodeMirror-line>span::selection,
-.CodeMirror-line>span>span::selection {
+.CodeMirror-line > span::selection,
+.CodeMirror-line > span > span::selection {
   background: var(--accent-bg);
 }
 
@@ -1860,7 +1862,7 @@ mark.qm-todo-hidden {
   color: var(--accent);
 }
 
-.markdown-preview> :first-child {
+.markdown-preview > :first-child {
   margin-top: 0;
 }
 
@@ -1995,31 +1997,31 @@ mark.qm-todo-hidden {
 }
 
 .markdown-preview .callout-note {
-  --callout-color: #0758E5;
+  --callout-color: #0758e5;
   --callout-header: #dae6fb;
   --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2'/%3E%3C/svg%3E");
 }
 
 .markdown-preview .callout-tip {
-  --callout-color: #00A047;
+  --callout-color: #00a047;
   --callout-header: #ccf1e3;
   --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 6a6 6 0 1 1 10.174 4.31c-.203.196-.359.4-.453.619l-.762 1.769A.5.5 0 0 1 10.5 13a.5.5 0 0 1 0 1 .5.5 0 0 1 0 1l-.224.447a1 1 0 0 1-.894.553H6.618a1 1 0 0 1-.894-.553L5.5 15a.5.5 0 0 1 0-1 .5.5 0 0 1 0-1 .5.5 0 0 1-.46-.302l-.761-1.77a2 2 0 0 0-.453-.618A5.98 5.98 0 0 1 2 6m6-5a5 5 0 0 0-3.479 8.592c.263.254.514.564.676.941L5.83 12h4.342l.632-1.467c.162-.377.413-.687.676-.941A5 5 0 0 0 8 1'/%3E%3C/svg%3E");
 }
 
 .markdown-preview .callout-warning {
-  --callout-color: #EB9113;
+  --callout-color: #eb9113;
   --callout-header: #fcefdc;
   --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5m.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2'/%3E%3C/svg%3E");
 }
 
 .markdown-preview .callout-important {
-  --callout-color: #CC1914;
+  --callout-color: #cc1914;
   --callout-header: #f7dddc;
   --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4m.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2'/%3E%3C/svg%3E");
 }
 
 .markdown-preview .callout-caution {
-  --callout-color: #FC5300;
+  --callout-color: #fc5300;
   --callout-header: #ffe5d0;
   --callout-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m9.97 4.88.953 3.811C10.159 8.878 9.14 9 8 9s-2.158-.122-2.923-.309L6.03 4.88C6.635 4.957 7.3 5 8 5s1.365-.043 1.97-.12m-.245-.978L8.97.88C8.718-.13 7.282-.13 7.03.88L6.275 3.9C6.8 3.965 7.382 4 8 4s1.2-.036 1.725-.098m4.396 8.613a.5.5 0 0 1 .037.96l-6 2a.5.5 0 0 1-.316 0l-6-2a.5.5 0 0 1 .037-.96l2.391-.598.565-2.257c.862.212 1.964.339 3.165.339s2.303-.127 3.165-.339l.565 2.257z'/%3E%3C/svg%3E");
 }
@@ -2047,7 +2049,11 @@ mark.qm-todo-hidden {
 }
 
 .markdown-preview .callout-style-default > .callout-header + .callout-body,
-.markdown-preview .callout-style-default > .callout-fold > .callout-header + .callout-body {
+.markdown-preview
+  .callout-style-default
+  > .callout-fold
+  > .callout-header
+  + .callout-body {
   border-top: 1px solid var(--callout-color);
 }
 

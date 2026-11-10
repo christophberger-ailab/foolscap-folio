@@ -1,4 +1,4 @@
-// Quarto Manager - app behavior (plain ES6, no build step)
+// Foolscap Folio - app behavior (plain ES6, no build step)
 
 // Open field
 //
