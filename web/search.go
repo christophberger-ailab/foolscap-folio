@@ -482,7 +482,7 @@ func (s *server) search(w http.ResponseWriter, r *http.Request) {
 		view.Hits, view.Indexing = hits, !current && len(parseQuery(q)) > 0
 		if !current {
 			// The project may have been opened without a page ever being
-			// served -- `qm web <path>` does that -- so no build has been
+			// served -- `folio web <path>` does that -- so no build has been
 			// asked for yet. Ask now; the client comes back for the answer.
 			s.index.rebuild(s.root, s.fp)
 		}

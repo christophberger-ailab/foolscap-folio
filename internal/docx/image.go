@@ -62,7 +62,7 @@ func (w *writer) image(buf *bytes.Buffer, n *ast.Image, rp runProps, c ctx) {
 
 	cx, cy := w.imageSize(markdown.AttrsOf(n), int64(cfg.Width)*emuPerPx, int64(cfg.Height)*emuPerPx)
 	w.drawID++
-	name := fmt.Sprintf("qm-image%d.%s", w.drawID, ext)
+	name := fmt.Sprintf("folio-image%d.%s", w.drawID, ext)
 	w.media = append(w.media, mediaFile{name: name, data: data})
 	rid := fmt.Sprintf("rIdQmImg%d", w.drawID)
 	w.rels = append(w.rels, relationship{rid, relImage, "media/" + name})

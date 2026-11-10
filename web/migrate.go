@@ -1,6 +1,6 @@
 package web
 
-// migrate.go — the settings qm used to keep in several JSON files, read
+// migrate.go — the settings folio used to keep in several JSON files, read
 // once into the one CUE file that replaces them.
 //
 // Nothing is thrown away: what the old files held is carried over, and the
@@ -15,7 +15,7 @@ import (
 	"strings"
 )
 
-// The files qm wrote before config.cue. render.json is still called that
+// The files folio wrote before config.cue. render.json is still called that
 // in the wild although it grew beyond the render selection, which is why
 // its name says so little.
 const (

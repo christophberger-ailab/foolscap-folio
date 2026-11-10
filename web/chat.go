@@ -12,7 +12,7 @@ package web
 // shows those suggestions the way it shows a run's, marked in the text and
 // offered for Apply and Done. The writing stays the user's.
 //
-// The tools are qm's own, implemented here against the open project, and
+// The tools are folio's own, implemented here against the open project, and
 // offered to every kind of connection in the form that kind speaks:
 // Anthropic's tool use, OpenAI's function calling, and the Copilot SDK's
 // custom tools. The conversation itself is kept by the browser, with the
@@ -579,8 +579,8 @@ func chatOpenAI(conn apiConnection, tools *docTools, opening string, turns []cha
 
 // chatCopilot runs the conversation through the Copilot CLI. The session
 // is created for this one answer and given the conversation so far as one
-// prompt; the CLI runs the tool rounds itself and calls back into qm for
-// each tool, and qm's tools are the only ones the session has.
+// prompt; the CLI runs the tool rounds itself and calls back into folio for
+// each tool, and folio's tools are the only ones the session has.
 func chatCopilot(conn apiConnection, tools *docTools, opening string, turns []chatTurn) (string, error) {
 	var b strings.Builder
 	b.WriteString(opening)

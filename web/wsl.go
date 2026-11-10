@@ -1,8 +1,8 @@
 package web
 
-// wsl.go — starting Windows programs from qm running under WSL.
+// wsl.go — starting Windows programs from folio running under WSL.
 //
-// Under WSL, qm is a Linux program, but the user's editors may well be
+// Under WSL, folio is a Linux program, but the user's editors may well be
 // Windows ones. WSL runs those, with two catches: a Windows program is only
 // found by its full file name, mspaint.exe rather than the mspaint that
 // Windows' own shells accept, and it cannot open a Linux path. So a command
@@ -17,7 +17,7 @@ import (
 	"sync"
 )
 
-// inWSL reports whether qm runs under the Windows Subsystem for Linux.
+// inWSL reports whether folio runs under the Windows Subsystem for Linux.
 // WSL's kernel says so in its version string.
 var inWSL = sync.OnceValue(func() bool {
 	v, err := os.ReadFile("/proc/version")

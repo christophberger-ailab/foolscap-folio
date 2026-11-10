@@ -93,7 +93,7 @@ func gitProject(t *testing.T) (*server, string) {
 	srv, root := testServer(t)
 	for _, args := range [][]string{
 		{"init", "-b", "main"},
-		{"config", "user.email", "qm@example.com"},
+		{"config", "user.email", "folio@example.com"},
 		{"config", "user.name", "QM Test"},
 		{"add", "--all"},
 		{"commit", "-m", "first"},
@@ -331,7 +331,7 @@ func gitSubProject(t *testing.T) (srv *server, repo, proj string) {
 	writeFile(t, repo, "README.md", "# The repository\n")
 	for _, args := range [][]string{
 		{"init", "-b", "main"},
-		{"config", "user.email", "qm@example.com"},
+		{"config", "user.email", "folio@example.com"},
 		{"config", "user.name", "QM Test"},
 		{"add", "--all"},
 		{"commit", "-m", "first"},

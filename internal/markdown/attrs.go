@@ -1,4 +1,4 @@
-// Package markdown parses qm's Markdown — CommonMark with the Pandoc
+// Package markdown parses folio's Markdown — CommonMark with the Pandoc
 // extensions the content uses — into a goldmark syntax tree that every
 // writer (website, DOCX, PDF) walks.
 //

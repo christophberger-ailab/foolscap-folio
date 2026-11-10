@@ -1,4 +1,4 @@
-// Package build renders a qm project: every selected topic × format ×
+// Package build renders a folio project: every selected topic × format ×
 // audience combination, without Quarto, Pandoc or LaTeX.
 //
 // A document (DOCX, PDF) is one topic folder flattened into one Markdown

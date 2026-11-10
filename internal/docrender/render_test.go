@@ -98,7 +98,7 @@ func TestCoverDOCXPreservesBodyAndPackage(t *testing.T) {
 			}
 		}
 	}
-	if got["word/media/qm-cover.png"] == "" {
+	if got["word/media/folio-cover.png"] == "" {
 		t.Fatal("cover not embedded")
 	}
 }

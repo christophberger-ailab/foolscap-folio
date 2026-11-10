@@ -129,7 +129,7 @@ func testRepo(t *testing.T) string {
 	dir := t.TempDir()
 	for _, args := range [][]string{
 		{"init", "-b", "main"},
-		{"config", "user.email", "qm@example.com"},
+		{"config", "user.email", "folio@example.com"},
 		{"config", "user.name", "QM Test"},
 	} {
 		cmd := exec.Command("git", args...)
@@ -300,7 +300,7 @@ func TestDiffSpacedPath(t *testing.T) {
 
 // subdirRepo is a repository whose Quarto project sits well inside it, the
 // way a book kept in a documentation monorepo does. It returns the
-// repository root and the project directory qm would be pointed at.
+// repository root and the project directory folio would be pointed at.
 func subdirRepo(t *testing.T) (root, proj string) {
 	t.Helper()
 	root = testRepo(t)

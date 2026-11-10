@@ -4,7 +4,7 @@ package web
 //
 // The other two kinds are endpoints: a URL, a key in a header, JSON in
 // and JSON out (see llm.go). Copilot is not one. It is reached through
-// the GitHub Copilot CLI, which qm starts as a child process and talks to
+// the GitHub Copilot CLI, which folio starts as a child process and talks to
 // over the CLI's own protocol; the SDK that speaks that protocol is
 // vendored because, unlike a chat completion, there is nothing here that
 // could sensibly be written by hand.
@@ -38,14 +38,14 @@ import (
 	"github.com/github/copilot-sdk/go/rpc"
 )
 
-// copilotCLI is the Copilot CLI qm starts: the one COPILOT_CLI_PATH names,
+// copilotCLI is the Copilot CLI folio starts: the one COPILOT_CLI_PATH names,
 // or the one on PATH.
 //
 // The path is resolved here and handed to the SDK rather than left to it.
 // The SDK's own default is a runtime it expects to have been bundled into
 // the binary at build time (`go tool bundler`), and failing that it does
 // not look on PATH at all -- it reports a missing bundle, which is a
-// sentence about our build, not about the user's machine. qm ships no
+// sentence about our build, not about the user's machine. folio ships no
 // bundle: the CLI is the user's own installation, signed in as the user,
 // and that is the thing to find and to name when it is not there.
 func copilotCLI() (string, error) {
@@ -63,7 +63,7 @@ func copilotCLI() (string, error) {
 // copilotHome is the directory the Copilot CLI keeps its own data in:
 // COPILOT_HOME, or ~/.copilot, which is where the CLI itself looks.
 //
-// qm has to name it because ModeEmpty insists on being told where session
+// folio has to name it because ModeEmpty insists on being told where session
 // state goes, and it has to name the real one rather than a scratch
 // directory because that is also where the CLI keeps the user's sign-in.
 // A session pointed elsewhere is a session with no credentials, and the
@@ -113,7 +113,7 @@ func askCopilotWith(conn apiConnection, system, prompt string, tools []copilot.T
 	// then a folder with nothing in it rather than the book being
 	// edited, so even a tool it should not have could reach nothing of
 	// the user's. It goes when the run does.
-	scratch, err := os.MkdirTemp("", "qm-copyedit-")
+	scratch, err := os.MkdirTemp("", "folio-copyedit-")
 	if err != nil {
 		return "", fmt.Errorf("making a scratch directory for the Copilot session: %w", err)
 	}
@@ -146,7 +146,7 @@ func askCopilotWith(conn apiConnection, system, prompt string, tools []copilot.T
 	defer client.Stop()
 
 	session, err := client.CreateSession(ctx, &copilot.SessionConfig{
-		ClientName: "qm",
+		ClientName: "folio",
 		Model:      conn.Model,
 		// The instruction replaces the CLI's coding-agent persona
 		// outright. Appended, it would be advice to a programmer about
@@ -163,7 +163,7 @@ func askCopilotWith(conn apiConnection, system, prompt string, tools []copilot.T
 		// reading. The list is empty rather than absent, the two meaning
 		// different things here -- absent is the omission ModeEmpty
 		// refuses, empty is the answer "no tools". A chat names the
-		// tools qm itself implements, and nothing built into the CLI.
+		// tools folio itself implements, and nothing built into the CLI.
 		Tools:               tools,
 		AvailableTools:      toolNames(tools),
 		OnPermissionRequest: refuseEverything,

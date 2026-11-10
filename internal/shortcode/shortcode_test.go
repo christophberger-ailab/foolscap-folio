@@ -43,7 +43,7 @@ func TestShortcodes(t *testing.T) {
 		"Intro Octave v1.2.",
 		"Colophon with Octave.",
 		"Nested text.",
-		"::: {.qm-pagebreak}",
+		"::: {.folio-pagebreak}",
 		"Literal {{< include x >}}.",
 	} {
 		if !strings.Contains(out, want) {

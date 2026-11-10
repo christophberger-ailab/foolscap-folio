@@ -547,7 +547,7 @@ func resource(root, src string) (string, error) {
 }
 
 // tocTitle is the heading of the contents list: German unless the
-// document says otherwise, which is what qm documents were written in.
+// document says otherwise, which is what folio documents were written in.
 func tocTitle(lang string) string {
 	if lang == "" || strings.HasPrefix(strings.ToLower(lang), "de") {
 		return "Inhalt"

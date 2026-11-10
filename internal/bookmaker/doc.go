@@ -13,6 +13,6 @@
 // The package is a copy of the quarto-bookmaker command's internal package
 // (https://github.com/christophberger-ailab/quarto-bookmaker, MIT), which
 // cannot be imported directly because Go's internal rule keeps it inside its
-// own module. It reached qm by way of quarto-sorter, which carried the same
+// own module. It reached folio by way of quarto-sorter, which carried the same
 // copy. Keep changes in sync with upstream.
 package bookmaker

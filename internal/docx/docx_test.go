@@ -340,12 +340,12 @@ Inline ![small](img/a.png){height=1cm} picture.
 		}
 	}
 	has(t, doc, `r:embed="rIdQmImg1"`, `descr="natural"`, "[vector]", `<w:jc w:val="center"/>`)
-	has(t, p["word/_rels/document.xml.rels"], `Target="media/qm-image1.png"`)
+	has(t, p["word/_rels/document.xml.rels"], `Target="media/folio-image1.png"`)
 	has(t, p["[Content_Types].xml"], `Extension="png"`)
-	if _, ok := p["word/media/qm-image1.png"]; !ok {
+	if _, ok := p["word/media/folio-image1.png"]; !ok {
 		t.Error("media file missing")
 	}
-	if !strings.HasPrefix(p["word/media/qm-image1.png"], "\x89PNG") {
+	if !strings.HasPrefix(p["word/media/folio-image1.png"], "\x89PNG") {
 		t.Error("media file is not the PNG")
 	}
 }

@@ -2,7 +2,7 @@ package web
 
 // user.go — who is writing.
 //
-// qm web runs on the user's own machine, so there is no login: the one
+// folio web runs on the user's own machine, so there is no login: the one
 // person at the keyboard is the user, and all the app needs to know about
 // them is the name their comments are signed with. That name is one
 // setting, `user: name:` in the settings file; left empty, the name the
@@ -29,7 +29,7 @@ func (s *server) commentAuthor() string {
 	return systemUserName()
 }
 
-// systemUserName is the login name of whoever runs qm, without the domain
+// systemUserName is the login name of whoever runs folio, without the domain
 // Windows puts in front of it.
 var systemUserName = func() string {
 	u, err := user.Current()

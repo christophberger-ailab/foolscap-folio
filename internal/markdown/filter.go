@@ -194,7 +194,7 @@ func HeadingID(h *ast.Heading) string { return AttrsOf(h).ID }
 
 // IsPageBreak reports whether a div is the page break `{{< pagebreak >}}`
 // turns into.
-func IsPageBreak(d *Div) bool { return d.Attrs.Has("pagebreak") || d.Attrs.Has("qm-pagebreak") }
+func IsPageBreak(d *Div) bool { return d.Attrs.Has("pagebreak") || d.Attrs.Has("folio-pagebreak") }
 
 // Callout is a Quarto callout block.
 type Callout struct {

@@ -966,7 +966,7 @@ func enforceMinimums(widths, minimums []float64) []float64 {
 var ErrPDFTimeout = errors.New("PDF rendering timed out")
 
 // RunPDF renders like PDFContext but guarantees to return within timeout
-// (if > 0). Cooperative cancellation stops qm's own layout loops; should a
+// (if > 0). Cooperative cancellation stops folio's own layout loops; should a
 // library call hang regardless, the render goroutine is abandoned and the
 // caller gets ErrPDFTimeout instead of blocking forever.
 func RunPDF(ctx context.Context, timeout time.Duration, path string, doc *Document, o Options) error {

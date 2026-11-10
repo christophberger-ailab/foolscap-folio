@@ -211,7 +211,7 @@ func TestSearchReportsIndexing(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// `qm web <path>` opens the project without serving a page first, so
+	// `folio web <path>` opens the project without serving a page first, so
 	// nothing has asked for an index yet.
 	if err := srv.setRoot(root); err != nil {
 		t.Fatal(err)

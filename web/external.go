@@ -46,7 +46,7 @@ type editorConfig struct {
 // defaultImageEditorCommand opens an image the way the system opens a file
 // that is double-clicked, in whatever program is set up for the type.
 // Windows' explorer does that when it is handed a file, and does it for
-// qm under WSL too, where there is rarely a Linux desktop to ask.
+// folio under WSL too, where there is rarely a Linux desktop to ask.
 func defaultImageEditorCommand() string {
 	if runtime.GOOS == "linux" && inWSL() {
 		return "explorer.exe {file}"
@@ -66,7 +66,7 @@ func systemOpenCommand(goos string) string {
 }
 
 // imageEditorPresets are the command lines the config page offers for the
-// image editor. The first is the system's own, for the system qm runs on.
+// image editor. The first is the system's own, for the system folio runs on.
 func imageEditorPresets() []editorPreset {
 	return []editorPreset{
 		{Name: "System default", Command: defaultImageEditorCommand()},

@@ -94,7 +94,7 @@ func AttrsOf(n ast.Node) Attrs {
 
 func setAttrs(n ast.Node, a Attrs) { n.SetAttribute(attrKey, a) }
 
-var attrKey = []byte("qm-attrs")
+var attrKey = []byte("folio-attrs")
 
 // PlainText is the text content of a node and its descendants.
 func PlainText(n ast.Node, src []byte) string {

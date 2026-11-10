@@ -1,9 +1,9 @@
-// Package gitrepo is the thin layer between qm and the `git` command: the
+// Package gitrepo is the thin layer between folio and the `git` command: the
 // working tree's status, the diff of one file in it, and the four
 // operations the web UI offers on it — stage, unstage, commit, push.
 //
 // It shells out rather than linking a Git implementation in: the projects
-// qm manages are ordinary clones the user also works with from a terminal,
+// folio manages are ordinary clones the user also works with from a terminal,
 // with their own hooks, credential helpers, signing keys, and config, and
 // only the real git honours all of those. The cost is that git has to be
 // installed, which Available reports so the UI can say so instead of
@@ -76,7 +76,7 @@ func IsRepo(dir string) bool {
 }
 
 // Root is the top of the working tree dir is in — the directory the paths
-// of a status are relative to, which is not the directory qm was pointed
+// of a status are relative to, which is not the directory folio was pointed
 // at whenever the project sits somewhere inside a larger repository.
 func Root(dir string) (string, error) {
 	out, err := run(dir, "rev-parse", "--show-toplevel")
