@@ -67,6 +67,10 @@ Put the cursor in a comment or in its passage, with nothing selected, and a `↩
 - `<<+` marks a reply. It belongs to the comment in front of it as long as only spaces stand between them.
 - Clicking a highlighted passage in the preview takes you to its comment, where `↩` is ready.
 
+### Removing a comment
+
+Below the `↩`, the rail shows a `×`. Click it to remove the comment the cursor is in, together with its replies. You are asked to confirm first; the commented text itself stays. `Ctrl-Z` brings the comment back, and once the page holds no comment any more, its 💬 disappears from the [tree](tree.md).
+
 ## Link and image completion
 
 When you type the destination of a Markdown link, a popup below the cursor offers matching entries.

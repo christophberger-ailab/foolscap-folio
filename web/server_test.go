@@ -207,6 +207,27 @@ func TestSaveRefreshesTreeOnFlagChange(t *testing.T) {
 	}
 }
 
+// Removing the last comment from a page clears its 💬 in the tree: the
+// save that writes the page without the comment refreshes it.
+func TestSaveRefreshesTreeOnCommentRemoved(t *testing.T) {
+	srv, _ := testServer(t)
+	commented := "---\ntitle: Second\norder: 1\n---\n# Second\n\n<!-- << {#c1} Why? -->text<!-- >> {#c1} -->\n"
+	if rec := post(t, srv, "/save", url.Values{"path": {"chapter2/second.qmd"}, "body": {commented}}); !strings.Contains(rec.Body.String(), "💬") {
+		t.Fatalf("tree not marked 💬 after a comment was added:\n%s", rec.Body)
+	}
+	rec := post(t, srv, "/save", url.Values{"path": {"chapter2/second.qmd"}, "body": {"---\ntitle: Second\norder: 1\n---\n# Second\n\ntext\n"}})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("save: status %d: %s", rec.Code, rec.Body)
+	}
+	_, tree, ok := strings.Cut(rec.Body.String(), `hx-swap-oob="innerHTML:#tree"`)
+	if !ok {
+		t.Fatalf("tree not refreshed after the comment was removed:\n%s", rec.Body)
+	}
+	if strings.Contains(tree, "💬") {
+		t.Errorf("refreshed tree still marks the page 💬:\n%s", tree)
+	}
+}
+
 // A page written for one target group -- an `_FW` or `_POL` suffix on its
 // name or on a folder above it -- is previewed inside that group's Quarto
 // div, so the custom stylesheet tints and marks the whole page the way it

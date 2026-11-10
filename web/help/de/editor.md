@@ -67,6 +67,10 @@ Steht der Cursor in einem Kommentar oder in seiner Stelle und ist nichts markier
 - `<<+` kennzeichnet eine Antwort. Sie gehört zum Kommentar davor, solange nur Leerzeichen dazwischen stehen.
 - Ein Klick auf eine hervorgehobene Stelle in der Vorschau führt dich zu ihrem Kommentar, wo `↩` bereitsteht.
 
+### Kommentar entfernen
+
+Unter dem `↩` zeigt die Leiste ein `×`. Klicke darauf, um den Kommentar, in dem der Cursor steht, samt seinen Antworten zu entfernen. Vorher wirst du um Bestätigung gebeten; der kommentierte Text selbst bleibt stehen. `Strg-Z` holt den Kommentar zurück, und sobald die Seite keinen Kommentar mehr enthält, verschwindet ihr 💬 aus dem [Seitenbaum](tree.md).
+
 ## Vervollständigung von Links und Bildern
 
 Wenn du das Ziel eines Markdown-Links tippst, bietet ein Popup unter dem Cursor passende Einträge an.

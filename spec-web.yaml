@@ -127,6 +127,7 @@ constraints:
       3-8-7: 'A comment can be replied to: a reply is a `<!-- <<+ {author="..." date="..."} The reply -->` marker right after the comment''s starting marker or the reply before it, with only spaces between; the replies form the comment''s thread, and a `<<+` marker anywhere else is an ordinary HTML comment'
       3-8-8: With the cursor in a comment's thread or passage and nothing selected, the rail shows a reply button level with the cursor; clicking it, or Ctrl-Alt-R, writes a signed and dated reply after the thread's last one and puts the cursor where its text goes -- in Vim mode in Insert mode
       3-8-9: The preview's tooltip shows the comment and each reply, with who wrote it and when
+      3-8-10: With the cursor in a comment's thread or passage and nothing selected, the rail also shows a remove button below the reply button; clicking it asks for confirmation, quoting the comment, and on OK removes the starting marker, its replies, and the closing marker, leaving the passage in place -- one step for Ctrl-Z, and the tree's 💬 goes once the page holds no comment (1-6)
       4: The tree is polled for outside changes and refreshed when the project changed on disk
       5: The render panel selects a point in the project's three-axis matrix: topics, the audiences of each topic, and the output formats
       5-1: The selection is remembered per project in the settings file (see SETTINGS)
