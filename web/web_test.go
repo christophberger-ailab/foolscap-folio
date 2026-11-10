@@ -35,3 +35,25 @@ func TestListenCountsUpPastATakenPort(t *testing.T) {
 		t.Errorf("address %s does not name port %d", ln.Addr(), got)
 	}
 }
+
+// The settings' web section names where the UI listens; --addr, when it
+// is given, wins over it and is used as given, while the address from the
+// settings is a starting point the port search counts up from.
+func TestTheListenAddressComesFromTheFlagOrTheSettings(t *testing.T) {
+	cases := []struct {
+		name, flag string
+		web        webConfig
+		want       string
+		search     bool
+	}{
+		{"the defaults", "", defaultConfig().Web, "localhost:8199", true},
+		{"the settings", "", webConfig{BaseURL: "0.0.0.0", Port: 8200}, "0.0.0.0:8200", true},
+		{"the flag over the settings", ":9000", webConfig{BaseURL: "0.0.0.0", Port: 8200}, ":9000", false},
+	}
+	for _, c := range cases {
+		addr, search := listenTarget(c.flag, c.web)
+		if addr != c.want || search != c.search {
+			t.Errorf("%s: listenTarget = %q, %v; want %q, %v", c.name, addr, search, c.want, c.search)
+		}
+	}
+}

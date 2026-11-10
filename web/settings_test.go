@@ -238,3 +238,41 @@ func TestTheOldJSONFilesAreCarriedOverOnce(t *testing.T) {
 		}
 	}
 }
+
+// The web section is read from a hand-written file, left out it carries
+// the defaults, and a port that is no port is refused.
+func TestTheWebSettingsAreReadAndChecked(t *testing.T) {
+	path := filepath.Join(t.TempDir(), configFileName)
+	if err := saveConfigFile(path, defaultConfig()); err != nil {
+		t.Fatal(err)
+	}
+	b, _ := os.ReadFile(path)
+	schema := string(b[:strings.Index(string(b), "config: #Config &")])
+	load := func(settings string) (storedConfig, error) {
+		t.Helper()
+		if err := os.WriteFile(path, []byte(schema+"config: #Config & "+settings+"\n"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		return loadConfigFile(path)
+	}
+
+	cfg, err := load(`{}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Web != (webConfig{BaseURL: "localhost", Port: 8199}) {
+		t.Errorf("web = %+v, want the defaults", cfg.Web)
+	}
+	cfg, err = load(`{web: {baseurl: "0.0.0.0", port: 8200}}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Web != (webConfig{BaseURL: "0.0.0.0", Port: 8200}) {
+		t.Errorf("web = %+v, want what was written", cfg.Web)
+	}
+	for _, bad := range []string{`{web: port: 70000}`, `{web: port: "8200"}`, `{web: baseurl: ""}`} {
+		if _, err := load(bad); err == nil {
+			t.Errorf("%s was accepted", bad)
+		}
+	}
+}

@@ -17,8 +17,9 @@ folio web --addr :9000       # listen elsewhere
 ## Adresse und Port
 
 - Standardmäßig lauscht `folio web` auf `localhost:8199`.
+- Um dauerhaft woanders zu lauschen, setze `baseurl` (Hostname oder IP-Adresse) und `port` im Abschnitt `web` der [Einstellungsdatei](settings.md), zum Beispiel `web: {baseurl: "localhost", port: 8200}`. Sie werden beim Start von `folio web` gelesen.
 - Ist dieser Port belegt, meist durch ein anderes `folio web`, wird der nächsthöhere probiert und so weiter, bis ein freier gefunden ist. Die tatsächlich verwendete Adresse wird ausgegeben.
-- Eine Adresse, die du mit `--addr` angibst, wird genau so verwendet. Ist sie belegt, ist das ein Fehler.
+- Eine Adresse, die du mit `--addr` angibst, hat Vorrang vor den Einstellungen und wird genau so verwendet. Ist sie belegt, ist das ein Fehler.
 
 ## Das Feld Open
 
