@@ -22,6 +22,7 @@ Eine Seite kann nach ihrem Titel Statusmarken tragen:
 
 - 🚧 zu erledigen: `todo: true` unter `folio:` im Frontmatter, oder der Text `==TODO==` irgendwo in der Seite, auch in einem HTML-Kommentar.
 - 👀 zu prüfen: `review: true` unter `folio:` im Frontmatter.
+- 💬 kommentiert: die Seite enthält mindestens einen Kommentar (siehe die Hilfe zum Editor). Eine Kommentarmarke in Code zählt nicht.
 
 ```yaml
 ---
