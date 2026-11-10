@@ -179,7 +179,8 @@ It must be installed and on your `PATH` (or named by `COPILOT_CLI_PATH`) and
 signed in — running `copilot` once is enough to check. A connection of this
 kind is therefore a name and a model and nothing else: no base URL, since the
 CLI knows where GitHub is, and no key, since a run is made as whoever the CLI
-is signed in as. A GitHub token in the key field is used in that user's place.
+is signed in as. The form hides the base URL and key fields while GitHub
+Copilot is the API chosen, and shows them again for the other two.
 The model is one the CLI offers, `gpt-5.4` or `claude-sonnet-5`; `copilot
 --help` lists them. Copilot is an agent that reads files and edits
 repositories, and a copyedit run wants none of that, so the session folio opens
