@@ -70,5 +70,11 @@ constraints:
       3: All links in the output are relative, so the site works from file:// and below any URL prefix; links between pages of a topic are rewritten to the generated pages, raw HTML links are not
       4: The layout is responsive -- the contents list is hidden at 75em and narrower, the sidebar is off-canvas at 50em and narrower -- with all text sizes and the 42em text column in em
       5: The site has a dark mode following the system setting and print styles
-      6: The site has no search
+      6: A search field in the navbar searches the titles and text of all pages of the site, in the browser, without a server
+      6-1: The render writes the index -- each page's title, URL, topic, and visible text, after the conditional filter -- to `_site/search.js`, a script rather than JSON, so the search works from file:// too
+      6-2: The search is Fuse.js, embedded in the binary and written to `_site/fuse.min.js`; it and the index are loaded only when the field gets the focus
+      6-3: The search is fuzzy, ignores case and diacritics, and ranks a hit in a title above one in the text; a query shorter than two characters searches nothing
+      6-4: The hits are listed below the field, at most ten, each with its page title, its topic, and a snippet of the text around the match with the matched words marked; a query without hits says so
+      6-5: Up and Down select a hit, Enter opens the selected one or the first, Escape clears the field; "/" anywhere on the page puts the focus into the field
+      6-6: Without JavaScript the field is not shown, and it is not printed
       7: 'A format''s `css` lists project-relative stylesheets; each is copied verbatim (an .scss file is not compiled) to `_site/css/` and linked on every page after the site''s own stylesheet. A missing one fails the render before anything is written'

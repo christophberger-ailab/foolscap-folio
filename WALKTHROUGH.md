@@ -377,8 +377,11 @@ navigation data: the navbar with one entry per topic, the topic's sidebar tree a
 the previous/next links; `tocOf` takes the page's headings for the "On this page"
 list. `links.go` rewrites links between pages and images to relative URLs and
 copies the project files they point at. `assets/style.css` and `site.js` (scroll-
-spy, off-canvas sidebar) are embedded; the layout is in em throughout, with its
-breakpoints at 75em and 50em.
+spy, off-canvas sidebar, search) are embedded; the layout is in em throughout, with its
+breakpoints at 75em and 50em. `search.go` collects each rendered page's visible
+text (`htmlText`) into the search index, written as `_site/search.js` beside the
+embedded Fuse.js (`assets/fuse.min.js`, Apache-2.0, `assets/fuse.LICENSE`);
+`site.js` loads both when the search field first gets the focus.
 
 ### 5.5 `internal/docx`
 
