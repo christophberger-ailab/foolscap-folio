@@ -1,7 +1,7 @@
 # folio — build and manage a Markdown documentation tree
 
 <p align="center">
-<img src="./docs/images/foolscapfolio.png">
+<img src="./docs/images/foolscapfolio.png" alt="Foolscap Folio logo">
 </p>
 
 `folio` turns a tree of Markdown pages (`.qmd` or `.md`, in the dialect Quarto

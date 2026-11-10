@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="256" height="256" viewBox="0 0 256 256">
+  <title>foolscapfolio.svg</title>
+  <g id="Layer_1" data-name="Layer 1">
+    <path d="M56 0 L200 0 C230.928 0 256 25.072 256 56 L256 200 C256 230.928 230.928 256 200 256 L56 256 C25.072 256 0 230.928 0 200 L0 56 C0 25.072 25.072 0 56 0 Z" fill="#1e3a8a"/>
+    <g>
+      <path d="M77.414 141.978 C69.414 115.978 52 80 34 78 C52 70 119.846 94.73 129.637 120.753 Z" fill="#f6efe0" stroke="#f6efe0" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M100 140.448 C104 95.86 116 59.633 128 34.552 C140 59.633 152 95.86 156 140.448 Z" fill="#f6efe0" stroke="#f6efe0" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M167.266 155.553 C177.217 111.351 199.609 84.15 222 80.75 C199.609 67.15 172.241 73.95 149.85 104.551 Z" fill="#f6efe0" stroke="#f6efe0" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M76.936 140.448 C68.936 114.448 48.845 81.327 30.845 79.327 C48.845 71.327 80.805 107.636 98.805 125.636 Z" fill="#b3b3b3" stroke="#f6efe0" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M100 146 C104 101.412 116 65.185 128 40.104 C140 65.185 120.239 101.412 124.239 146 Z" fill="#b3b3b3" stroke="#f6efe0" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M155.427 120.882 C174.039 80.75 199.609 81.592 222 78.192 C199.532 67.171 175.544 76.47 148.987 95.868 Z" fill="#b3b3b3" stroke="#f6efe0" stroke-width="4" stroke-linejoin="round"/>
+    </g>
+    <g>
+      <circle cx="34" cy="78" r="11" fill="#facc15"/>
+      <circle cx="128" cy="38" r="11" fill="#facc15"/>
+      <circle cx="222" cy="78" r="11" fill="#facc15"/>
+    </g>
+    <path d="M128 132 C104 118 74 114 46 120 L46 206 C74 200 104 204 128 218 Z" fill="#f6efe0"/>
+    <path d="M128 132 C152 118 182 114 210 120 L210 206 C182 200 152 204 128 218 Z" fill="#ede3cc"/>
+    <g opacity="0.55">
+      <path d="M62 142 C80 139 98 140 114 146" fill="none" stroke="#1e3a8a" stroke-width="5" stroke-linecap="round"/>
+      <path d="M62 162 C80 159 98 160 114 166" fill="none" stroke="#1e3a8a" stroke-width="5" stroke-linecap="round"/>
+      <path d="M62 182 C78 179 92 180 104 184" fill="none" stroke="#1e3a8a" stroke-width="5" stroke-linecap="round"/>
+      <path d="M142 146 C158 140 176 139 194 142" fill="none" stroke="#1e3a8a" stroke-width="5" stroke-linecap="round"/>
+      <path d="M142 166 C158 160 176 159 194 162" fill="none" stroke="#1e3a8a" stroke-width="5" stroke-linecap="round"/>
+    </g>
+    <path d="M152 184 C162 181 170 180 178 181" fill="none" stroke="#facc15" stroke-width="7" stroke-linecap="round"/>
+    <line x1="128" y1="132" x2="128" y2="218" fill="#000000" stroke="#1e3a8a" stroke-width="4" opacity="0.35"/>
+  </g>
+</svg>
