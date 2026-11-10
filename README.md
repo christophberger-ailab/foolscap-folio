@@ -1,37 +1,33 @@
-# folio — build and manage a Markdown documentation tree
+# Foolscap Folio: Build and Manage a Markdown Documentation Tree
 
 <p align="center">
 <img src="./docs/images/foolscapfolio.png">
 </p>
 
-`folio` turns a tree of Markdown pages (`.qmd` or `.md`, in the dialect Quarto
-projects use) into a website, Word documents and PDFs. It needs neither Quarto
-nor Pandoc: the Markdown is parsed, filtered and written by `folio` itself.
+Foolscap Folio turns a tree of pages in extended Markdown (`.qmd` or `.md` into a website, Word documents and PDFs. 
 
 ![`folio web`](./docs/images/folio_web.png)
 
-- **One tree, many outputs.** The folder structure and the `order:` front
-  matter of the pages decide the order and the nesting of every output. A
-  website, a DOCX and a PDF all come from the same pages, with the headings
-  demoted to the level the folder depth implies.
-- **A three-axis render matrix.** A render is addressed by *topic* (what),
-  *format* (how) and *audience* (for whom). One file, `folio.yml`, declares them;
-  `folio render` builds any part of the matrix, and `folio web` does the same from a
-  panel.
-- **Conditional content.** A block or span can be marked for a format
-  (`explanation`) or an audience (`pol`); a render keeps only what the
-  selection shows.
-- **Editing helpers.** Chapter insert/move/remove that keep the `order:` front
-  matter consistent, a linter for unclosed block fences, and a local web UI
-  for reordering pages by drag and drop, editing them, copyediting them with
-  an LLM, and rendering.
-- **Migration.** `folio migrate` writes `folio.yml` from an older Quarto setup
-  (`_quarto.yml` and its profiles).
+- **One tree, many outputs.** The folder structure and the `order:` front matter of the pages decide the order and the nesting of every output. A website, a DOCX and a PDF all come from the same pages, with the headings demoted to the level the folder depth implies.
+
+- **A three-axis render matrix.** A render is addressed by *topic* (what), *format* (how) and *audience* (for whom). One file, `folio.yml`, declares them; `folio render` builds any part of the matrix, and `folio web` does the same from a panel.
+- **Conditional content.** A block or span can be marked for a format (`explanation`) or an audience (`pol`); a render keeps only what the selection shows.
+- **Editing helpers.** Chapter insert/move/remove that keep the `order:` front matter consistent, a linter for unclosed block fences, and a local web UI for reordering pages by drag and drop, editing them, copyediting them with an LLM, and rendering.
+- **Migration.** `folio migrate` writes `folio.yml` from an older Quarto setup (`_quarto.yml` and its profiles).
+
+## About the Name
+
+Foolscap folio is an old English paper size. A foolscap folio sheet of writing paper measures 8" x 13" (203mm x 230mm), while a sheet for printing purposes measures 8.5" x 13.5" (216mm x 343mm).
+
+On the origin of the paper format, Wikipedia [writes](https://en.wikipedia.org/wiki/Foolscap_folio#Europe):
+
+> Foolscap was named after the fool's cap and bells watermark commonly used from the 15th century onwards on paper of these dimensions. The earliest example of such paper was made in Germany in 1479. Unsubstantiated anecdotes suggest that this watermark was introduced to England in 1580 by John Spilman, a German who established a papermill at Dartford, Kent.
+> 
+> The general pattern of the mark was used by Dutch and English papermakers in the late 17th and 18th centuries, and as early as 1674 the term "foolscap" was being used to designate a specific size of paper regardless of its watermark.
 
 ## Install
 
-Pre-built binaries for Linux and Windows (amd64 and arm64) are attached to
-each [release](../../releases). Download, unpack, put `folio` on your `PATH`.
+Pre-built binaries for Linux and Windows (amd64 and arm64) are attached to each [release](../../releases). Download, unpack, put `folio` on your `PATH`.
 
 To build from source, with Go 1.27 or newer:
 
@@ -45,10 +41,7 @@ or, from a clone:
 go build -o folio .
 ```
 
-The binary is self-contained: the web UI's templates and assets, the website's
-stylesheet and script, and the PDF's default fonts are embedded. No external
-tool is needed. Optionally, `trash` is preferred by the deleting commands over
-permanent removal.
+The binary is self-contained: the web UI's templates and assets, the website's stylesheet and script, and the PDF's default fonts are embedded. No external tool is needed. Optionally, `trash` is preferred by the deleting commands over permanent removal.
 
 ## Usage
 
@@ -87,28 +80,11 @@ folio render --audience pol --clean       # the pol variants, from scratch
 folio render --dry-run                    # print what would be written, write nothing
 ```
 
-Positional arguments name topics and are added to `--topic`. `--topic`,
-`--format` and `--audience` take comma-separated lists; a name `folio.yml` does not
-define is an error. Without them every topic, format and audience the project
-offers is rendered, cut down to what each topic and format declares (see
-[`folio.yml`](#folioyml)).
+Positional arguments name topics and are added to `--topic`. `--topic`, `--format` and `--audience` take comma-separated lists; a name `folio.yml` does not define is an error. Without them every topic, format and audience the project offers is rendered, cut down to what each topic and format declares (see [`folio.yml`](#folioyml)).
 
-A **website** format covers all selected topics in one site, one site per
-selected audience. A **document** format (DOCX, PDF) is written per topic and
-audience. The topic `all` has no folder: `--topic=all` selects every topic, and
-a topic `all` declared in `folio.yml` puts every topic into the websites it takes
-part in (`all: {formats: [website]}`), whatever the topics restrict themselves
-to. A failing combination does not stop the others; the command reports
-how many failed and exits non-zero. `--clean` empties each selected format's
-output directory once, before the first render; it refuses a directory that is
-not below the output directory. `--dry-run` prints the files that would be
-written.
+A **website** format covers all selected topics in one site, one site per selected audience. A **document** format (DOCX, PDF) is written per topic and audience. The topic `all` has no folder: `--topic=all` selects every topic, and a topic `all` declared in `folio.yml` puts every topic into the websites it takes part in (`all: {formats: [website]}`), whatever the topics restrict themselves to. A failing combination does not stop the others; the command reports how many failed and exits non-zero. `--clean` empties each selected format's output directory once, before the first render; it refuses a directory that is not below the output directory. `--dry-run` prints the files that would be written.
 
-`folio flatten <topic>` writes `_build/<topic>.md`: the topic's pages in folder
-order, with demoted headings, in-book links turned into anchors and shortcodes
-resolved. It is the text a document render parses, so it is the way to look at
-what a render works from. Conditional content is still in it; a render removes
-what the selected format and audience do not show.
+`folio flatten <topic>` writes `_build/<topic>.md`: the topic's pages in folder order, with demoted headings, in-book links turned into anchors and shortcodes resolved. It is the text a document render parses, so it is the way to look at what a render works from. Conditional content is still in it; a render removes what the selected format and audience do not show.
 
 #### `folio web`
 
@@ -119,129 +95,37 @@ folio web ../handbook        # serve that project instead
 folio web --addr :9000       # listen elsewhere
 ```
 
-To change the default address for good, set `web: {baseurl: "localhost", port: 8200}`
-in the settings file (`config.cue`); `--addr` still wins over it.
+To change the default address for good, set `web: {baseurl: "localhost", port: 8200}` in the settings file (`config.cue`); `--addr` still wins over it.
 
-The UI shows the project's page tree, reorders pages by drag and drop (which
-rewrites the `order:` front matter and shifts the moved page's headings),
-creates, edits and deletes pages with a live Markdown preview, searches the
-whole project, and runs renders in the background from the same flow
-`folio render` uses. The render selection and the page last open are remembered
-per project in the settings file (below).
+The UI shows the project's page tree, reorders pages by drag and drop (which rewrites the `order:` front matter and shifts the moved page's headings), creates, edits and deletes pages with a live Markdown preview, searches the whole project, and runs renders in the background from the same flow `folio render` uses. The render selection and the page last open are remembered per project in the settings file (below).
 
-A page marked `draft: true` in its front matter is greyed out in the tree: it
-is there, but it is not part of what a render publishes yet. A page written for
-one audience — an `_FW` or `_POL` suffix on its name or on a folder above it —
-is previewed inside that audience's `::: fw` / `::: pol` div, the way the
-flattener wraps it, so the custom preview stylesheet tints and marks the whole
-page just as it marks such a block written into the page by hand.
+A page marked `draft: true` in its front matter is greyed out in the tree: it is there, but it is not part of what a render publishes yet. A page written for one audience — an `_FW` or `_POL` suffix on its name or on a folder above it — is previewed inside that audience's `::: fw` / `::: pol` div, the way the flattener wraps it, so the custom preview stylesheet tints and marks the whole page just as it marks such a block written into the page by hand.
 
-Beside the editor sit the Markdown preview and a copyedit pane. The *Preview*
-and *Copyedit* buttons show and hide each on its own; with both shown they
-stand side by side, a pane's head dragged onto the other swaps them, and every
-divider can be dragged to resize. The copyedit pane lists the editing tasks configured under *Config → Copyedit:
-Editing tasks* — each one a prompt with a title, "Passive voice", "Shorten
-sentences". Clicking one sends the text the editor holds, unsaved edits and
-all, to the model selected in the pane's dropdown, and answers with a list of
-suggestions: what to change, what to put there instead, and why. Each
-suggestion's passage is highlighted in the editor, and clicking the suggestion
-scrolls to it; a Back button returns to the task list and takes the highlights
-off the text.
+Beside the editor sit the Markdown preview and a copyedit pane. The *Preview* and *Copyedit* buttons show and hide each on its own; with both shown they stand side by side, a pane's head dragged onto the other swaps them, and every divider can be dragged to resize. The copyedit pane lists the editing tasks configured under *Config → Copyedit: Editing tasks* — each one a prompt with a title, "Passive voice", "Shorten sentences". Clicking one sends the text the editor holds, unsaved edits and all, to the model selected in the pane's dropdown, and answers with a list of suggestions: what to change, what to put there instead, and why. Each suggestion's passage is highlighted in the editor, and clicking the suggestion scrolls to it; a Back button returns to the task list and takes the highlights off the text.
 
-Several tasks can be ticked and run together, with a *Select all* box above
-the list for the whole set or none of it. The ticks are a setting, not
-something the browser holds, so a selection stays as you move from page to
-page and across restarts. By default the ticked tasks go to the model in one
-call, which sends the page once instead of once per task — the page is
-the bulk of what a run costs — and the findings come back grouped by task,
-with a chip per task to narrow the list. Only the tasks you tick are ever sent.
+Several tasks can be ticked and run together, with a *Select all* box above the list for the whole set or none of it. The ticks are a setting, not something the browser holds, so a selection stays as you move from page to page and across restarts. By default the ticked tasks go to the model in one call, which sends the page once instead of once per task — the page is the bulk of what a run costs — and the findings come back grouped by task, with a chip per task to narrow the list. Only the tasks you tick are ever sent.
 
-*Config → Copyedit: Editing tasks* can switch that to one call per ticked
-task instead. The page sits in the cached part of a request, so from the
-second call on a provider that caches serves it rather than charging for it
-again; what the two ways really differ in is the answer, since a model given
-one task at a time attends to it fully where several in one call are answered
-in one list. Which reads better depends on the model and the tasks, so the
-setting is there to be tried both ways — each list of suggestions says which
-way produced it.
+*Config → Copyedit: Editing tasks* can switch that to one call per ticked task instead. The page sits in the cached part of a request, so from the second call on a provider that caches serves it rather than charging for it again; what the two ways really differ in is the answer, since a model given one task at a time attends to it fully where several in one call are answered in one list. Which reads better depends on the model and the tasks, so the setting is there to be tried both ways — each list of suggestions says which way produced it.
 
-Each suggestion carries two buttons. **Apply** writes the replacement into the
-page at the highlight, so a passage that moved under an edit made since the run
-is still the one replaced; it is written through the editor like a typed
-change, so the autosave takes it to disk, the preview follows, and the editor's
-own undo takes it back. **Done** is for a suggestion carried out by hand: it
-takes the entry out of use and the highlight off the text. Suggestions with no
-replacement, and those whose passage could not be found, offer Done alone.
+Each suggestion carries two buttons. **Apply** writes the replacement into the page at the highlight, so a passage that moved under an edit made since the run is still the one replaced; it is written through the editor like a typed change, so the autosave takes it to disk, the preview follows, and the editor's own undo takes it back. **Done** is for a suggestion carried out by hand: it takes the entry out of use and the highlight off the text. Suggestions with no replacement, and those whose passage could not be found, offer Done alone.
 
-The models are configured under *Config → Copyedit: API connections*: any
-number of them, each naming how the model is reached. Two of the three kinds
-are endpoints — Anthropic (`<base URL>/messages`) or OpenAI-compatible
-(`<base URL>/chat/completions`, which is what OpenAI, Ollama, LM Studio and
-OpenRouter all speak) — and take a base URL, the model, and the key. A local
-model usually needs no key.
+The models are configured under *Config → Copyedit: API connections*: any number of them, each naming how the model is reached. Two of the three kinds are endpoints — Anthropic (`<base URL>/messages`) or OpenAI-compatible (`<base URL>/chat/completions`, which is what OpenAI, Ollama, LM Studio and OpenRouter all speak) — and take a base URL, the model, and the key. A local model usually needs no key.
 
-The third is **GitHub Copilot**, which is not an endpoint at all: folio runs the
-GitHub Copilot CLI as a child process and talks to it over its own protocol.
-It must be installed and on your `PATH` (or named by `COPILOT_CLI_PATH`) and
-signed in — running `copilot` once is enough to check. A connection of this
-kind is therefore a name and a model and nothing else: no base URL, since the
-CLI knows where GitHub is, and no key, since a run is made as whoever the CLI
-is signed in as. The form hides the base URL and key fields while GitHub
-Copilot is the API chosen, and shows them again for the other two.
-The model is one the CLI offers, `gpt-5.4` or `claude-sonnet-5`; `copilot
---help` lists them. Copilot is an agent that reads files and edits
-repositories, and a copyedit run wants none of that, so the session folio opens
-has no tools at all, a system message that replaces the CLI's coding persona
-with the copyediting instruction, and an empty scratch directory to sit in: it
-can read the page it is sent and nothing else on the machine. The price is the
-process — a second or so of startup per call, which in per-task mode is per
-task.
+The third is **GitHub Copilot**, which is not an endpoint at all: folio runs the GitHub Copilot CLI as a child process and talks to it over its own protocol. It must be installed and on your `PATH` (or named by `COPILOT_CLI_PATH`) and signed in — running `copilot` once is enough to check. A connection of this kind is therefore a name and a model and nothing else: no base URL, since the CLI knows where GitHub is, and no key, since a run is made as whoever the CLI is signed in as. The form hides the base URL and key fields while GitHub Copilot is the API chosen, and shows them again for the other two. The model is one the CLI offers, `gpt-5.4` or `claude-sonnet-5`; `copilot --help` lists them. Copilot is an agent that reads files and edits repositories, and a copyedit run wants none of that, so the session folio opens has no tools at all, a system message that replaces the CLI's coding persona with the copyediting instruction, and an empty scratch directory to sit in: it can read the page it is sent and nothing else on the machine. The price is the process — a second or so of startup per call, which in per-task mode is per task.
 
-The tasks and the connections are stored in the settings file (below),
-readable by its owner alone since it holds the keys, and a stored key is never
-sent back to the browser.
+The tasks and the connections are stored in the settings file (below), readable by its owner alone since it holds the keys, and a stored key is never sent back to the browser.
 
-The top bar names the open project by the `title` in its folio.yml, or by its
-folder name. The Open button beside it shows a folder dialog that starts where
-the last project was opened from (the current directory the first time), marks
-the folders that are projects, offers the ten projects opened before, and takes
-a typed or pasted path. Reload, to the right of Open, reads the open page and
-the tree from disk again. The Git button beside Render
-opens a panel that lists the changes since the last commit, stages and unstages
-them file by file or all at once, commits them, and pushes the branch. Clicking
-a path shows that file's diff, coloured line by line, with a button that opens
-the file in the editor. The panel covers the whole repository, so a project
-kept in a subdirectory of a larger one is managed just the same. It runs the
-`git` command, so the repository's hooks, credential helpers and config apply
-as they do in a terminal.
+The top bar names the open project by the `title` in its folio.yml, or by its folder name. The Open button beside it shows a folder dialog that starts where the last project was opened from (the current directory the first time), marks the folders that are projects, offers the ten projects opened before, and takes a typed or pasted path. Reload, to the right of Open, reads the open page and the tree from disk again. The Git button beside Render opens a panel that lists the changes since the last commit, stages and unstages them file by file or all at once, commits them, and pushes the branch. Clicking a path shows that file's diff, coloured line by line, with a button that opens the file in the editor. The panel covers the whole repository, so a project kept in a subdirectory of a larger one is managed just the same. It runs the `git` command, so the repository's hooks, credential helpers and config apply as they do in a terminal.
 
-The Editor button opens the project, and the page open in the app, in an
-external editor — for `folio.yml`, stylesheets, and whatever else
-the app does not edit. *Config → External editor* sets the command line it
-runs, with `{root}` for the project directory and `{file}` for the page;
-the default is VS Code's `code {root} --goto {file}`, and the page offers
-ready-made lines for VSCodium and a few others. With no page open, the
-`{file}` argument and an option right before it are left out.
+The Editor button opens the project, and the page open in the app, in an external editor — for `folio.yml`, stylesheets, and whatever else the app does not edit. *Config → External editor* sets the command line it runs, with `{root}` for the project directory and `{file}` for the page; the default is VS Code's `code {root} --goto {file}`, and the page offers ready-made lines for VSCodium and a few others. With no page open, the `{file}` argument and an option right before it are left out.
 
-Double-clicking an image in the preview opens the image's file in an image
-editor, which the same config page sets: by default the program the system
-opens the file with, or GIMP, Krita, Inkscape, or any other command with
-`{file}` for the image. When the editor saves, the preview shows the new
-version within a couple of seconds, without a reload.
+Double-clicking an image in the preview opens the image's file in an image editor, which the same config page sets: by default the program the system opens the file with, or GIMP, Krita, Inkscape, or any other command with `{file}` for the image. When the editor saves, the preview shows the new version within a couple of seconds, without a reload.
 
 ### Settings
 
-Everything the UI remembers between runs lives in one file,
-`<user config dir>/folio/config.cue`: the projects opened before, the render
-selection and last open page per project, which preview stylesheet is active,
-the copyediting setup, and the external editors' command lines. The stylesheets themselves stay beside it in
-`custom-css/`, being CSS rather than settings. A settings directory from
-before the rename, `<user config dir>/qm/`, is moved to `folio/` on the
-first start.
+Everything the UI remembers between runs lives in one file, `<user config dir>/folio/config.cue`: the projects opened before, the render selection and last open page per project, which preview stylesheet is active, the copyediting setup, and the external editors' command lines. The stylesheets themselves stay beside it in `custom-css/`, being CSS rather than settings. A settings directory from before the rename, `<user config dir>/qm/`, is moved to `folio/` on the first start.
 
-The file is CUE because it carries its own schema. The definitions are written
-into it above the settings, so the file says what belongs in it and in what
-shape, and every read is checked against them:
+The file is CUE because it carries its own schema. The definitions are written into it above the settings, so the file says what belongs in it and in what shape, and every read is checked against them:
 
 ```cue
 #Connection: {
@@ -257,27 +141,13 @@ shape, and every read is checked against them:
 }
 ```
 
-A misspelled field, a `kind` that is none of the three, a base URL that is not
-a URL — each is reported with the line it is on, and the app stops rather than
-starting on settings it cannot make sense of. A field left out is not an
-error: lists and maps left out are empty, scalars carry the defaults the
-schema names, so a file can be written by hand in part. The file is rewritten
-whenever a setting changes in the UI, schema and all — values you edited by
-hand are read back, comments you left among the settings are not.
+A misspelled field, a `kind` that is none of the three, a base URL that is not a URL — each is reported with the line it is on, and the app stops rather than starting on settings it cannot make sense of. A field left out is not an error: lists and maps left out are empty, scalars carry the defaults the schema names, so a file can be written by hand in part. The file is rewritten whenever a setting changes in the UI, schema and all — values you edited by hand are read back, comments you left among the settings are not.
 
-The file is created with the defaults on first run. Settings from the JSON
-files folio used to keep (`render.json`, `recent.json`, `copyedit.json`, and the
-`custom-css/.active` marker) are carried over into it once and those files are
-renamed `*.migrated`; they are no longer read and can be deleted.
+The file is created with the defaults on first run. Settings from the JSON files folio used to keep (`render.json`, `recent.json`, `copyedit.json`, and the `custom-css/.active` marker) are carried over into it once and those files are renamed `*.migrated`; they are no longer read and can be deleted.
 
 ## folio.yml
 
-One file in the project root, `folio.yml`, configures everything: the output
-formats, the audiences, the topics. A project that still has the `qm.yml` of
-earlier versions is read from it until you rename it; when both are there,
-`folio.yml` wins. Unknown keys are errors. Maps keep the
-order they are written in, and that order is the order of the render matrix
-and of the web UI's panel.
+One file in the project root, `folio.yml`, configures everything: the output formats, the audiences, the topics. A project that still has the `qm.yml` of earlier versions is read from it until you rename it; when both are there, `folio.yml` wins. Unknown keys are errors. Maps keep the order they are written in, and that order is the order of the render matrix and of the web UI's panel.
 
 Top level keys:
 
@@ -360,34 +230,20 @@ topics:
     audiences: [std]
 ```
 
-(`suffix` is an example variable: it means something only because `template`,
-`file` and `cover` use it. The project-level default keeps `{suffix}` defined
-for the audience `std`, which sets none.)
+(`suffix` is an example variable: it means something only because `template`, `file` and `cover` use it. The project-level default keeps `{suffix}` defined for the audience `std`, which sets none.)
 
-A minimal project needs no `folio.yml` at all. Without one, every top-level
-content folder (one holding a `.qmd` or `.md` file, and not starting with `_`
-or `.`) is a topic, the only format is `web` (HTML), and there is one
-audience, `all`. A project that has no `folio.yml` but still has `_quarto.yml` or
-`_quarto-*.yml` files is an error rather than a render on the defaults: run
-`folio migrate` first (see below). A `folio.yml` states only what differs:
+A minimal project needs no `folio.yml` at all. Without one, every top-level content folder (one holding a `.qmd` or `.md` file, and not starting with `_` or `.`) is a topic, the only format is `web` (HTML), and there is one audience, `all`. A project that has no `folio.yml` but still has `_quarto.yml` or `_quarto-*.yml` files is an error rather than a render on the defaults: run `folio migrate` first (see below). A `folio.yml` states only what differs:
 
 ```yaml
 title: Handbook
 lang: en
 ```
 
-`{name}` placeholders in `dir`, `file`, `cover`, `template` and `css` resolve against
-the variables: the project's `vars`, then the topic's, the audience's and the
-format's (later ones win), plus the built-ins `topic`, `format` and
-`audience`. A placeholder without a variable is an error. The same variables
-serve `{{< var name >}}` in the content, together with the keys of
-`_variables.yml` in the project root (nested keys are written with dots,
-`metadata.version`); `vars` win over the file.
+`{name}` placeholders in `dir`, `file`, `cover`, `template` and `css` resolve against the variables: the project's `vars`, then the topic's, the audience's and the format's (later ones win), plus the built-ins `topic`, `format` and `audience`. A placeholder without a variable is an error. The same variables serve `{{< var name >}}` in the content, together with the keys of `_variables.yml` in the project root (nested keys are written with dots, `metadata.version`); `vars` win over the file.
 
 ### Conditional content
 
-A div or span carrying a class that a format or an audience lists under
-`show:` — or the name of an audience — is *conditional*:
+A div or span carrying a class that a format or an audience lists under `show:` — or the name of an audience — is *conditional*:
 
 ```markdown
 ::: explanation
@@ -401,33 +257,17 @@ Only for the `pol` audience.
 Fire engines [(Feuerwehr only)]{.fw} arrive first.
 ```
 
-A render keeps a conditional div or span only if the selection shows it.
-Format classes and audience classes are checked separately, and a block that
-carries both kinds must pass both. Classes that no format or audience lists
-are ordinary styling classes and do not matter. A div that is not kept is
-removed with its content; one that is kept stays as a wrapper for its content.
+A render keeps a conditional div or span only if the selection shows it. Format classes and audience classes are checked separately, and a block that carries both kinds must pass both. Classes that no format or audience lists are ordinary styling classes and do not matter. A div that is not kept is removed with its content; one that is kept stays as a wrapper for its content.
 
-Quarto's `.content-visible` and `.content-hidden` divs with `when-format` or
-`unless-format` also work; they compare against the format's types (`html`,
-`docx`, `pdf`) and its name. Conditions on profiles or metadata are not
-supported, and such content is kept.
+Quarto's `.content-visible` and `.content-hidden` divs with `when-format` or `unless-format` also work; they compare against the format's types (`html`, `docx`, `pdf`) and its name. Conditions on profiles or metadata are not supported, and such content is kept.
 
-A `::: slide` div and a `.notes` div are always dropped. PPTX slide decks are
-not supported for now.
+A `::: slide` div and a `.notes` div are always dropped. PPTX slide decks are not supported for now.
 
-The project's Lua filters no longer run. What an audience filter did there is
-done by `show:`.
+The project's Lua filters no longer run. What an audience filter did there is done by `show:`.
 
 ### Heading demotion
 
-Folder structure and `order:` drive every output; there is no distinction
-between a "book" and a "website". Pages that lie directly in a topic's folder,
-and the `index.qmd` of a subfolder (which sorts among its *parent's* pages),
-use their headings as written. Every deeper folder level adds one heading
-level. A page that writes `##` two levels below the topic folder therefore
-ends up as `####`. A page whose front-matter `title:` is not spelled out by a
-heading at its top level gets a generated title heading, and its own headings
-stay below it.
+Folder structure and `order:` drive every output; there is no distinction between a "book" and a "website". Pages that lie directly in a topic's folder, and the `index.qmd` of a subfolder (which sorts among its *parent's* pages), use their headings as written. Every deeper folder level adds one heading level. A page that writes `##` two levels below the topic folder therefore ends up as `####`. A page whose front-matter `title:` is not spelled out by a heading at its top level gets a generated title heading, and its own headings stay below it.
 
 `folio flatten <topic>` shows the result for a document.
 
@@ -435,8 +275,7 @@ stay below it.
 
 An HTML format builds a site with a layout like Quarto's:
 
-- a top navbar with one entry per topic, and the site title linking to the
-  home page, which lists the topics;
+- a top navbar with one entry per topic, and the site title linking to the home page, which lists the topics;
 - a left sidebar with the current topic's page tree;
 - a right "On this page" table of contents with scroll-spy;
 - previous/next links at the foot of a page;
@@ -444,16 +283,9 @@ An HTML format builds a site with a layout like Quarto's:
   sidebar becomes off-canvas at 50em and narrower;
 - all text sizes and the 42em text column are in `em`, so the page scales with
   the reader's font size; dark mode follows the system setting; print styles;
-- all links are relative, so the site works from `file://` and below any URL
-  prefix.
+- all links are relative, so the site works from `file://` and below any URL prefix.
 
-Callouts, tables, footnotes, definition lists and images are drawn by the
-site's own stylesheet. Links between pages of a topic (`/dispatcher/a/`,
-`/dispatcher/a/index.qmd`, …) are rewritten to the generated pages. With
-several audiences, a site goes to `<output>/<format>-<audience>` unless the
-format's `dir` contains a placeholder. A site that should show every
-audience's content at once, each marked by its class, is a format restricted
-to one audience whose `show:` lists the others:
+Callouts, tables, footnotes, definition lists and images are drawn by the site's own stylesheet. Links between pages of a topic (`/dispatcher/a/`, `/dispatcher/a/index.qmd`, …) are rewritten to the generated pages. With several audiences, a site goes to `<output>/<format>-<audience>` unless the format's `dir` contains a placeholder. A site that should show every audience's content at once, each marked by its class, is a format restricted to one audience whose `show:` lists the others:
 
 ```yaml
 formats:
@@ -465,47 +297,23 @@ audiences:
   all: {show: [fw, pol]}
 ```
 
-The kept divs and spans keep their classes (`<div class="pol">`), but the
-site's own stylesheet does not style them; a format's `css:` adds the
-stylesheets that do. They are copied verbatim to `_site/css/` and linked after
-the site's own: a `.scss` file is not compiled, so it has to be plain CSS, and
-`url()` references in it are not rewritten.
+The kept divs and spans keep their classes (`<div class="pol">`), but the site's own stylesheet does not style them; a format's `css:` adds the stylesheets that do. They are copied verbatim to `_site/css/` and linked after the site's own: a `.scss` file is not compiled, so it has to be plain CSS, and `url()` references in it are not rewritten.
 
 ### Documents: DOCX and PDF
 
-A document format flattens one topic into one Markdown text, resolves its
-shortcodes, parses it, removes the conditional content the selection does not
-show, and writes it. The shortcodes `include`, `var` and `pagebreak` are
-resolved by `folio`:
+A document format flattens one topic into one Markdown text, resolves its shortcodes, parses it, removes the conditional content the selection does not show, and writes it. The shortcodes `include`, `var` and `pagebreak` are resolved by `folio`:
 
-- `{{< include path/file.md >}}` includes a file, nested up to eight deep. A
-  path starting with `/` is project-absolute; any other path is relative to
-  the file that holds the include;
+- `{{< include path/file.md >}}` includes a file, nested up to eight deep. A path starting with `/` is project-absolute; any other path is relative to the file that holds the include;
 - `{{< var name >}}` resolves as described above;
 - `{{< pagebreak >}}` starts a new page.
 
 Any other shortcode is reported and left as written.
 
-Documents are written to `<output>/<dir>/<file>.docx` and `.pdf`, which by
-default is `_output/<format>/<topic>[-<audience>]`.
+Documents are written to `<output>/<dir>/<file>.docx` and `.pdf`, which by default is `_output/<format>/<topic>[-<audience>]`.
 
-**DOCX** is written in Go. A `template:` names a reference DOCX; its styles,
-page setup, headers, footers and numbering are used, and its body is
-discarded. Without one, a blank document with Word's default styles is used.
-`toc: true` adds a Word contents field, which Word fills when fields are
-updated.
+**DOCX** is written in Go. A `template:` names a reference DOCX; its styles, page setup, headers, footers and numbering are used, and its body is discarded. Without one, a blank document with Word's default styles is used. `toc: true` adds a Word contents field, which Word fills when fields are updated.
 
-**PDF** is laid out in Go (A4, embedded fonts, headings, lists, tables,
-images, links, bookmarks, page numbers, a linked contents list). It is fed
-from the same parsed document as the DOCX. The PDF sets its text in the Go
-fonts, unless the project root has a
-[`_brand.yml`](https://posit-dev.github.io/brand-yml/) whose `typography`
-names fonts with local files. Then body text uses `base` (regular, bold,
-italic and bold italic, each the closest weight and style the family
-offers), headings use `headings` (default weight bold), and code uses
-`monospace`. Only TrueType files (`.ttf`) can be embedded; `.otf`, WOFF files
-and fonts from Google, Bunny or the system are skipped with a note in the
-render log, and their text keeps the Go fonts. Font sizes, colors and line
+**PDF** is laid out in Go (A4, embedded fonts, headings, lists, tables, images, links, bookmarks, page numbers, a linked contents list). It is fed from the same parsed document as the DOCX. The PDF sets its text in the Go fonts, unless the project root has a [`_brand.yml`](https://posit-dev.github.io/brand-yml/) whose `typography` names fonts with local files. Then body text uses `base` (regular, bold, italic and bold italic, each the closest weight and style the family offers), headings use `headings` (default weight bold), and code uses `monospace`. Only TrueType files (`.ttf`) can be embedded; `.otf`, WOFF files and fonts from Google, Bunny or the system are skipped with a note in the render log, and their text keeps the Go fonts. Font sizes, colors and line
 heights from the brand file do not apply to the PDF.
 
 ```yaml
@@ -525,20 +333,13 @@ typography:
     weight: semi-bold
 ```
 
-**Covers.** A topic's `cover:` is a project-relative PNG, and may use
-placeholders. It is put in front of the DOCX and the PDF. Both covers keep
-the image's aspect ratio and are anchored at the bottom-right corner of the
-page, where the brand graphic ends. The PDF cover (A4) fills the page and
-crops any overflow at the top or left. The DOCX cover uses the document's page
-size, shrinks to fit, and never crops. It sits in a dedicated zero-margin
-section, and the body's original section properties, styles, headers and
-footers are preserved. No header or footer is added to either cover. A
-missing or invalid cover fails the render before anything is written.
+**Covers.** A topic's `cover:` is a project-relative PNG, and may use placeholders. It is put in front of the DOCX and the PDF. Both covers keep the image's aspect ratio and are anchored at the bottom-right corner of the page, where the brand graphic ends. The PDF cover (A4) fills the page and crops any overflow at the top or left. The DOCX cover uses the document's page size, shrinks to fit, and never crops. It sits in a dedicated zero-margin section, and the body's original section properties, styles, headers and footers are preserved. No header or footer is added to either cover. A missing or invalid cover fails the render before anything is written.
 
-The PDF has its own layout; it does not reproduce the Word template. Library
-research and rationale: [docs/native-rendering.md](docs/native-rendering.md).
+The PDF has its own layout; it does not reproduce the Word template. Library research and rationale: [docs/native-rendering.md](docs/native-rendering.md).
 
 ### Migrating an existing project
+
+Foolscap Folio is the offspring of Quarto Manager. Quarto isn't ideal for this use case; it is a tools for writing scientific documentation. The `migrate` command turns the overly complex set of Quarto yaml files that the latest Quarto Manager version needed into a single config file.
 
 ```sh
 folio migrate --dry-run     # print the folio.yml that would be written
@@ -546,26 +347,13 @@ folio migrate               # write it
 folio migrate --force       # overwrite an existing folio.yml
 ```
 
-`folio migrate` reads `_quarto.yml` and the profile files
-`_quarto-topic-<t>.yml`, `_quarto-format-<f>.yml` and
-`_quarto-audience-<a>.yml` and writes the equivalent `folio.yml`: `folio:` keys such
-as `folder`, `formats`, `audiences` and `cover`, the `make:` flags that are
-true, the `_quarto-vars`, and the output directories. It refuses to
-overwrite an existing `folio.yml` without `--force`, checks that the result loads,
-and prints a warning for everything it could not carry over: a title that
-contains a variable, an output directory outside the common output directory,
-a template generated into `_build/`, a slide deck format (skipped) or a PPTX
-output (dropped).
+`folio migrate` reads `_quarto.yml` and the profile files `_quarto-topic-<t>.yml`, `_quarto-format-<f>.yml` and `_quarto-audience-<a>.yml` and writes the equivalent `folio.yml`: `folio:` keys such as `folder`, `formats`, `audiences` and `cover`, the `make:` flags that are true, the `_quarto-vars`, and the output directories. It refuses to overwrite an existing `folio.yml` without `--force`, checks that the result loads, and prints a warning for everything it could not carry over: a title that contains a variable, an output directory outside the common output directory, a template generated into `_build/`, a slide deck format (skipped) or a PPTX output (dropped).
 
-The old `_quarto*.yml` files are **not read anymore** by `folio` itself. Delete
-them once you no longer render with Quarto; the `project: pre-render` and
-`post-render` hooks (`folio prepare`, `folio finalize`) no longer exist and must go
-from `_quarto.yml` if you keep the file for other tools.
+The old `_quarto*.yml` files are **not read anymore** by `folio` itself. Delete them once you no longer render with Quarto; the `project: pre-render` and `post-render` hooks (`folio prepare`, `folio finalize`) no longer exist and must go from `_quarto.yml` if you keep the file for other tools.
 
 ### Known differences from Quarto
 
-- No slide decks (PPTX): `::: slide` blocks and `.notes` are dropped. A
-  follow-up will bring them back.
+- No slide decks (PPTX): `::: slide` blocks and `.notes` are dropped. A follow-up will bring them back.
 - Mermaid diagrams (` ```{mermaid} `) stay code blocks, with a warning.
 - No math typesetting.
 - The site has no search, and raw HTML links in a page are not rewritten.
