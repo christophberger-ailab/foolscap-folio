@@ -2198,6 +2198,10 @@ mark.folio-todo-hidden {
   color: var(--bg);
 }
 
+.comment-remove {
+  font-weight: 400;
+}
+
 .comment-add[hidden] {
   display: none;
 }

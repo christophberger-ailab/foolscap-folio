@@ -640,6 +640,20 @@ function pairCommentMarkers(markers) {
   });
 }
 
+// commentRemoval is what removing a comment takes out of the page: its
+// starting marker together with its replies, and its closing marker, last
+// first, so taking one out does not move the other. The passage between
+// them stays. start is a start marker as findCommentMarkers and
+// pairCommentMarkers leave it.
+function commentRemoval(start) {
+  var last = start.replies.length ? start.replies[start.replies.length - 1] : start;
+  var ranges = [{ from: start.from, to: last.to }];
+  if (start.end) {
+    ranges.unshift({ from: start.end.from, to: start.end.to });
+  }
+  return ranges;
+}
+
 // unblockComments keeps a comment marker at the start of a line from
 // turning the line into an HTML block. CommonMark reads a line that opens
 // with `<!--` as raw HTML, the rest of it included, so the passage after a

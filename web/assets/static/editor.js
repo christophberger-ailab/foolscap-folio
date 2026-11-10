@@ -382,13 +382,17 @@ function clearCopyeditMark(index) {
 // With the cursor in a comment, its replies, or its passage, and nothing
 // selected, the rail shows a reply button level with the cursor instead;
 // clicking it -- or Ctrl-Alt-R -- writes a reply marker after the comment's
-// last reply and puts the cursor where the reply's text goes.
+// last reply and puts the cursor where the reply's text goes. Below it, a
+// remove button takes the comment out, its replies included, once the user
+// has confirmed; the commented passage stays.
 
 // commentRow holds the editor and the rail side by side; commentButton is
-// the "+" in the rail, replyButton the reply button.
+// the "+" in the rail, replyButton the reply button, removeButton the
+// remove button.
 var commentRow = null;
 var commentButton = null;
 var replyButton = null;
+var removeButton = null;
 
 // commentUser is who the app is run by, as the server put it on the page
 // (see user.go): the name new comments and replies are signed with.
@@ -458,6 +462,19 @@ function mountCommentRail() {
     replyToComment(cm);
   });
   rail.appendChild(replyButton);
+  removeButton = document.createElement('button');
+  removeButton.type = 'button';
+  removeButton.className = 'comment-add comment-remove';
+  removeButton.textContent = '×';
+  removeButton.title = 'Remove this comment and its replies';
+  removeButton.hidden = true;
+  removeButton.addEventListener('mousedown', function (evt) {
+    evt.preventDefault();
+  });
+  removeButton.addEventListener('click', function () {
+    removeComment(cm);
+  });
+  rail.appendChild(removeButton);
   wrapper.parentNode.insertBefore(commentRow, wrapper);
   commentRow.appendChild(wrapper);
   commentRow.appendChild(rail);
@@ -496,9 +513,13 @@ function placeCommentButton() {
 
 window.addEventListener('resize', placeCommentButton);
 
+// placeReplyButton stands the reply button level with the cursor while
+// the cursor is in a comment's thread, and the remove button right below
+// it.
 function placeReplyButton() {
+  replyButton.hidden = true;
+  removeButton.hidden = true;
   if (cm.somethingSelected() || !commentThreadAt(cm)) {
-    replyButton.hidden = true;
     return;
   }
   var rail = replyButton.parentNode.getBoundingClientRect();
@@ -506,11 +527,14 @@ function placeReplyButton() {
   var size = 22; // the button's height, see .comment-add
   var top = at.top - rail.top + (at.bottom - at.top - size) / 2;
   if (top < 0 || top > rail.height - size) {
-    replyButton.hidden = true;
     return;
   }
   replyButton.style.top = top + 'px';
   replyButton.hidden = false;
+  if (top + 2 * size + 4 <= rail.height) {
+    removeButton.style.top = top + size + 4 + 'px';
+    removeButton.hidden = false;
+  }
 }
 
 // commentThreadAt is the comment whose thread the cursor is in -- in its
@@ -561,6 +585,42 @@ function replyToComment(instance) {
   if (vim && instance.state.vim && !instance.state.vim.insertMode) {
     CodeMirror.Vim.handleKey(instance, 'i', 'mapping');
   }
+}
+
+// removeComment takes the comment the cursor is in out of the page, with
+// its replies and its closing marker, after asking the user to confirm;
+// the commented passage stays, and the cursor goes where the comment
+// started. The edit goes through CodeMirror, so it is autosaved -- which
+// refreshes the tree's 💬 once the page holds no comment any more -- and
+// Ctrl-Z brings the comment back in one step.
+function removeComment(instance) {
+  instance = instance || cm;
+  if (!instance) {
+    return;
+  }
+  var thread = commentThreadAt(instance);
+  if (!thread) {
+    return;
+  }
+  var replies = thread.replies.length;
+  var question = 'Remove this comment' +
+    (replies ? ' and its ' + (replies === 1 ? 'reply' : replies + ' replies') : '') +
+    '? The commented text stays.';
+  if (thread.text) {
+    question = '"' + (thread.text.length > 80 ? thread.text.slice(0, 79) + '…' : thread.text) + '"\n\n' + question;
+  }
+  if (!window.confirm(question)) {
+    instance.focus();
+    return;
+  }
+  var at = instance.posFromIndex(thread.from);
+  instance.operation(function () {
+    commentRemoval(thread).forEach(function (range) {
+      instance.replaceRange('', instance.posFromIndex(range.from), instance.posFromIndex(range.to));
+    });
+    instance.setCursor(at);
+  });
+  instance.focus();
 }
 
 // blockMarker is the Markdown that makes a line a heading, a quote, or a
