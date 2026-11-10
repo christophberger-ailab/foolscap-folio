@@ -158,7 +158,7 @@ jobs:
             -trimpath \
             -ldflags "-s -w -X main.version=${VERSION}" \
             -o "dist/${BIN}" \
-            .
+            ./cmd/folio/
 
       - name: Package
         run: |
