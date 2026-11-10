@@ -25,9 +25,9 @@ folio web --addr :9000       # listen elsewhere
 
 Die obere Leiste zeigt den Titel des offenen Projekts, dann `Open`, dann `↻ Reload`.
 
-- Der Titel ist der `title` aus der `qm.yml` des Projekts. Ohne ihn ist es der Ordnername des Projekts. Fahre mit der Maus darüber, um den vollen Pfad zu sehen.
+- Der Titel ist der `title` aus der `folio.yml` des Projekts. Ohne ihn ist es der Ordnername des Projekts. Fahre mit der Maus darüber, um den vollen Pfad zu sehen.
 - `Open` zeigt einen Ordnerdialog. Er beginnt in dem Ordner, aus dem du zuletzt ein Projekt geöffnet hast, mit diesem Projekt ausgewählt. Beim ersten Mal beginnt er im aktuellen Verzeichnis.
-- Ordner, die Projekte sind (sie enthalten eine `qm.yml`), sind mit 📘 und fett dargestellt.
+- Ordner, die Projekte sind (sie enthalten eine `folio.yml`), sind mit 📘 und fett dargestellt.
 - Ein Klick wählt einen Ordner aus. Ein Doppelklick oder `Enter` wechselt hinein; bei einem Projekt öffnet es das Projekt. `↑` oder `Backspace` geht einen Ordner nach oben.
 - Die Schaltfläche `Open` im Dialog öffnet den ausgewählten Ordner, oder den angezeigten, wenn keiner ausgewählt ist.
 - Tippe oder füge einen Pfad in das Feld oben ein und drücke `Enter`, um dorthin zu wechseln.

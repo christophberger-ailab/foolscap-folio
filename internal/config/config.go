@@ -1,7 +1,7 @@
-// Package config reads qm.yml, the one file that configures a qm project:
+// Package config reads folio.yml, the one file that configures a folio project:
 // its output formats, its audiences, and its topics.
 //
-// A minimal project needs no configuration at all: without qm.yml every
+// A minimal project needs no configuration at all: without folio.yml every
 // top-level content folder is a topic, there is one audience, and the
 // format is a website. Everything in the file only
 // states what differs from those defaults:
@@ -38,7 +38,29 @@ import (
 )
 
 // FileName is the configuration file in the project root.
-const FileName = "qm.yml"
+const FileName = "folio.yml"
+
+// LegacyFileName is what FileName was called before the tool was named
+// folio. A project that still has one is read from it, so that renaming
+// the file is the user's to do when it suits them; folio.yml wins when a
+// project has both.
+const LegacyFileName = "qm.yml"
+
+// Find returns the path of the configuration file in dir — folio.yml, or
+// else the legacy qm.yml — or "" when dir has neither.
+func Find(dir string) string {
+	for _, name := range []string{FileName, LegacyFileName} {
+		p := filepath.Join(dir, name)
+		if st, err := os.Stat(p); err == nil && !st.IsDir() {
+			return p
+		}
+	}
+	return ""
+}
+
+// IsFileName reports whether name is the base name of a project
+// configuration file, current or legacy.
+func IsFileName(name string) bool { return name == FileName || name == LegacyFileName }
 
 // Output types a format can produce.
 const (
@@ -47,7 +69,7 @@ const (
 	TypePDF  = "pdf"
 )
 
-// Config is the parsed qm.yml.
+// Config is the parsed folio.yml.
 type Config struct {
 	// Root is the project directory, absolute.
 	Root string `yaml:"-"`
@@ -131,7 +153,7 @@ func (f Format) Has(t string) bool { return slices.Contains(f.Type, t) }
 // IsWeb reports whether the format is a website.
 func (f Format) IsWeb() bool { return f.Has(TypeHTML) }
 
-// Load reads root/qm.yml. A project without one gets the defaults; any
+// Load reads root/folio.yml (or a legacy root/qm.yml). A project without one gets the defaults; any
 // other problem — a parse error, an unknown key, a type qm cannot write —
 // is an error.
 func Load(root string) (*Config, error) {
@@ -140,7 +162,10 @@ func Load(root string) (*Config, error) {
 		return nil, err
 	}
 	c := &Config{Root: abs}
-	path := filepath.Join(abs, FileName)
+	path := Find(abs)
+	if path == "" {
+		path = filepath.Join(abs, FileName)
+	}
 	data, err := os.ReadFile(path)
 	switch {
 	case errors.Is(err, os.ErrNotExist):

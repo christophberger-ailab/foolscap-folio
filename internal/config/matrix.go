@@ -13,7 +13,7 @@ type Request struct {
 
 // AllTopics is the topic that stands for every topic of the project. It has
 // no folder of its own. Requesting it selects every topic; declaring it in
-// qm.yml (with its own formats and audiences) puts every topic into the
+// folio.yml (with its own formats and audiences) puts every topic into the
 // websites it takes part in.
 const AllTopics = "all"
 
@@ -29,7 +29,7 @@ const AllTopics = "all"
 // format's own lists. A name that the project does not define is an error.
 //
 // The topic "all" (AllTopics) is not a folder. In a request it means every
-// topic. Declared in qm.yml, it makes every topic part of each website
+// topic. Declared in folio.yml, it makes every topic part of each website
 // format and audience the "all" topic itself takes part in, whatever the
 // individual topics restrict themselves to.
 func (c *Config) Expand(req Request) ([]Selection, error) {

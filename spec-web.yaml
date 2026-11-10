@@ -172,9 +172,9 @@ constraints:
       8-8: The hits of the current query are highlighted in the editor as well, and opening a page scrolls its editor to the first hit
       8-9: While the field holds a query, an x inside its right end clears it, as does Escape in the field; clearing ends the search, so the tree takes the list's place again
       9: The top bar shows the open project's title, then an Open button, then a Reload button
-      9-1: The title is the `title` of the project's qm.yml, else the last element of its path; the full path is its tooltip
+      9-1: The title is the `title` of the project's folio.yml, else the last element of its path; the full path is its tooltip
       9-1-1: Reload reads the page open in the editor and the tree from disk again; it is out of use while no page is open
-      9-2: The Open button shows a folder dialog listing the subfolders of one folder, hidden ones left out, in name order; folders holding a qm.yml are marked as projects
+      9-2: The Open button shows a folder dialog listing the subfolders of one folder, hidden ones left out, in name order; folders holding a folio.yml are marked as projects
       9-2-1: The dialog starts in the folder the last project was opened from, with that project selected; before any project was opened, it starts in the current directory
       9-2-2: A click selects a folder; a double click or Enter goes into it, or opens it if it is a project; Up and Backspace go to the folder above; the dialog's Open button opens the selected folder, else the one shown
       9-2-3: A path typed or pasted into the dialog's path field is gone to on Enter; a folder that cannot be listed is reported in the dialog

@@ -220,9 +220,31 @@ func TestOldQuartoConfigWithoutQmYmlIsAnError(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "qm migrate") || !strings.Contains(err.Error(), "_quarto-topic-a.yml") {
 		t.Fatalf("err = %v", err)
 	}
-	// Once qm.yml exists, the old files no longer matter.
+	// Once folio.yml exists, the old files no longer matter.
 	os.WriteFile(filepath.Join(root, FileName), []byte("title: x\n"), 0o644)
 	if _, err := Load(root); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// A project still configured by the legacy qm.yml is read from it, and
+// folio.yml wins when both are there.
+func TestLoadLegacyFileName(t *testing.T) {
+	root := project(t, "", "one", "two")
+	os.Remove(filepath.Join(root, FileName))
+	os.WriteFile(filepath.Join(root, LegacyFileName), []byte("title: Old\n"), 0o644)
+	c, err := Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Title != "Old" || filepath.Base(c.Path) != LegacyFileName {
+		t.Errorf("legacy: title %q path %q", c.Title, c.Path)
+	}
+	os.WriteFile(filepath.Join(root, FileName), []byte("title: New\n"), 0o644)
+	if c, err = Load(root); err != nil {
+		t.Fatal(err)
+	}
+	if c.Title != "New" || filepath.Base(c.Path) != FileName {
+		t.Errorf("both: title %q path %q", c.Title, c.Path)
 	}
 }

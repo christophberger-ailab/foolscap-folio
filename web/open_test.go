@@ -9,12 +9,12 @@ import (
 	"testing"
 )
 
-// The top bar names the open folio by the title its qm.yml gives it, left
+// The top bar names the open folio by the title its folio.yml gives it, left
 // of the Open button, with the full path as the tooltip. There is no path
 // field any more: the Open button opens the folder dialog instead.
 func TestTopBarShowsFolioTitle(t *testing.T) {
 	root := fixture(t)
-	if err := os.WriteFile(filepath.Join(root, "qm.yml"), []byte("title: The Handbook\n"+testConfig), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "folio.yml"), []byte("title: The Handbook\n"+testConfig), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	srv := bareServer(t)

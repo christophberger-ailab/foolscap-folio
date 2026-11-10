@@ -33,8 +33,8 @@ func Register(projectFlag *string) {
 		Name:  "flatten",
 		Short: "Write the flattened Markdown of one topic without rendering",
 		Long: "Flatten a topic's content folder into _build/<topic>.md, then " +
-			"exit. Usage: qm flatten <topic>. The topic is one of qm.yml's " +
-			"topics (or, without qm.yml, a top-level content folder).",
+			"exit. Usage: qm flatten <topic>. The topic is one of folio.yml's " +
+			"topics (or, without folio.yml, a top-level content folder).",
 		Flags: []string{"project"},
 		Cmd:   cli.Guard(cmd),
 	})

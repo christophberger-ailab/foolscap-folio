@@ -146,10 +146,9 @@ func (m *migrator) conv(s string) string {
 // config.Load before it is reported as written.
 func Run(root string, opts Options) (*Result, error) {
 	res := &Result{}
-	target := filepath.Join(root, config.FileName)
 	if !opts.DryRun && !opts.Force {
-		if _, err := os.Stat(target); err == nil {
-			return res, fmt.Errorf("%s exists; use --force to overwrite it", target)
+		if existing := config.Find(root); existing != "" {
+			return res, fmt.Errorf("%s exists; use --force to overwrite it", existing)
 		}
 	}
 	m := &migrator{renames: map[string]string{}}

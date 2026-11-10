@@ -193,7 +193,7 @@ type state struct {
 type openView struct {
 	// Path is the full path of the open project, "" when none is open.
 	Path string
-	// Title is the folio's title from its qm.yml, else its folder name.
+	// Title is the folio's title from its folio.yml, else its folder name.
 	Title string
 }
 
@@ -321,7 +321,7 @@ type previewCSSView struct {
 type renderView struct {
 	Books   []bookView
 	Formats []checkbox
-	// Error is why the panel cannot be built, e.g. a broken qm.yml.
+	// Error is why the panel cannot be built, e.g. a broken folio.yml.
 	Error string
 }
 
@@ -408,7 +408,7 @@ func (s *server) renderView() renderView {
 	return v
 }
 
-// audiencesOf returns the audiences a topic takes part in: what qm.yml
+// audiencesOf returns the audiences a topic takes part in: what folio.yml
 // declares under the topic's `audiences:`, or every audience the project
 // offers.
 func (s *server) audiencesOf(topic string) []string {
@@ -426,7 +426,7 @@ func (s *server) render(w http.ResponseWriter, name string, data any) {
 }
 
 // fingerprint hashes everything the tree pane is rendered from: the paths,
-// sizes, and mtimes of the project's .qmd files and its qm.yml.
+// sizes, and mtimes of the project's .qmd files and its folio.yml.
 // Equal fingerprints mean no refresh is needed.
 func fingerprint(root string) string {
 	tree, _ := fingerprints(root)
@@ -453,8 +453,7 @@ func fingerprints(root string) (tree, media string) {
 			return nil
 		}
 		qmd := strings.HasSuffix(name, ".qmd") && !strings.HasPrefix(name, "_")
-		cfg := filepath.Dir(p) == root && strings.HasSuffix(name, ".yml") &&
-			name == config.FileName
+		cfg := filepath.Dir(p) == root && config.IsFileName(name)
 		img := mediaExts[strings.ToLower(filepath.Ext(name))]
 		if !qmd && !cfg && !img {
 			return nil

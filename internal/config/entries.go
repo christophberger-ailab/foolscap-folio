@@ -7,7 +7,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Entry is one named item of a qm.yml map, in file order.
+// Entry is one named item of a folio.yml map, in file order.
 type Entry[T any] struct {
 	Name  string
 	Value T

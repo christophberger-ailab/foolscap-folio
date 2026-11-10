@@ -53,10 +53,10 @@ func bookFieldset(t *testing.T, body, book string) string {
 	return body[start : i+end+len(`</fieldset>`)]
 }
 
-// writeConfig replaces the fixture project's qm.yml.
+// writeConfig replaces the fixture project's folio.yml.
 func writeConfig(t *testing.T, root, body string) {
 	t.Helper()
-	if err := os.WriteFile(filepath.Join(root, "qm.yml"), []byte(body), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "folio.yml"), []byte(body), 0o644); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -131,7 +131,7 @@ func TestRenderReportsFailure(t *testing.T) {
 	}
 }
 
-// A broken qm.yml is shown in the panel instead of hiding it.
+// A broken folio.yml is shown in the panel instead of hiding it.
 func TestRenderPanelShowsAConfigError(t *testing.T) {
 	srv, root := testServer(t)
 	writeConfig(t, root, "formatz: {}\n")

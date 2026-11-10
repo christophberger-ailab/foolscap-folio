@@ -15,7 +15,7 @@ func fixture(t *testing.T) string {
 		"book/index.qmd":    "---\ntitle: Book\norder: 1\n---\n# Book\n",
 		"book/sub/page.qmd": "---\ntitle: Page\norder: 2\n---\n# Page\n\nVersion {{< var version >}}.\n",
 		"anderes/index.qmd": "---\ntitle: Other\norder: 1\n---\n# Other\n",
-		"qm.yml":            "vars: {version: \"1.2\"}\ntopics:\n  book:\n  other: {folder: anderes}\n",
+		"folio.yml":         "vars: {version: \"1.2\"}\ntopics:\n  book:\n  other: {folder: anderes}\n",
 	}
 	for name, content := range files {
 		path := filepath.Join(root, name)
