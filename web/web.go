@@ -6,7 +6,7 @@
 //
 //	qm web                 -> serve the project at --project on the default port
 //	qm web <path>          -> serve the project at <path>
-//	qm web --addr :9000    -> listen elsewhere
+//	qm web --addr :9000    -> listen elsewhere (wins over the web settings)
 //
 // The package is the quarto-sorter tool
 // (https://github.com/christophberger-ailab/quarto-sorter) merged into qm;
@@ -29,9 +29,28 @@ import (
 	flag "github.com/spf13/pflag"
 )
 
-// defaultAddr is where the UI listens unless told otherwise. When its port
-// is taken -- by another qm web, most likely -- the next ones are tried.
-const defaultAddr = "localhost:8199"
+// defaultWeb is where the UI listens unless the settings or --addr say
+// otherwise. When its port is taken -- by another qm web, most likely --
+// the next ones are tried.
+var defaultWeb = webConfig{BaseURL: "localhost", Port: 8199}
+
+// webConfig is the settings' web section: the host and port the UI
+// listens on when --addr does not name an address.
+type webConfig struct {
+	BaseURL string `json:"baseurl"`
+	Port    int    `json:"port"`
+}
+
+// listenTarget is the address to listen on and whether to search for a
+// free port from it. An address the user named with --addr is the one
+// they want, and serving elsewhere would be a surprise; the settings name
+// where to start, as the default does, and are searched from.
+func listenTarget(flagAddr string, w webConfig) (string, bool) {
+	if flagAddr != "" {
+		return flagAddr, false
+	}
+	return net.JoinHostPort(w.BaseURL, strconv.Itoa(w.Port)), true
+}
 
 // maxPortTries bounds the search for a free port, so a machine that has
 // every port above the default taken gets an error rather than a scan.
@@ -47,8 +66,8 @@ var (
 // (SUBCOMMANDS.3 does not apply when there is nothing to dispatch to).
 func Register(projectFlag *string) {
 	projectPath = projectFlag
-	addr = flag.String("addr", defaultAddr,
-		"Address the web UI listens on; without it, the first free port from 8199 up")
+	addr = flag.String("addr", "",
+		"Address the web UI listens on, as host:port; without it, the settings' web.baseurl and the first free port from web.port up (localhost, 8199)")
 
 	start.Add(&start.Command{
 		Name:  "web",
@@ -76,15 +95,14 @@ func cmd(c *start.Command) error {
 	if err != nil {
 		return fmt.Errorf("cannot resolve project path: %w", err)
 	}
-	// Only the default address is searched from: an address the user named
-	// is the one they want, and serving elsewhere would be a surprise.
-	return Serve(*addr, !flag.CommandLine.Changed("addr"), docPath)
+	return Serve(*addr, docPath)
 }
 
-// Serve runs the web UI on listenAddr with the project at root open. With
-// searchPort, a port that is already in use makes it try the next one up
-// until one is free. It blocks until the server stops.
-func Serve(listenAddr string, searchPort bool, root string) error {
+// Serve runs the web UI with the project at root open. It listens on
+// flagAddr if that is not empty, or else at the settings' web address, and
+// then, when that port is in use, on the next free one up. It blocks until
+// the server stops.
+func Serve(flagAddr string, root string) error {
 	srv, err := newServer(defaultConfigFile())
 	if err != nil {
 		return fmt.Errorf("web: %w", err)
@@ -94,6 +112,7 @@ func Serve(listenAddr string, searchPort bool, root string) error {
 			return fmt.Errorf("web: cannot open %s: %w", root, err)
 		}
 	}
+	listenAddr, searchPort := listenTarget(flagAddr, srv.cfg.Web)
 	ln, err := listen(listenAddr, searchPort)
 	if err != nil {
 		return fmt.Errorf("web: %w", err)
