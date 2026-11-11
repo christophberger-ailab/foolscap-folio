@@ -35,7 +35,7 @@ The top bar shows the open project's title, then `Open`, then `↻ Reload`.
 - `Esc` or `Cancel` closes the dialog.
 - `↻ Reload` reads the open page and the tree from disk again.
 
-Opening a project updates everything that belongs to it: the page tree, the panes, the Render panel, the Git panel, and the Editor button.
+Opening a project updates everything that belongs to it: the page tree, the panes, among them the Render and Git panes, and the Editor button.
 
 The list of recent projects is kept in the [settings file](settings.md).
 

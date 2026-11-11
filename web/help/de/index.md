@@ -10,12 +10,12 @@ Alles läuft auf deinem eigenen Rechner. Der Seitenbaum und der Editor arbeiten 
 - [Projekte öffnen](projects.md): `folio web` starten, ein Projekt öffnen und die Liste der zuletzt geöffneten Projekte nutzen.
 - [Der Seitenbaum](tree.md): Reihenfolge der Website, Drag and Drop, Seiten anlegen und löschen, Entwürfe, Statusmarken, Seiten ausblenden.
 - [Eine Seite bearbeiten](editor.md): Autosave, Konflikte, Vim-Modus und Link-Vervollständigung.
-- [Die Bereiche neben dem Editor](panes.md): Vorschau-, Copyedit- und Hilfebereich ein- und ausblenden, tauschen und in der Größe ändern.
+- [Die Bereiche neben dem Editor](panes.md): Tabs für Vorschau, Copyedit, Kommentare, Render, Git und Hilfe, nebeneinander oder übereinander angeordnet.
 - [Die Markdown-Vorschau](preview.md): was die Vorschau zeigt, Bilder, Zielgruppen und eigenes CSS.
 - [Lektorat mit einem LLM](copyedit.md): Editing tasks, API-Verbindungen und der Umgang mit Vorschlägen.
 - [Suchen](search.md): Seiten anhand der Wörter darin finden.
 - [Rendern](render.md): Themen, Zielgruppen und Formate wählen und ein Rendering starten.
-- [Das Git-Panel](git.md): stagen, committen, pushen und Diffs lesen.
+- [Der Git-Bereich](git.md): stagen, committen, pushen und Diffs lesen.
 - [Dateien in anderen Editoren öffnen](external-editor.md): das Projekt oder ein Bild an ein anderes Programm übergeben.
 - [Konfigurationsseiten und Einstellungsdatei](settings.md): wo deine Einstellungen liegen und wie du sie bearbeitest.
 - [Die folio-Kommandozeile im Überblick](commands.md): die übrigen Befehle von `folio`.

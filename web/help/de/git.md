@@ -1,10 +1,10 @@
-# Das Git-Panel
+# Der Git-Bereich
 
-Die Schaltfläche `Git` in der oberen Leiste, neben `Render`, öffnet ein Panel mit den Änderungen seit dem letzten Commit. Es führt das echte `git` aus, daher gelten deine Hooks, Credential Helper, Signierung und Konfiguration wie im Terminal. Eingabeaufforderungen sind nicht möglich; was ein Terminal braucht, schlägt mit einer Meldung fehl.
+Der Tab `Git` neben dem Editor zeigt den Git-Bereich mit den Änderungen seit dem letzten Commit (siehe [die Bereiche](panes.md)). Es führt das echte `git` aus, daher gelten deine Hooks, Credential Helper, Signierung und Konfiguration wie im Terminal. Eingabeaufforderungen sind nicht möglich; was ein Terminal braucht, schlägt mit einer Meldung fehl.
 
 ## Kein Git-Projekt
 
-Liegt das Projekt nicht in einem Git-Arbeitsverzeichnis oder ist git nicht installiert, sagt das Panel das, statt Operationen anzubieten.
+Liegt das Projekt nicht in einem Git-Arbeitsverzeichnis oder ist git nicht installiert, sagt der Bereich das, statt Operationen anzubieten.
 
 ## Was du siehst
 
@@ -12,7 +12,7 @@ Liegt das Projekt nicht in einem Git-Arbeitsverzeichnis oder ist git nicht insta
 - `Staged` listet auf, was der nächste Commit enthalten würde. `Not staged` listet auf, was er zurückließe. Eine Datei, die an beiden Stellen geändert ist, steht in beiden Listen.
 - Jeder Eintrag zeigt seine Statusbuchstaben und seinen Pfad.
 
-Das Panel umfasst den ganzen Arbeitsbaum. Liegt dein Projekt in einem Unterordner eines größeren Repositorys, werden auch Dateien außerhalb des Projekts aufgelistet und können gestaged werden.
+Der Bereich umfasst den ganzen Arbeitsbaum. Liegt dein Projekt in einem Unterordner eines größeren Repositorys, werden auch Dateien außerhalb des Projekts aufgelistet und können gestaged werden.
 
 ## Staging
 
@@ -31,10 +31,10 @@ Was git gesagt hat (Commit-Zusammenfassung, Push-Protokoll oder der Grund einer 
 
 Klicke auf einen Pfad, um seinen Diff unter den Listen zu sehen. Er zeigt, wofür seine eigene Liste steht; eine Datei in beiden Listen hat also in jeder einen anderen Diff. Die Kopfzeile nennt die Datei, sagt `staged` oder `not staged` und zählt hinzugefügte und entfernte Zeilen. Neue, nicht verfolgte Dateien zeigen ihren gesamten Inhalt als hinzugefügt.
 
-- `Open in editor` öffnet die Datei im Seiteneditor und schließt das Panel. Für gelöschte Dateien, Binärdateien und Dateien außerhalb des Projekts wird es nicht angeboten.
+- `Open in editor` öffnet die Datei im Seiteneditor. Für gelöschte Dateien, Binärdateien und Dateien außerhalb des Projekts wird es nicht angeboten.
 - `✕` schließt den Diff.
 - Der Diff dient nur zum Lesen. Änderungen machst du im [Editor](editor.md).
 
-Jede Operation leert den Diff, da die Datei in die andere Liste gewandert sein kann. Der Status wird beim Öffnen des Panels und nach jeder Operation gelesen, nie früher.
+Jede Operation leert den Diff, da die Datei in die andere Liste gewandert sein kann. Der Status wird gelesen, sobald der Bereich sichtbar wird, und nach jeder Operation, nie früher.
 
 Zurück zum [Inhalt](index.md).

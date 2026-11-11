@@ -1,6 +1,6 @@
 # Lektorat mit einem LLM
 
-Der Copyedit-Bereich schickt die Seite an ein Sprachmodell und zeigt dessen Vorschläge an. Öffne ihn mit der Schaltfläche `Copyedit` (siehe [die Bereiche](panes.md)).
+Der Copyedit-Bereich schickt die Seite an ein Sprachmodell und zeigt dessen Vorschläge an. Öffne ihn mit seinem Tab `Copyedit` (siehe [die Bereiche](panes.md)).
 
 ## Zuerst einrichten
 

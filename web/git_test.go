@@ -12,41 +12,34 @@ import (
 	"github.com/christophberger-ailab/foolscap-folio/internal/gitrepo"
 )
 
-// The Git button sits in the top bar beside Render, and its body is
-// fetched when the panel opens rather than with the page.
-func TestGitPanelIsInTheTopBar(t *testing.T) {
+// The Git pane stands in the dock, and its body is fetched when the pane
+// is shown rather than with the page.
+func TestGitPaneIsInTheDock(t *testing.T) {
 	srv, _ := testServer(t)
 	body := get(t, srv, "/").Body.String()
-	i, j := strings.Index(body, `id="render-panel"`), strings.Index(body, `id="git-panel"`)
-	if i < 0 || j < 0 {
-		t.Fatalf("panels missing: render at %d, git at %d", i, j)
-	}
-	if j < i {
-		t.Error("the Git panel does not sit to the right of the render panel")
-	}
-	for _, want := range []string{`<summary title="Show the changes`, `id="git-body"`, `hx-get="/git"`} {
+	for _, want := range []string{`id="git-pane" data-pane="git"`, `id="git-body"`, `hx-get="/git"`, `hx-trigger="folio-shown from:#git-pane"`} {
 		if !strings.Contains(body, want) {
-			t.Errorf("git panel missing %q:\n%s", want, body)
+			t.Errorf("git pane missing %q:\n%s", want, body)
 		}
 	}
 }
 
 // With no project open there is nothing to show a working tree of, so the
-// button is not there either.
-func TestGitPanelNeedsAProject(t *testing.T) {
+// pane is not there either.
+func TestGitPaneNeedsAProject(t *testing.T) {
 	srv := bareServer(t)
-	if body := get(t, srv, "/").Body.String(); strings.Contains(body, `<details class="git"`) {
-		t.Errorf("git panel shown without a project:\n%s", body)
+	if body := get(t, srv, "/").Body.String(); strings.Contains(body, `id="git-pane"`) {
+		t.Errorf("git pane shown without a project:\n%s", body)
 	}
 }
 
-// /open refreshes the panel along with the panes: it belongs to the
-// project, and the top bar is out of the #main swap's reach.
-func TestOpenRefreshesTheGitPanel(t *testing.T) {
+// /open refreshes the pane along with the others: it belongs to the
+// project, and comes with the #main swap.
+func TestOpenRefreshesTheGitPane(t *testing.T) {
 	srv, _ := testServer(t)
 	body := post(t, srv, "/open", url.Values{"path": {fixture(t)}}).Body.String()
-	if !strings.Contains(body, `hx-swap-oob="innerHTML:#git-panel"`) {
-		t.Errorf("open does not refresh the git panel:\n%s", body)
+	if !strings.Contains(body, `id="git-pane"`) {
+		t.Errorf("open does not refresh the git pane:\n%s", body)
 	}
 }
 

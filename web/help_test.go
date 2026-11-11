@@ -133,16 +133,15 @@ func TestHelpLinksResolve(t *testing.T) {
 	}
 }
 
-// UI.3-3, UI.13: the content header has a Help button and the editor
-// split a help pane beside the other two.
+// UI.13, UI.14: the dock carries a help pane beside the others.
 func TestHelpPaneIsOffered(t *testing.T) {
 	srv, _ := testServer(t)
-	rec := get(t, srv, "/content?path=index.qmd")
+	rec := get(t, srv, "/")
 	if rec.Code != http.StatusOK {
-		t.Fatalf("GET /content: status %d", rec.Code)
+		t.Fatalf("GET /: status %d", rec.Code)
 	}
 	body := rec.Body.String()
-	for _, want := range []string{`id="help-toggle" data-pane="help"`, `id="help-pane" data-pane="help"`, `id="help-divider"`, `id="help"`, `id="help-lang"`} {
+	for _, want := range []string{`id="help-pane" data-pane="help"`, `id="help"`, `id="help-lang"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("content does not carry %s", want)
 		}
@@ -158,7 +157,7 @@ func TestHelpPaneWithoutAPage(t *testing.T) {
 	}
 	check := func(when, body string) {
 		t.Helper()
-		for _, want := range []string{`id="help-toggle" data-pane="help"`, `id="help-pane" data-pane="help"`, `id="help-divider"`, `class="edit-form editor-placeholder"`} {
+		for _, want := range []string{`id="help-pane" data-pane="help"`, `id="dock"`, `class="edit-form editor-placeholder"`} {
 			if !strings.Contains(body, want) {
 				t.Errorf("%s: page does not carry %s", when, want)
 			}
