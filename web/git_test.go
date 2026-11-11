@@ -467,3 +467,18 @@ func TestGitSyncNeedsAnUpstream(t *testing.T) {
 		t.Errorf("missing upstream not reported:\n%s", body)
 	}
 }
+
+// Push and Sync talk to a remote and can take a while. While one runs, the
+// pane's action buttons are greyed out, so a second click cannot start a
+// second push or sync, and a Refresh cannot swap the pane under it; the
+// answer re-renders the buttons as the outcome leaves them.
+func TestGitRemoteButtonsDisableWhileRunning(t *testing.T) {
+	srv, _, _ := gitClone(t)
+	body := get(t, srv, "/git").Body.String()
+	for _, target := range []string{"/git/push", "/git/sync"} {
+		want := `hx-post="` + target + `" hx-target="#git-body" hx-swap="innerHTML" hx-disabled-elt=".git-actions button"`
+		if !strings.Contains(body, want) {
+			t.Errorf("%s does not disable the buttons while it runs:\n%s", target, body)
+		}
+	}
+}

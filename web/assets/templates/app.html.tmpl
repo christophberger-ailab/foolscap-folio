@@ -185,13 +185,15 @@
   <button type="submit"{{if not .Staged}} disabled title="Stage a file to commit it"{{end}}>Commit</button>
 </form>
 <div class="git-actions">
-  <button type="button" hx-post="/git/push" hx-target="#git-body" hx-swap="innerHTML"
+  {{/* Push and Sync talk to a remote and can take a while; until one
+       completes or fails, hx-disabled-elt greys out every button here, so
+       a second click cannot start a second one and Refresh cannot swap the
+       pane under it. The answer re-renders the buttons as they then stand.
+       Sync fast-forwards over the remote's new commits and pushes the
+       local ones; Refresh only reads the working tree. */ -}}
+  <button type="button" hx-post="/git/push" hx-target="#git-body" hx-swap="innerHTML" hx-disabled-elt=".git-actions button"
           title="Push the commits of this branch to its remote">Push</button>
-  {{/* Sync fast-forwards over the remote's new commits and pushes the
-       local ones; Refresh only reads the working tree. hx-disabled-elt
-       keeps a second click from starting a second sync while git talks
-       to the remote. */ -}}
-  <button type="button" hx-post="/git/sync" hx-target="#git-body" hx-swap="innerHTML" hx-disabled-elt="this"
+  <button type="button" hx-post="/git/sync" hx-target="#git-body" hx-swap="innerHTML" hx-disabled-elt=".git-actions button"
           title="Pull the remote's new commits (fast-forward only) and push this branch's own; uncommitted edits are never overwritten"{{if not .Upstream}} disabled{{end}}>⇅ Sync</button>
   <button type="button" hx-get="/git" hx-target="#git-body" hx-swap="innerHTML" title="Read the working tree again; does not contact the remote">↻ Refresh</button>
 </div>

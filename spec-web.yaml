@@ -210,6 +210,7 @@ constraints:
       10-22-2: Uncommitted edits survive a sync -- git carries them across a fast-forward that does not touch them, and one that would overwrite them is refused and reported with git's own list of the files
       10-22-3: A branch that tracks no remote branch is not offered Sync, and a sync asked for anyway says that Push sets one up
       10-22-4: After a pull the panel says that Reload shows the open page as it arrived, since the editor keeps the text it loaded until then
+      10-23: While a push or a sync runs, the pane's action buttons are greyed out until it completes or fails, so a second click cannot start a second one and Refresh cannot replace the pane under it
       11: A copyediting tool sits beside the editor, in a pane of its own next to the Markdown preview
       11-1: The copyedit pane is a tab of the dock (see 14)
       11-2: The copyedit pane lists the editing tasks the user configured, by title alone; the prompt itself is the task's tooltip
