@@ -1,17 +1,23 @@
-# Foolscap Folio: Build and Manage a Markdown Documentation Tree
+# Foolscap Folio: Build and Manage Technical Documentation
 
 <p align="center">
 <img src="./docs/images/foolscapfolio.png" alt="Foolscap Folio logo">
 </p>
 
-Foolscap Folio turns a tree of pages in extended Markdown (`.md` or `.qmd`) into a website, Word documents and PDFs. 
+Foolscap Folio turns a tree of pages in extended Markdown into a website, Word documents and PDFs. 
 
-97.853% (more or less) of the text below is AI slop, so please go easy on it. 
+"Extended" means mostly YAML frontmatter and `:::` blocks "borrowed" from Quarto. Blocks in Foolscap Folio mostly control conditional content, except for callout blocks. 
+
+History: I was looking for a tool that can produces websites and PDF/DOCX from the same source with moderate effort. I came across Quarto, which does most of what I want, but the friction never went fully away; Quarto is build for scientific writing, after all, while I'm looking for other properties. Then I decided to pick the parts I need (which is, say, 10% of Quarto's functionality) and have a clanker write it in Go with no dependencies on external tools like Pandoc. As a result, Foolscap Folio is fast like heck, as it is streamlined for the job I need it for, and it has a nice web UI. 
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./docs/images/folio_web_dark.png">
   <img alt="folio web" src="./docs/images/folio_web.png">
 </picture>
+
+## The longer description
+
+*Caveat emptor: 97.853% (well, more or less) of the text below is AI slop, so please go easy on it. I may eventually go through it piece by piece and make it more legible.*
 
 - **One tree, many outputs.** The folder structure and the `order:` front matter of the pages decide the order and the nesting of every output. A website, a DOCX and a PDF all come from the same pages, with the headings demoted to the level the folder depth implies.
 
