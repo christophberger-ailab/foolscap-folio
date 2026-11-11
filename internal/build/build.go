@@ -222,6 +222,12 @@ func loadTopic(root string, t config.Topic) (*bookmaker.Node, error) {
 	return tree, nil
 }
 
+// Site renders a website selection into dir instead of its output
+// directory, as `folio preview` does.
+func Site(sel config.Selection, dir string, log Logf) error {
+	return renderSite(sel, dir, false, log.or())
+}
+
 func renderSite(sel config.Selection, dir string, dryRun bool, log Logf) error {
 	css, err := sel.Stylesheets()
 	if err != nil {

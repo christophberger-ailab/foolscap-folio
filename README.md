@@ -67,6 +67,7 @@ Global flags apply to every command:
 | `folio chapters move <folder> <old> <new>` | move a chapter to another order position                                                            |
 | `folio chapters remove <folder> <order>`   | remove a chapter, after confirmation                                                                |
 | `folio web [<path>]`                       | serve the local sorting, editing and rendering UI                                                   |
+| `folio preview [<path>]`                   | serve the website and update it live as pages change                                                |
 
 Every command takes `--help`.
 
@@ -120,6 +121,22 @@ The top bar names the open project by the `title` in its folio.yml, or by its fo
 The Editor button opens the project, and the page open in the app, in an external editor — for `folio.yml`, stylesheets, and whatever else the app does not edit. *Config → External editor* sets the command line it runs, with `{root}` for the project directory and `{file}` for the page; the default is VS Code's `code {root} --goto {file}`, and the page offers ready-made lines for VSCodium and a few others. With no page open, the `{file}` argument and an option right before it are left out.
 
 Double-clicking an image in the preview opens the image's file in an image editor, which the same config page sets: by default the program the system opens the file with, or GIMP, Krita, Inkscape, or any other command with `{file}` for the image. When the editor saves, the preview shows the new version within a couple of seconds, without a reload.
+
+#### `folio preview`
+
+```sh
+folio preview                       # serve the website on localhost:8198,
+                                    # or the next free port up if that one is taken
+folio preview ../handbook           # preview that project instead
+folio preview --audience pol        # the pol variant of the site
+folio preview --addr :9000          # listen elsewhere
+```
+
+`folio preview` renders the website the way `folio render` does, serves it, and watches the project folder. When a page, an image, a stylesheet or `folio.yml` changes, the whole site is rendered again and every open page reloads itself. A render that fails leaves the last good site in place and shows the error as a banner at the bottom of the page, which goes away with the next good render.
+
+The site is rendered into a temporary directory, never into the project's output directory, and that directory is removed when the preview stops. `--topic`, `--format` and `--audience` pick the site as they do for `folio render`; when they leave more than one website (several website formats, or several audiences), the first is served and the console names the flags that pick the others.
+
+Every render is a full one, on purpose: the navigation, the previous/next links and the search index of every page depend on all the other pages, so a page rendered on its own would be stale as soon as a page is added, moved or retitled. A full site render takes milliseconds for a typical project. Watching is done by polling, about three times a second, so it works on every file system and with editors that save by renaming; hidden files and folders, `_build` and the output directory are ignored.
 
 ### Settings
 

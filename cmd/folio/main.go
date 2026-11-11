@@ -19,6 +19,7 @@ import (
 	"github.com/christophberger-ailab/foolscap-folio/lint"
 	"github.com/christophberger-ailab/foolscap-folio/migrate"
 	"github.com/christophberger-ailab/foolscap-folio/move"
+	"github.com/christophberger-ailab/foolscap-folio/preview"
 	"github.com/christophberger-ailab/foolscap-folio/remove"
 	"github.com/christophberger-ailab/foolscap-folio/render"
 	"github.com/christophberger-ailab/foolscap-folio/web"
@@ -78,6 +79,10 @@ func main() {
 
 	// The `web` object serves the sorter UI; no sub-commands either.
 	web.Register(projectFlag)
+
+	// `preview` serves the website live; it shares --addr with `web` and
+	// the selection flags with `render`, so it comes after both.
+	preview.Register(projectFlag)
 
 	start.Up()
 

@@ -1,0 +1,49 @@
+feature:
+  name: preview
+  description: Serve the project's website locally and keep it up to date while the pages are edited
+
+components:
+  COMMAND:
+    description: folio preview [--addr <host:port>] [--topic <list>] [--format <name>] [--audience <name>] [<path>]
+    requirements:
+      1: Object name is "preview"
+      2: No subcommand
+      3: Parameters
+      3-1: Flag --project sets the path to the document tree. Defaults to the current directory
+      3-2: A positional path names the project and takes precedence over --project
+      3-3: Flag --addr sets the listen address. Without it, the preview listens on localhost:8198, or on the next free port up if that one is taken; an address given with --addr is used as given, and a taken one is an error
+      3-4: Flags --topic, --format and --audience select the site as they do for `folio render`; only website formats are considered
+      3-5: When the selection names more than one site (several website formats or audiences), the first is served and the others are named, so the user can pick one with --format or --audience
+      4: The command serves until it is interrupted, printing the URL it listens on to stderr, and then removes what it rendered
+
+constraints:
+  STANDARD: See the constraints in spec.yaml.
+
+  RENDER:
+    description: >
+      The whole site is rendered before it is served, and rendered again,
+      as a whole, after every change. The navigation, the previous/next
+      links and the search index of every page depend on every other page,
+      so a page rendered alone would be out of date as soon as a page is
+      added, moved or renamed; and a full render of a site is fast.
+    requirements:
+      1: The site is rendered by the same flow `folio render` uses for a website format (internal/build), so the preview shows what a render writes
+      2: The site is rendered into a temporary directory outside the project; the project's output directory is left alone
+      3: A new render is written beside the one being served and replaces it only once it is complete, so a request never sees a half-written site
+      4: A render that fails keeps the last good site in service and reports the error on the console and in the browser; the next good render clears it
+      5: folio.yml is read again for every render, so a change to the configuration shows too
+
+  WATCH:
+    requirements:
+      1: The project folder is checked for changes about three times a second, by polling, so the preview works on every file system and with editors that save by renaming
+      2: A file added, removed, or changed in size or modification time below the project folder triggers a new render
+      3: Hidden files and folders (a name starting with "."), the project's output directory and `_build` are not watched
+      4: Watching costs only a directory walk per poll; nothing is rendered unless a file changed
+
+  LIVE:
+    requirements:
+      1: Every HTML page served carries a small script that opens a server-sent event stream to the preview
+      2: The stream names the current render; a page reloads itself when the render it was served from is no longer current, including one finished before the stream connected
+      3: A failed render is shown in the page as a banner with the error, without a reload
+      4: Responses are not cached, so a reload shows the new render, its stylesheets included
+      5: Files are served from the rendered site only; a path that leaves it is refused
