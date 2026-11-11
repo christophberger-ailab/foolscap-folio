@@ -111,6 +111,7 @@ constraints:
       3-6-5-4: The segment being typed matches anywhere in a candidate's name, not only at its start; a candidate matching at the start is listed first
       3-6-6: Every `==TODO==` in the page -- inside an HTML comment too -- is highlighted in the editor in a TODO color of its own, distinct from the search's
       3-6-7: The preview marks the spot of every `==TODO==` with a TODO marker in the same color; a TODO inside an HTML comment, which renders as nothing, gets an outlined marker where the comment stands, with the comment's text as its tooltip
+      3-6-8: In Vim mode, Ctrl-C with text selected copies it to the clipboard, as it does outside Vim mode, and leaves Visual mode; with nothing selected it stays Vim's Esc
       3-7: The page open in the editor is remembered per project and reopened when the app page loads, so a restart, or a visit to the config pages and back, returns to the page the user was working on
       3-7-1: The reopened page is selected in the page tree, and collapsed branches above it are expanded
       3-7-2: A remembered page that is no longer there is forgotten, and the editor starts empty
