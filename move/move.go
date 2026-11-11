@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/christophberger-ailab/foolscap-folio/internal/cli"
 	"github.com/christophberger-ailab/foolscap-folio/internal/foliocore"
 	"github.com/christophberger/start"
 	"gopkg.in/yaml.v3"
@@ -28,8 +27,7 @@ func Register(parent string, projectFlag *string) {
 		Long: "Move a chapter from its current order number to a new order " +
 			"number within the same folder. Other chapters are renumbered to " +
 			"close any gap and to make room at the new position.",
-		Flags: []string{"project"},
-		Cmd:   cli.Guard(cmd),
+		Cmd: cmd,
 	})
 }
 

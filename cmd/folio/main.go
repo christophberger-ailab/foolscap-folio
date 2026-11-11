@@ -15,7 +15,6 @@ import (
 
 	"github.com/christophberger-ailab/foolscap-folio/flatten"
 	"github.com/christophberger-ailab/foolscap-folio/insert"
-	"github.com/christophberger-ailab/foolscap-folio/internal/cli"
 	"github.com/christophberger-ailab/foolscap-folio/lint"
 	"github.com/christophberger-ailab/foolscap-folio/migrate"
 	"github.com/christophberger-ailab/foolscap-folio/move"
@@ -35,8 +34,7 @@ func main() {
 	// Global flag(s) — shared by all subcommands. Per spec
 	// constraint SUBCOMMANDS.2-2 these have matching environment
 	// variables (QM_PROJECT) and config file entries (project=).
-	projectFlag := flag.StringP("project", "p", ".",
-		"Path to the document tree (default: current directory)")
+	projectFlag := flag.StringP("project", "p", ".", "Path to the document tree")
 
 	start.SetDescription("folio manages and renders a Markdown documentation tree. " +
 		"Usage: folio <object> <subcommand> [flags] [args].")
@@ -46,14 +44,11 @@ func main() {
 	// Register the dummy "chapters" object command. start has no notion
 	// of an <object> parameter, so we model it as a parent command that
 	// only dispatches to its subcommands (SUBCOMMANDS.3). Leaving Cmd
-	// nil lets start auto-generate the "missing subcommand" usage
-	// (and avoids a panic in start v0.6.0 when Cmd is set but no
-	// subcommand was supplied).
+	// nil makes start reject `folio chapters` without a subcommand.
 	if err := start.Add(&start.Command{
 		Name:  "chapters",
-		Short: "Manage book chapters (subcommands: insert, move, remove)",
-		Long: "Manage the chapters of a content folder. Use one of the subcommands " +
-			"(insert, move, remove). With no subcommand, lists them.",
+		Short: "Manage book chapters",
+		Long:  "Manage the chapters of a content folder with one of the subcommands.",
 	}); err != nil {
 		fatal(err)
 	}
@@ -84,12 +79,11 @@ func main() {
 	// the selection flags with `render`, so it comes after both.
 	preview.Register(projectFlag)
 
+	// start.Up() answers `folio`, `folio help` and `--help` with the same
+	// help, and exits with status 1 when the command line is wrong or the
+	// command fails. Scripts and CI read the status to tell a failed render
+	// from a good one.
 	start.Up()
-
-	// start.Up() prints a command's error and returns; it does not set an
-	// exit status. Scripts and CI read it to tell a failed render from a
-	// good one. See internal/cli.
-	cli.Exit()
 }
 
 func fatal(err error) {
