@@ -270,40 +270,29 @@ func TestFreshConfigShipsTheDefaultEditingTasks(t *testing.T) {
 	}
 }
 
-// The web section is read from a hand-written file, left out it carries
-// the defaults, and a port that is no port is refused.
-func TestTheWebSettingsAreReadAndChecked(t *testing.T) {
+// The merged-then-moved web section: a settings file written while the
+// listen address lived in it still loads, and the next save drops it, the
+// address being the project's to set in folio.yml.
+func TestALeftoverWebSectionIsIgnored(t *testing.T) {
 	path := filepath.Join(t.TempDir(), configFileName)
 	if err := saveConfigFile(path, defaultConfig()); err != nil {
 		t.Fatal(err)
 	}
 	b, _ := os.ReadFile(path)
-	schema := string(b[:strings.Index(string(b), "config: #Config &")])
-	load := func(settings string) (storedConfig, error) {
-		t.Helper()
-		if err := os.WriteFile(path, []byte(schema+"config: #Config & "+settings+"\n"), 0o600); err != nil {
-			t.Fatal(err)
-		}
-		return loadConfigFile(path)
-	}
-
-	cfg, err := load(`{}`)
-	if err != nil {
+	old := string(b) + "\nconfig: web: {baseurl: \"localhost\", port: 8200}\n"
+	if err := os.WriteFile(path, []byte(old), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if cfg.Web != (webConfig{BaseURL: "localhost", Port: 8199}) {
-		t.Errorf("web = %+v, want the defaults", cfg.Web)
-	}
-	cfg, err = load(`{web: {baseurl: "0.0.0.0", port: 8200}}`)
+	cfg, err := loadConfigFile(path)
 	if err != nil {
+		t.Fatalf("a file with the old web section was refused: %v", err)
+	}
+	if err := saveConfigFile(path, cfg); err != nil {
 		t.Fatal(err)
 	}
-	if cfg.Web != (webConfig{BaseURL: "0.0.0.0", Port: 8200}) {
-		t.Errorf("web = %+v, want what was written", cfg.Web)
-	}
-	for _, bad := range []string{`{web: port: 70000}`, `{web: port: "8200"}`, `{web: baseurl: ""}`} {
-		if _, err := load(bad); err == nil {
-			t.Errorf("%s was accepted", bad)
-		}
+	b, _ = os.ReadFile(path)
+	settings := string(b[strings.Index(string(b), "config: #Config &"):])
+	if strings.Contains(settings, "8200") {
+		t.Errorf("the old web section was written back:\n%s", settings)
 	}
 }

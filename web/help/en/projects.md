@@ -17,9 +17,9 @@ folio web --addr :9000       # listen elsewhere
 ## The address and port
 
 - By default `folio web` listens on `localhost:8199`.
-- To listen elsewhere every time, set `baseurl` (the host name or IP address) and `port` in the `web` section of the [settings file](settings.md), for example `web: {baseurl: "localhost", port: 8200}`. They are read when `folio web` starts.
+- A project can name its own address in the `web` section of its `folio.yml`: `baseurl` is the host name or IP address, `port` the port. For example `web: {baseurl: localhost, port: 8200}`. It is read from the project `folio web` is started on.
 - If that port is taken, usually by another `folio web`, the next port up is tried, and so on until a free one is found. The address actually used is printed.
-- An address you give with `--addr` wins over the settings and is used exactly as given. If it is taken, that is an error.
+- An address you give with `--addr` wins over `folio.yml` and is used exactly as given. If it is taken, that is an error.
 
 ## Opening a project
 

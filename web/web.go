@@ -6,7 +6,7 @@
 //
 //	qm web                 -> serve the project at --project on the default port
 //	qm web <path>          -> serve the project at <path>
-//	qm web --addr :9000    -> listen elsewhere (wins over the web settings)
+//	qm web --addr :9000    -> listen elsewhere (wins over web: in folio.yml)
 //
 // The package is the quarto-sorter tool
 // (https://github.com/christophberger-ailab/quarto-sorter) merged into qm;
@@ -24,31 +24,31 @@ import (
 	"strconv"
 	"syscall"
 
+	"github.com/christophberger-ailab/foolscap-folio/internal/config"
 	"github.com/christophberger/start"
 	flag "github.com/spf13/pflag"
 )
 
-// defaultWeb is where the UI listens unless the settings or --addr say
-// otherwise. When its port is taken -- by another qm web, most likely --
-// the next ones are tried.
-var defaultWeb = webConfig{BaseURL: "localhost", Port: 8199}
-
-// webConfig is the settings' web section: the host and port the UI
-// listens on when --addr does not name an address.
-type webConfig struct {
-	BaseURL string `json:"baseurl"`
-	Port    int    `json:"port"`
-}
-
 // listenTarget is the address to listen on and whether to search for a
 // free port from it. An address the user named with --addr is the one
-// they want, and serving elsewhere would be a surprise; the settings name
-// where to start, as the default does, and are searched from.
-func listenTarget(flagAddr string, w webConfig) (string, bool) {
+// they want, and serving elsewhere would be a surprise. Without it, the
+// web section of the project's folio.yml names where to start, as the
+// default does, and is searched from. A folio.yml that does not load
+// leaves the default in place and is returned as the error, for the
+// caller to warn about: the app reports what is wrong with the file once
+// it runs, and refusing to start would leave nowhere to see that.
+func listenTarget(flagAddr, root string) (string, bool, error) {
 	if flagAddr != "" {
-		return flagAddr, false
+		return flagAddr, false, nil
 	}
-	return net.JoinHostPort(w.BaseURL, strconv.Itoa(w.Port)), true
+	w, err := config.DefaultWeb, error(nil)
+	if root != "" {
+		var cfg *config.Config
+		if cfg, err = config.Load(root); err == nil {
+			w = cfg.Web
+		}
+	}
+	return net.JoinHostPort(w.BaseURL, strconv.Itoa(w.Port)), true, err
 }
 
 // maxPortTries bounds the search for a free port, so a machine that has
@@ -66,7 +66,7 @@ var (
 func Register(projectFlag *string) {
 	projectPath = projectFlag
 	addr = flag.String("addr", "",
-		"Address the web UI listens on, as host:port; without it, the settings' web.baseurl and the first free port from web.port up (localhost, 8199)")
+		"Address the web UI listens on, as host:port; without it, the project's web.baseurl and the first free port from web.port up (localhost, 8199)")
 
 	start.Add(&start.Command{
 		Name:  "web",
@@ -98,7 +98,8 @@ func cmd(c *start.Command) error {
 }
 
 // Serve runs the web UI with the project at root open. It listens on
-// flagAddr if that is not empty, or else at the settings' web address, and
+// flagAddr if that is not empty, or else at the web address in the project's
+// folio.yml, and
 // then, when that port is in use, on the next free one up. It blocks until
 // the server stops.
 func Serve(flagAddr string, root string) error {
@@ -111,7 +112,10 @@ func Serve(flagAddr string, root string) error {
 			return fmt.Errorf("web: cannot open %s: %w", root, err)
 		}
 	}
-	listenAddr, searchPort := listenTarget(flagAddr, srv.cfg.Web)
+	listenAddr, searchPort, err := listenTarget(flagAddr, root)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "folio web: %v; listening on the default address\n", err)
+	}
 	ln, err := listen(listenAddr, searchPort)
 	if err != nil {
 		return fmt.Errorf("web: %w", err)

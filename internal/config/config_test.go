@@ -248,3 +248,31 @@ func TestLoadLegacyFileName(t *testing.T) {
 		t.Errorf("both: title %q path %q", c.Title, c.Path)
 	}
 }
+
+// The web section says where `folio web` listens for this project; left
+// out, it is localhost:8199, and a port that is no port is refused.
+func TestWebSection(t *testing.T) {
+	c, err := Load(project(t, "", "a"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Web != DefaultWeb || c.Web != (Web{BaseURL: "localhost", Port: 8199}) {
+		t.Errorf("web = %+v, want localhost:8199", c.Web)
+	}
+	c, err = Load(project(t, "web:\n  baseurl: 0.0.0.0\n  port: 8200\n", "a"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Web != (Web{BaseURL: "0.0.0.0", Port: 8200}) {
+		t.Errorf("web = %+v, want what was written", c.Web)
+	}
+	c, err = Load(project(t, "web: {port: 8300}\n", "a"))
+	if err != nil || c.Web != (Web{BaseURL: "localhost", Port: 8300}) {
+		t.Errorf("web = %+v, %v; want the default host with the port written", c.Web, err)
+	}
+	for _, bad := range []string{"web: {port: 70000}\n", "web: {port: -1}\n", "web: {port: x}\n", "web: {host: a}\n"} {
+		if _, err := Load(project(t, bad, "a")); err == nil {
+			t.Errorf("%q was accepted", bad)
+		}
+	}
+}

@@ -101,7 +101,7 @@ folio web ../handbook        # serve that project instead
 folio web --addr :9000       # listen elsewhere
 ```
 
-To change the default address for good, set `web: {baseurl: "localhost", port: 8200}` in the settings file (`config.cue`); `--addr` still wins over it.
+A project can name its own address in its `folio.yml` (`web: {baseurl: localhost, port: 8200}`, see [`folio.yml`](#folioyml)); `--addr` still wins over it.
 
 The UI shows the project's page tree, reorders pages by drag and drop (which rewrites the `order:` front matter and shifts the moved page's headings), creates, edits and deletes pages with a live Markdown preview, searches the whole project, and runs renders in the background from the same flow `folio render` uses. The render selection and the page last open are remembered per project in the settings file (below).
 
@@ -182,6 +182,7 @@ Top level keys:
 | `formats`   | how a render is produced                                                                      |
 | `audiences` | for whom                                                                                      |
 | `topics`    | what: one content folder each                                                                 |
+| `web`       | where `folio web` listens for this project: `baseurl` (default `localhost`), `port` (8199)    |
 
 A **format** has a `type`: `html` (a website), `docx`, `pdf`, or a list
 `[docx, pdf]` that writes both from the same document. `html` cannot be
