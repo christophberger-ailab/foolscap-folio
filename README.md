@@ -137,6 +137,8 @@ folio preview --audience pol        # the pol variant of the site
 folio preview --addr :9000          # listen elsewhere
 ```
 
+A project can name its own preview address in its `folio.yml` (`preview: {baseurl: localhost, port: 8300}`, see [`folio.yml`](#folioyml)); `--addr` still wins over it, and a taken port is searched up from as with the default.
+
 `folio preview` renders the website the way `folio render` does, serves it, and watches the project folder. When a page, an image, a stylesheet or `folio.yml` changes, the whole site is rendered again and every open page reloads itself. A render that fails leaves the last good site in place and shows the error as a banner at the bottom of the page, which goes away with the next good render.
 
 The site is rendered into a temporary directory, never into the project's output directory, and that directory is removed when the preview stops. `--topic`, `--format` and `--audience` pick the site as they do for `folio render`; when they leave more than one website (several website formats, or several audiences), the first is served and the console names the flags that pick the others.
@@ -183,6 +185,7 @@ Top level keys:
 | `audiences` | for whom                                                                                      |
 | `topics`    | what: one content folder each                                                                 |
 | `web`       | where `folio web` listens for this project: `baseurl` (default `localhost`), `port` (8199)    |
+| `preview`   | where `folio preview` listens for this project: `baseurl` (default `localhost`), `port` (8198)|
 
 A **format** has a `type`: `html` (a website), `docx`, `pdf`, or a list
 `[docx, pdf]` that writes both from the same document. `html` cannot be

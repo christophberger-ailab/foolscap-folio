@@ -276,3 +276,27 @@ func TestWebSection(t *testing.T) {
 		}
 	}
 }
+
+// The preview section says where `folio preview` listens for this project,
+// as the web section does for `folio web`; left out, it is localhost:8198.
+func TestPreviewSection(t *testing.T) {
+	c, err := Load(project(t, "", "a"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Preview != DefaultPreview || c.Preview != (Web{BaseURL: "localhost", Port: 8198}) {
+		t.Errorf("preview = %+v, want localhost:8198", c.Preview)
+	}
+	c, err = Load(project(t, "preview:\n  baseurl: 0.0.0.0\n  port: 8300\nweb: {port: 8200}\n", "a"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Preview != (Web{BaseURL: "0.0.0.0", Port: 8300}) || c.Web != (Web{BaseURL: "localhost", Port: 8200}) {
+		t.Errorf("preview = %+v, web = %+v; want each as written", c.Preview, c.Web)
+	}
+	for _, bad := range []string{"preview: {port: 70000}\n", "preview: {port: -1}\n", "preview: {port: x}\n", "preview: {host: a}\n"} {
+		if _, err := Load(project(t, bad, "a")); err == nil {
+			t.Errorf("%q was accepted", bad)
+		}
+	}
+}

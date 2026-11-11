@@ -281,3 +281,31 @@ func TestRefusesPathsOutsideSite(t *testing.T) {
 		t.Errorf("served %q", req.URL.Path)
 	}
 }
+
+// The project's folio.yml names where the preview listens, under preview:;
+// --addr wins over it and is used as given, while the address from the
+// project is a starting point the port search counts up from.
+func TestTheListenAddressComesFromTheFlagOrTheProject(t *testing.T) {
+	withYML := func(yml string) string {
+		root := t.TempDir()
+		write(t, root, "folio.yml", yml)
+		return root
+	}
+	configured := withYML("preview: {baseurl: 0.0.0.0, port: 8300}\nweb: {port: 8200}\n")
+	cases := []struct {
+		name, flag, root string
+		want             string
+		search, warn     bool
+	}{
+		{"a project without a preview section", "", withYML("title: T\n"), "localhost:8198", true, false},
+		{"the project", "", configured, "0.0.0.0:8300", true, false},
+		{"the flag over the project", ":9000", configured, ":9000", false, false},
+		{"a broken folio.yml", "", withYML("preview: {port: 70000}\n"), "localhost:8198", true, true},
+	}
+	for _, c := range cases {
+		addr, search, err := listenTarget(c.flag, c.root)
+		if addr != c.want || search != c.search || (err != nil) != c.warn {
+			t.Errorf("%s: listenTarget = %q, %v, %v; want %q, %v, warning %v", c.name, addr, search, err, c.want, c.search, c.warn)
+		}
+	}
+}
