@@ -116,3 +116,34 @@ func TestDockScripts(t *testing.T) {
 		}
 	}
 }
+
+// UI.14-9: a toggle beside the Panes menu hides and shows the whole panes
+// area; both sit at the top bar's right end, just left of Config, above
+// the panes they act on.
+func TestPanesToggle(t *testing.T) {
+	srv, _ := testServer(t)
+	post(t, srv, "/open", url.Values{"path": {fixture(t)}})
+	body := get(t, srv, "/").Body.String()
+	editor := strings.Index(body, `id="editor-panel"`)
+	toggle := strings.Index(body, `id="panes-toggle"`)
+	menu := strings.Index(body, `id="pane-menu-button"`)
+	config := strings.Index(body, `class="button topbar-config"`)
+	if editor < 0 || toggle < 0 || menu < 0 || config < 0 {
+		t.Fatalf("editor at %d, toggle at %d, menu at %d, config at %d", editor, toggle, menu, config)
+	}
+	if !(editor < toggle && toggle < menu && menu < config) {
+		t.Errorf("want Editor, then the toggle and the Panes menu, then Config; got editor %d, toggle %d, menu %d, config %d", editor, toggle, menu, config)
+	}
+	if !strings.Contains(body, `id="panes-toggle" aria-controls="dock" aria-expanded="true"`) {
+		t.Error("the toggle does not say what it controls and whether it is expanded")
+	}
+	src, err := assets.ReadFile("assets/static/dock.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"function togglePanes(", "localStorage.setItem(DOCK_HIDDEN_KEY", "'#panes-toggle'"} {
+		if !assetContains("assets/static/dock.js", string(src), want) {
+			t.Errorf("dock.js does not carry %q", want)
+		}
+	}
+}

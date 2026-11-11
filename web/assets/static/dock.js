@@ -11,7 +11,8 @@
 // The layout is a tree: a group is a leaf, and a split holds two or more
 // groups or splits side by side ('row') or stacked ('col'), each with its
 // share of the room. It is kept in localStorage, so it outlives page
-// switches, reloads, and the session.
+// switches, reloads, and the session. So is whether the toggle in the top
+// bar has hidden the whole panes area, which leaves the layout as it is.
 //
 // The dock stands outside #content, so a page switch leaves it standing,
 // and with it the panes of the project. The panes of the page arrive with
@@ -22,6 +23,7 @@
 
 var DOCK_KEY = 'dockLayout';
 var DOCK_WIDTH_KEY = 'dockWidth';
+var DOCK_HIDDEN_KEY = 'dockHidden';
 var PANE_TYPE = 'application/x-folio-pane';
 
 // PANES are the panes the dock can hold, in the order a fresh dock lists
@@ -266,6 +268,7 @@ function openPane(name) {
   }
   g.active = name;
   lastGroup = g.group;
+  setPanesHidden(false); // a pane opened is meant to be seen
   commit();
 }
 
@@ -345,6 +348,7 @@ function splitGroup(target, g, zone) {
 
 function resetLayout() {
   dock = defaultLayout();
+  setPanesHidden(false);
   commit();
 }
 
@@ -387,11 +391,12 @@ function renderDock() {
   });
   host.innerHTML = '';
   var divider = document.getElementById('dock-divider');
-  host.hidden = !dock;
+  host.hidden = !dock || panesHidden;
   if (divider) {
-    divider.hidden = !dock;
+    divider.hidden = host.hidden;
   }
-  if (dock) {
+  showPanesToggle();
+  if (dock && !panesHidden) {
     host.appendChild(drawNode(dock));
     var width = parseFloat(localStorage.getItem(DOCK_WIDTH_KEY));
     host.style.width = (width > 0 ? width : 45) + '%';
@@ -587,9 +592,55 @@ function showPaneMenu(show) {
   }
 }
 
+// panesHidden tells whether the toggle in the top bar has hidden the panes
+// area. Hiding it keeps the layout, so showing it again brings every pane
+// back where it stood.
+var panesHidden = (function () {
+  try {
+    return localStorage.getItem(DOCK_HIDDEN_KEY) === '1';
+  } catch (e) {
+    return false;
+  }
+})();
+
+function setPanesHidden(hidden) {
+  panesHidden = hidden;
+  try {
+    localStorage.setItem(DOCK_HIDDEN_KEY, hidden ? '1' : '0');
+  } catch (e) {
+    // the state then lasts as long as the page
+  }
+}
+
+// togglePanes hides the panes area, the editor taking its room, or shows
+// it again.
+function togglePanes() {
+  setPanesHidden(!panesHidden);
+  renderDock();
+  refreshEditor(); // CodeMirror measures its own width
+}
+
+// showPanesToggle points the toggle's arrow the way the area would go: to
+// the right edge while the area is shown, back out of it while hidden.
+function showPanesToggle() {
+  var button = document.getElementById('panes-toggle');
+  if (!button) {
+    return;
+  }
+  var label = panesHidden ? 'Show the panes area' : 'Hide the panes area';
+  button.textContent = panesHidden ? '◀' : '▶';
+  button.title = label;
+  button.setAttribute('aria-label', label);
+  button.setAttribute('aria-expanded', panesHidden ? 'false' : 'true');
+}
+
 document.addEventListener('click', function (evt) {
   var t = evt.target;
   if (!t.closest) {
+    return;
+  }
+  if (t.closest('#panes-toggle')) {
+    togglePanes();
     return;
   }
   if (t.closest('#pane-menu-button')) {
@@ -601,7 +652,7 @@ document.addEventListener('click', function (evt) {
   if (item) {
     if (item.classList.contains('pane-menu-reset')) {
       resetLayout();
-    } else if (paneOpen(item.dataset.pane)) {
+    } else if (paneOpen(item.dataset.pane) && !panesHidden) {
       closePane(item.dataset.pane);
     } else {
       openPane(item.dataset.pane);
