@@ -279,6 +279,10 @@ An HTML format builds a site with a layout like Quarto's:
 - a left sidebar with the current topic's page tree;
 - a right "On this page" table of contents with scroll-spy;
 - previous/next links at the foot of a page;
+- a full text search field in the navbar (`/` focuses it): a fuzzy search
+  with [Fuse.js](https://www.fusejs.io/) over the titles and text of all pages,
+  run in the browser from an index written at render time, showing each hit
+  with a highlighted snippet;
 - a responsive layout: the contents list is hidden at 75em and narrower, the
   sidebar becomes off-canvas at 50em and narrower;
 - all text sizes and the 42em text column are in `em`, so the page scales with
@@ -356,7 +360,7 @@ The old `_quarto*.yml` files are **not read anymore** by `folio` itself. Delete 
 - No slide decks (PPTX): `::: slide` blocks and `.notes` are dropped. A follow-up will bring them back.
 - Mermaid diagrams (` ```{mermaid} `) stay code blocks, with a warning.
 - No math typesetting.
-- The site has no search, and raw HTML links in a page are not rewritten.
+- Raw HTML links in a page are not rewritten.
 - The project's Lua filters do not run; use `show:` for audience gates.
 - Shortcodes other than `include`, `var` and `pagebreak` are not resolved.
 - The PDF does not reproduce the Word template, and the DOCX table of

@@ -38,6 +38,136 @@
     }
   }
 
+  // Search. Fuse.js and the index are loaded as scripts on first use, so a
+  // reader who never searches does not download them, and the site keeps
+  // working from file://, where a page may not fetch files.
+  var box = document.querySelector('.search');
+  if (box) search(box);
+
+  function search(box) {
+    var input = box.querySelector('input');
+    var list = box.querySelector('.search-results');
+    var base = box.getAttribute('data-base') || '';
+    var fuse = null, loading = false, sel = -1, timer = 0;
+    var radius = 70, max = 10;
+
+    function script(src, done) {
+      var s = document.createElement('script');
+      s.src = base + src;
+      s.onload = done;
+      document.head.appendChild(s);
+    }
+    function load() {
+      if (fuse || loading) return;
+      loading = true;
+      script('_site/fuse.min.js', function () {
+        script('_site/search.js', function () {
+          fuse = new window.Fuse(window.folioSearch || [], {
+            keys: [{ name: 't', weight: 3 }, { name: 'b', weight: 1 }],
+            ignoreLocation: true, ignoreFieldNorm: true, threshold: 0.2,
+            minMatchCharLength: 2, includeMatches: true, ignoreDiacritics: true
+          });
+          run();
+        });
+      });
+    }
+
+    // snippet is the body text around its longest match, with the matches
+    // in it marked.
+    function snippet(doc, matches) {
+      var m = null;
+      matches.forEach(function (x) { if (x.key === 'b') m = x; });
+      var text = doc.b, frag = document.createDocumentFragment();
+      if (!m) { frag.textContent = text.slice(0, 2 * radius) + (text.length > 2 * radius ? '…' : ''); return frag; }
+      var best = m.indices[0];
+      m.indices.forEach(function (r) { if (r[1] - r[0] > best[1] - best[0]) best = r; });
+      var from = Math.max(0, best[0] - radius), to = Math.min(text.length, best[1] + 1 + radius);
+      if (from > 0) frag.appendChild(document.createTextNode('…'));
+      var at = from;
+      m.indices.forEach(function (r) {
+        if (r[1] < at || r[0] >= to || r[1] - r[0] < 1) return;
+        var s = Math.max(r[0], at), e = Math.min(r[1] + 1, to);
+        frag.appendChild(document.createTextNode(text.slice(at, s)));
+        var mk = document.createElement('mark');
+        mk.textContent = text.slice(s, e);
+        frag.appendChild(mk);
+        at = e;
+      });
+      frag.appendChild(document.createTextNode(text.slice(at, to) + (to < text.length ? '…' : '')));
+      return frag;
+    }
+
+    function el(tag, cls, text) {
+      var e = document.createElement(tag);
+      e.className = cls;
+      if (text) e.textContent = text;
+      return e;
+    }
+    function show(open) {
+      list.hidden = !open;
+      input.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+    function run() {
+      var q = input.value.trim();
+      list.textContent = '';
+      sel = -1;
+      if (q.length < 2) return show(false);
+      if (!fuse) return load();
+      var hits = fuse.search(q, { limit: max });
+      if (!hits.length) {
+        list.appendChild(el('li', 'search-none', box.getAttribute('data-nohits')));
+      }
+      hits.forEach(function (h) {
+        var a = el('a', 'search-hit');
+        a.href = base + h.item.u;
+        a.appendChild(el('span', 'search-title', h.item.t));
+        if (h.item.s && h.item.s !== h.item.t) a.appendChild(el('span', 'search-section', h.item.s));
+        var p = el('span', 'search-snippet');
+        p.appendChild(snippet(h.item, h.matches || []));
+        a.appendChild(p);
+        var li = document.createElement('li');
+        li.appendChild(a);
+        list.appendChild(li);
+      });
+      show(true);
+    }
+    function move(d) {
+      var hits = list.querySelectorAll('.search-hit');
+      if (!hits.length) return;
+      if (sel >= 0) hits[sel].classList.remove('selected');
+      sel = (sel + d + hits.length) % hits.length;
+      hits[sel].classList.add('selected');
+      hits[sel].scrollIntoView({ block: 'nearest' });
+    }
+
+    input.addEventListener('focus', load);
+    input.addEventListener('input', function () {
+      clearTimeout(timer);
+      timer = setTimeout(run, 120);
+    });
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); move(1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); }
+      else if (e.key === 'Enter') {
+        var hit = list.querySelectorAll('.search-hit')[Math.max(sel, 0)];
+        if (hit) location.href = hit.href;
+      } else if (e.key === 'Escape') {
+        if (input.value) { e.stopPropagation(); input.value = ''; run(); } else input.blur();
+      }
+    });
+    box.addEventListener('focusout', function (e) {
+      if (!box.contains(e.relatedTarget)) show(false);
+    });
+    input.addEventListener('focusin', function () { if (list.childNodes.length) show(true); });
+    document.addEventListener('keydown', function (e) {
+      var t = e.target.tagName;
+      if (e.key === '/' && t !== 'INPUT' && t !== 'TEXTAREA' && !e.target.isContentEditable) {
+        e.preventDefault();
+        input.focus();
+      }
+    });
+  }
+
   // Scroll spy for the table of contents.
   var links = document.querySelectorAll('.toc a[href^="#"]');
   if (!links.length || !('IntersectionObserver' in window)) return;

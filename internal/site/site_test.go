@@ -1,6 +1,7 @@
 package site
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -245,4 +246,47 @@ func TestExampleProject(t *testing.T) {
 	}
 	has(t, "alpha", read(t, out, "book/erster/alpha/index.html"), `src="../../../assets/images/bord.png"`)
 	has(t, "book", read(t, out, "book/index.html"), `href="erster/alpha/index.html"`)
+}
+
+func TestSearch(t *testing.T) {
+	root, out := project(t)
+	write(t, root, "x/page.qmd", "---\ntitle: X Page\n---\n\nSome *emphasised* text &amp; `code` <b>raw</b>\n\n<script>alert(1)</script>\n\nNext para.\n")
+	if err := Build(opts(root, out)); err != nil {
+		t.Fatal(err)
+	}
+	has(t, "fuse", read(t, out, "_site/fuse.min.js"), "Fuse.js v7")
+	idx := read(t, out, "_site/search.js")
+	if !strings.HasPrefix(idx, "window.folioSearch=") {
+		t.Fatalf("index does not define window.folioSearch: %.60s", idx)
+	}
+	var docs []struct{ T, U, S, B string }
+	if err := json.Unmarshal([]byte(strings.TrimSuffix(strings.TrimPrefix(idx, "window.folioSearch="), ";\n")), &docs); err != nil {
+		t.Fatal(err)
+	}
+	by := map[string]struct{ T, U, S, B string }{}
+	for _, d := range docs {
+		by[d.U] = d
+	}
+	if _, ok := by["index.html"]; ok {
+		t.Error("generated landing page indexed")
+	}
+	x, ok := by["x/page.html"]
+	if !ok {
+		t.Fatalf("x/page.html not indexed: %v", docs)
+	}
+	if x.T != "X Page" || x.S != "Custom X" {
+		t.Errorf("title/section: %+v", x)
+	}
+	if x.B != "X Page Some emphasised text & code raw Next para." {
+		t.Errorf("body text: %q", x.B)
+	}
+	if a := by["dispatcher/a/index.html"]; strings.Contains(a.B, "POLICE") || !strings.Contains(a.B, "First") {
+		t.Errorf("filtered body: %q", a.B)
+	}
+	hasNot(t, "index", idx, "<script")
+
+	// every page has the field, with the base to resolve the index's URLs
+	sub := read(t, out, "dispatcher/a/index.html")
+	has(t, "sub", sub, `class="search" data-base="../../"`, `type="search"`, `aria-label="Suche"`)
+	has(t, "home", read(t, out, "index.html"), `class="search" data-base=""`)
 }

@@ -5,14 +5,14 @@ import (
 	"path/filepath"
 )
 
-// writeStatic writes the stylesheet and script to OutDir/_site, and copies
-// the extra stylesheets.
+// writeStatic writes the stylesheet, the scripts and the search index to
+// OutDir/_site, and copies the extra stylesheets.
 func (b *builder) writeStatic() error {
 	dir := filepath.Join(b.outAbs, "_site")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	for _, name := range []string{"style.css", "site.js"} {
+	for _, name := range []string{"style.css", "site.js", "fuse.min.js"} {
 		data, err := assetFS.ReadFile("assets/" + name)
 		if err != nil {
 			return err
@@ -20,6 +20,9 @@ func (b *builder) writeStatic() error {
 		if err := os.WriteFile(filepath.Join(dir, name), data, 0o644); err != nil {
 			return err
 		}
+	}
+	if err := b.writeSearch(dir); err != nil {
+		return err
 	}
 	for i, src := range b.o.CSS {
 		data, err := os.ReadFile(src)

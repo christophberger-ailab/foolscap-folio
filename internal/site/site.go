@@ -82,6 +82,7 @@ type builder struct {
 	css     []string // OutDir-relative paths of the extra stylesheets
 	outAbs  string
 	rootAbs string
+	search  []searchDoc
 }
 
 func (b *builder) logf(format string, args ...any) {
@@ -265,6 +266,11 @@ func (b *builder) renderPage(p *pageInfo) error {
 			return fmt.Errorf("site: %s: %w", p.node.Page.Rel, err)
 		}
 		content = template.HTML(s)
+		sd := searchDoc{Title: p.title, URL: p.out, Body: htmlText(s)}
+		if p.topic != nil {
+			sd.Section = p.topic.title
+		}
+		b.search = append(b.search, sd)
 	}
 	data := b.pageData(p, content, toc)
 	var buf bytes.Buffer

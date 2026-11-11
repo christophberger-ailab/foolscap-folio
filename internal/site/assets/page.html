@@ -24,6 +24,10 @@
     <nav id="topics" class="topics" aria-label="{{.L.Topics}}"><ul>
       {{range .Nav}}<li><a href="{{.URL}}"{{if .Active}} class="active" aria-current="true"{{end}}>{{.Title}}</a></li>
       {{end}}</ul></nav>{{end}}
+    <div class="search" data-base="{{.Base}}" data-nohits="{{.L.NoHits}}" role="search">
+      <input type="search" placeholder="{{.L.Search}}" aria-label="{{.L.Search}}" autocomplete="off" spellcheck="false" aria-controls="search-results" aria-expanded="false">
+      <ul id="search-results" class="search-results" hidden></ul>
+    </div>
   </div>
 </header>
 <div class="layout{{if not .Sidebar}} no-sidebar{{end}}{{if not .TOC}} no-toc{{end}}">
