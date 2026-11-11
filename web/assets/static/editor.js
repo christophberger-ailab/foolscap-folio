@@ -79,6 +79,8 @@ function initEditor() {
   clearCopyeditMarks(); // the marks belonged to the pane just replaced
   cm.on('inputRead', maybeOpenPathCompletion);
   cm.on('scroll', followEditor);
+  cm.on('keydown', letVimCopy);
+  cm.on('copy', leaveVisualAfterCopy);
   mountCommentRail();
 
   // The textarea is what /save posts and what the preview reads, so it has
@@ -1029,6 +1031,38 @@ function applyVim() {
   if (button) {
     button.setAttribute('aria-pressed', vimOn ? 'true' : 'false');
   }
+}
+
+// The Vim keymap binds Ctrl-C to Esc, as Vim does, and so swallows the
+// keystroke that copies everywhere else. With text selected, letVimCopy
+// tells CodeMirror to leave the key alone: the browser then copies from
+// CodeMirror's hidden input, which holds the selection, and
+// leaveVisualAfterCopy drops out of Visual mode afterwards, as `y` would.
+// Without a selection Ctrl-C stays Vim's Esc. On a Mac copying is Cmd-C,
+// which the keymap never binds.
+var vimCopyPending = false;
+
+function letVimCopy(instance, e) {
+  if (!vimOn || !e.ctrlKey || e.altKey || e.metaKey || e.shiftKey ||
+      e.key.toLowerCase() !== 'c' || !instance.somethingSelected()) {
+    return;
+  }
+  e.codemirrorIgnore = true;
+  vimCopyPending = true;
+}
+
+function leaveVisualAfterCopy(instance) {
+  if (!vimCopyPending) {
+    return;
+  }
+  vimCopyPending = false;
+  // After the copy has read the selection, not before.
+  setTimeout(function () {
+    var vim = instance.state.vim;
+    if (vim && vim.visualMode) {
+      CodeMirror.Vim.handleKey(instance, '<Esc>', 'mapping');
+    }
+  }, 0);
 }
 
 // toggleVim flips vim mode and remembers the choice across sessions.
