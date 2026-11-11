@@ -81,9 +81,9 @@ func newServer(configFile string) (*server, error) {
 			}{parent, pages}
 		},
 		// renamable says whether the editor's heading offers to rename
-		// the page: the project's own index.qmd has no name to change.
+		// the page: the project's own index.qmd or index.md has no name to change.
 		"renamable": func(p string) bool {
-			return p != "index.qmd"
+			return p != "index.qmd" && p != "index.md"
 		},
 	}
 	tmpl, err := template.New("").Funcs(funcs).ParseFS(assets, "assets/templates/*.tmpl")
@@ -426,7 +426,7 @@ func (s *server) render(w http.ResponseWriter, name string, data any) {
 }
 
 // fingerprint hashes everything the tree pane is rendered from: the paths,
-// sizes, and mtimes of the project's .qmd files and its folio.yml.
+// sizes, and mtimes of the project's .qmd and .md files and its folio.yml.
 // Equal fingerprints mean no refresh is needed.
 func fingerprint(root string) string {
 	tree, _ := fingerprints(root)
@@ -452,10 +452,10 @@ func fingerprints(root string) (tree, media string) {
 			}
 			return nil
 		}
-		qmd := strings.HasSuffix(name, ".qmd") && !strings.HasPrefix(name, "_")
+		page := config.IsContentFile(name) && !strings.HasPrefix(name, "_")
 		cfg := filepath.Dir(p) == root && config.IsFileName(name)
 		img := mediaExts[strings.ToLower(filepath.Ext(name))]
-		if !qmd && !cfg && !img {
+		if !page && !cfg && !img {
 			return nil
 		}
 		fi, err := d.Info()

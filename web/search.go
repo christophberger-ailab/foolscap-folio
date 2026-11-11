@@ -11,6 +11,8 @@ import (
 	"sync"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/christophberger-ailab/foolscap-folio/internal/config"
 )
 
 // searchIndex is the word index the search field is answered from. Reading
@@ -139,7 +141,7 @@ func (x *searchIndex) search(root, q string, cased bool) ([]searchHit, bool) {
 }
 
 // indexPages counts the words of every page of the project. It covers the
-// files the page tree covers -- .qmd files outside the "_" and "." folders,
+// files the page tree covers -- .qmd and .md files outside the "_" and "." folders,
 // and not themselves prefixed with "_" -- so that every hit names a page
 // the user can open from the tree. Unreadable files drop out of the index
 // the way they drop out of the fingerprint.
@@ -159,7 +161,7 @@ func indexPages(root string) wordIndex {
 			}
 			return nil
 		}
-		if !strings.HasSuffix(name, ".qmd") || strings.HasPrefix(name, "_") {
+		if !config.IsContentFile(name) || strings.HasPrefix(name, "_") {
 			return nil
 		}
 		src, err := os.ReadFile(p)

@@ -7,13 +7,15 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/christophberger-ailab/foolscap-folio/internal/config"
 )
 
 // audienceSuffix matches the agency markers that Quarto projects use on
 // folder and file names, e.g. `betriebszustaende_FW`, `sonderlagen_POL`.
 var audienceSuffix = regexp.MustCompile(`(?i)_(fw|pol)$`)
 
-// Page is a single source .qmd file: its front matter and its body with the
+// Page is a single source .qmd or .md file: its front matter and its body with the
 // front matter removed.
 type Page struct {
 	// File is the absolute path of the source file.
@@ -105,10 +107,14 @@ func LoadTree(dir, projectRoot string) (*Node, error) {
 	if !info.IsDir() {
 		return nil, fmt.Errorf("%s is not a directory", dir)
 	}
-	return prune(loadDir(dir, projectRoot, 0))
+	root, err := prune(loadDir(dir, projectRoot, 0))
+	if err == nil && root == nil {
+		err = fmt.Errorf("%s holds no .qmd or .md pages", dir)
+	}
+	return root, err
 }
 
-// prune drops directory nodes whose subtree holds no .qmd at all. Book
+// prune drops directory nodes whose subtree holds no .qmd or .md page at all. Book
 // folders commonly contain media directories such as `images/`, which carry
 // no content and must not become empty chapters.
 func prune(node *Node, err error) (*Node, error) {
@@ -185,7 +191,7 @@ func loadDir(dir, projectRoot string, depth int) (*Node, error) {
 			continue
 		}
 
-		if !strings.EqualFold(filepath.Ext(name), ".qmd") {
+		if !config.IsContentFile(name) {
 			continue
 		}
 
@@ -250,7 +256,7 @@ func skipEntry(name string) bool {
 // BookFolders lists the directories directly below dir that hold book
 // content, in name order. It applies the same rules as LoadTree: hidden
 // entries and entries starting with "_" are invisible to Quarto, and a
-// directory without a .qmd anywhere below it is media (`assets/`,
+// directory without a .qmd or .md page anywhere below it is media (`assets/`,
 // `images/`), not a book. A directory carrying its own Quarto project
 // configuration is a project of its own and is left alone too.
 func BookFolders(dir string) ([]string, error) {
@@ -266,7 +272,7 @@ func BookFolders(dir string) ([]string, error) {
 			continue
 		}
 		sub := filepath.Join(dir, name)
-		if HasProjectConfig(sub) || !containsQMD(sub) {
+		if HasProjectConfig(sub) || !containsContent(sub) {
 			continue
 		}
 		folders = append(folders, sub)
@@ -274,9 +280,9 @@ func BookFolders(dir string) ([]string, error) {
 	return folders, nil
 }
 
-// containsQMD reports whether dir holds a .qmd file anywhere below it,
+// containsContent reports whether dir holds a .qmd or .md file anywhere below it,
 // ignoring the entries Quarto itself ignores.
-func containsQMD(dir string) bool {
+func containsContent(dir string) bool {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return false
@@ -287,12 +293,12 @@ func containsQMD(dir string) bool {
 			continue
 		}
 		if e.IsDir() {
-			if containsQMD(filepath.Join(dir, name)) {
+			if containsContent(filepath.Join(dir, name)) {
 				return true
 			}
 			continue
 		}
-		if strings.EqualFold(filepath.Ext(name), ".qmd") {
+		if config.IsContentFile(name) {
 			return true
 		}
 	}

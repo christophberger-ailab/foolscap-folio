@@ -9,12 +9,14 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/christophberger-ailab/foolscap-folio/internal/config"
 )
 
 // Page is a node in the project tree. A page without an Order field is
 // "unordered" and sorts below its ordered siblings. Dir is the directory
 // that holds (or would hold) the page's children; it is empty when the
-// page cannot have children (the root index.qmd).
+// page cannot have children (the root index page).
 type Page struct {
 	Path      string // slash-separated path relative to the project root
 	Dir       string
@@ -143,11 +145,11 @@ type Tree struct {
 	Pages []*Page
 }
 
-// Load scans root for .qmd files and builds the page tree.
+// Load scans root for .qmd and .md files and builds the page tree.
 //
-// index.qmd inside a directory represents that directory's section and is
-// ordered among the pages one level up, as is a name.qmd file next to a
-// name/ directory. Directories starting with "_" or "." are ignored.
+// index.qmd or index.md inside a directory represents that directory's
+// section and is ordered among the pages one level up, as is a name.qmd or
+// name.md file next to a name/ directory. Directories starting with "_" or "." are ignored.
 func Load(root string) (*Tree, error) {
 	var files []string
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
@@ -161,7 +163,7 @@ func Load(root string) (*Tree, error) {
 			}
 			return nil
 		}
-		if strings.HasSuffix(name, ".qmd") && !strings.HasPrefix(name, "_") {
+		if config.IsContentFile(name) && !strings.HasPrefix(name, "_") {
 			rel, err := filepath.Rel(root, p)
 			if err != nil {
 				return err
@@ -174,7 +176,7 @@ func Load(root string) (*Tree, error) {
 		return nil, err
 	}
 
-	// Directories that (transitively) contain .qmd files.
+	// Directories that (transitively) contain .qmd or .md files.
 	hasFiles := map[string]bool{}
 	for _, f := range files {
 		for d := path.Dir(f); d != "."; d = path.Dir(d) {
@@ -208,16 +210,16 @@ func Load(root string) (*Tree, error) {
 		pages[f] = p
 	}
 
-	// A section page owns a directory: name/index.qmd wins over name.qmd.
+	// A section page owns a directory: name/index.qmd wins over name.qmd (or .md).
 	sections := map[string]*Page{}
 	for f, p := range pages {
-		if path.Base(f) == "index.qmd" && path.Dir(f) != "." {
+		if isIndexPage(f) && path.Dir(f) != "." {
 			sections[path.Dir(f)] = p
 		}
 	}
 	for f, p := range pages {
-		d := strings.TrimSuffix(f, ".qmd")
-		if path.Base(f) != "index.qmd" && hasFiles[d] && sections[d] == nil {
+		d := strings.TrimSuffix(f, path.Ext(f))
+		if !isIndexPage(f) && hasFiles[d] && sections[d] == nil {
 			sections[d] = p
 		}
 	}
@@ -226,7 +228,7 @@ func Load(root string) (*Tree, error) {
 	groups := map[string][]*Page{}
 	for f, p := range pages {
 		dir := path.Dir(f)
-		if base := path.Base(f); base == "index.qmd" {
+		if isIndexPage(f) {
 			if dir == "." {
 				p.Dir = "" // root index.qmd takes no children
 			} else {
@@ -234,7 +236,7 @@ func Load(root string) (*Tree, error) {
 				dir = path.Dir(dir) // section sorts among its parent's pages
 			}
 		} else {
-			p.Dir = strings.TrimSuffix(f, ".qmd")
+			p.Dir = strings.TrimSuffix(f, path.Ext(f))
 			if sections[p.Dir] == p {
 				dir = path.Dir(p.Dir)
 			}
@@ -278,13 +280,13 @@ func hideEmptyDirs(pages []*Page) {
 // ownMarker returns the emoji marker implied by a page's own name suffix, or
 // "" if the name has neither the _FW nor the _POL suffix. Section and
 // directory nodes match on their directory name; plain files on the base
-// name before the .qmd extension.
+// name before the extension.
 func ownMarker(p *Page) string {
 	var name string
-	if p.Path == "" || path.Base(p.Path) == "index.qmd" {
+	if p.Path == "" || isIndexPage(p.Path) {
 		name = path.Base(p.Dir)
 	} else {
-		name = strings.TrimSuffix(path.Base(p.Path), ".qmd")
+		name = stem(path.Base(p.Path))
 	}
 	switch {
 	case strings.HasSuffix(name, "_FW"):
@@ -309,12 +311,12 @@ func markPages(pages []*Page, inherited string) {
 }
 
 func fallbackTitle(f string) string {
-	if path.Base(f) == "index.qmd" {
+	if isIndexPage(f) {
 		if d := path.Dir(f); d != "." {
 			return path.Base(d)
 		}
 	}
-	return strings.TrimSuffix(path.Base(f), ".qmd")
+	return stem(path.Base(f))
 }
 
 // sortPages orders siblings: pages with an order field first (by order,
