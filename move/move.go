@@ -21,7 +21,7 @@ var projectPath *string
 // Register adds the move subcommand to the given parent command.
 func Register(parent string, projectFlag *string) {
 	projectPath = projectFlag
-	start.Add(&start.Command{
+	cli.Add(&start.Command{
 		Name:   "move",
 		Parent: parent,
 		Short:  "Move a chapter to a new order position within its folder",

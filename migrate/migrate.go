@@ -42,7 +42,7 @@ func Register(projectFlag *string) {
 		dryRunLookup = func() bool { return *d }
 	}
 
-	start.Add(&start.Command{
+	cli.Add(&start.Command{
 		Name:  "migrate",
 		Short: "Write folio.yml from the project's Quarto configuration",
 		Long: "Read _quarto.yml and the _quarto-topic-*.yml, _quarto-format-*.yml " +

@@ -29,11 +29,11 @@ var projectPath *string
 // Register wires the `flatten` command into start.
 func Register(projectFlag *string) {
 	projectPath = projectFlag
-	start.Add(&start.Command{
+	cli.Add(&start.Command{
 		Name:  "flatten",
 		Short: "Write the flattened Markdown of one topic without rendering",
 		Long: "Flatten a topic's content folder into _build/<topic>.md, then " +
-			"exit. Usage: qm flatten <topic>. The topic is one of folio.yml's " +
+			"exit. Usage: folio flatten <topic>. The topic is one of folio.yml's " +
 			"topics (or, without folio.yml, a top-level content folder).",
 		Flags: []string{"project"},
 		Cmd:   cli.Guard(cmd),

@@ -17,6 +17,15 @@ components:
       2-3: Wire up the subcommands in the main package. 
       2-4: The object parameter is not a subcommand. Don't use the object name as package name. Each object's subcommand gets its specific package.
 
+  HELP:
+    description: How folio describes itself
+    requirements:
+      1: '`folio`, `folio --help`, `folio -h` and `folio help` print the same overview: every command and subcommand with its summary, and the global flags'
+      1-1: 'A global flag is one every command accepts, such as `--project` and `--help`; a flag that only some commands take is not listed in the overview'
+      2: '`folio help <command> [<subcommand>]` and `folio <command> [<subcommand>] --help` print the same help: the command''s description, its own flags, and the global flags'
+      2-1: 'The help for an object such as `chapters` lists its subcommands'
+      3: 'Help asked for goes to stdout and exits 0. An unknown command, an object without a subcommand, or a flag the command does not take prints the error and the matching help to stderr and exits non-zero'
+
 constraints:
 
   SUBCOMMANDS:

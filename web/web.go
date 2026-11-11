@@ -69,12 +69,12 @@ func Register(projectFlag *string) {
 	addr = flag.String("addr", "",
 		"Address the web UI listens on, as host:port; without it, the settings' web.baseurl and the first free port from web.port up (localhost, 8199)")
 
-	start.Add(&start.Command{
+	cli.Add(&start.Command{
 		Name:  "web",
 		Short: "Serve the web UI for sorting, editing, and rendering pages",
 		Long: "Serve a local web app that shows the project's page tree, " +
 			"reorders pages by drag and drop, edits their content, and " +
-			"renders the project's book folders. Usage: qm web [<path>]. " +
+			"renders the project's book folders. Usage: folio web [<path>]. " +
 			"Without a path, the tree at --project is opened.",
 		Flags: []string{"project", "addr"},
 		Cmd:   cli.Guard(cmd),

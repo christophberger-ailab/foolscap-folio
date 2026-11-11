@@ -26,7 +26,7 @@ var projectPath *string
 // Register adds the remove subcommand to the given parent command.
 func Register(parent string, projectFlag *string) {
 	projectPath = projectFlag
-	start.Add(&start.Command{
+	cli.Add(&start.Command{
 		Name:   "remove",
 		Parent: parent,
 		Short:  "Remove a chapter from a folder after confirmation",

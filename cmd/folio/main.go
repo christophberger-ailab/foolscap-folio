@@ -34,25 +34,22 @@ func main() {
 	// Global flag(s) — shared by all subcommands. Per spec
 	// constraint SUBCOMMANDS.2-2 these have matching environment
 	// variables (QM_PROJECT) and config file entries (project=).
-	projectFlag := flag.StringP("project", "p", ".",
-		"Path to the document tree (default: current directory)")
+	projectFlag := flag.StringP("project", "p", ".", "Path to the document tree")
+	helpFlag := flag.BoolP("help", "h", false, "Show help for folio or for a command")
 
-	start.SetDescription("folio manages and renders a Markdown documentation tree. " +
-		"Usage: folio <object> <subcommand> [flags] [args].")
+	cli.Description = "folio manages and renders a Markdown documentation tree."
 	start.SetVersion(version)
 	start.SetInitFunc(func() error { return nil })
 
 	// Register the dummy "chapters" object command. start has no notion
 	// of an <object> parameter, so we model it as a parent command that
-	// only dispatches to its subcommands (SUBCOMMANDS.3). Leaving Cmd
-	// nil lets start auto-generate the "missing subcommand" usage
-	// (and avoids a panic in start v0.6.0 when Cmd is set but no
-	// subcommand was supplied).
-	if err := start.Add(&start.Command{
+	// only dispatches to its subcommands (SUBCOMMANDS.3). Cmd stays
+	// nil: start v0.6.0 panics when Cmd is set but no subcommand was
+	// supplied, and cli.Help answers a missing subcommand anyway.
+	if err := cli.Add(&start.Command{
 		Name:  "chapters",
-		Short: "Manage book chapters (subcommands: insert, move, remove)",
-		Long: "Manage the chapters of a content folder. Use one of the subcommands " +
-			"(insert, move, remove). With no subcommand, lists them.",
+		Short: "Manage book chapters",
+		Long:  "Manage the chapters of a content folder with one of the subcommands.",
 	}); err != nil {
 		fatal(err)
 	}
@@ -79,7 +76,17 @@ func main() {
 	// The `web` object serves the sorter UI; no sub-commands either.
 	web.Register(projectFlag)
 
-	start.Up()
+	// start's own help prints different texts for `folio` and `folio
+	// --help` and lists every command's flags as global; cli.Help answers
+	// all requests for help instead. Parsing twice is harmless: start
+	// reads the environment and config file only once.
+	flag.Usage = cli.Usage
+	if err := start.Parse(); err != nil {
+		fatal(err)
+	}
+	if !cli.Help(flag.Args(), *helpFlag) {
+		start.Up()
+	}
 
 	// start.Up() prints a command's error and returns; it does not set an
 	// exit status. Scripts and CI read it to tell a failed render from a

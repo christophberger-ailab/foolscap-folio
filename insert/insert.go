@@ -28,7 +28,7 @@ var projectPath *string
 // Register adds the insert subcommand to the given parent command.
 func Register(parent string, projectFlag *string) {
 	projectPath = projectFlag
-	start.Add(&start.Command{
+	cli.Add(&start.Command{
 		Name:   "insert",
 		Parent: parent,
 		Short:  "Insert a new chapter into a quarto book folder",

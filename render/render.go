@@ -49,12 +49,12 @@ func Register(projectFlag *string) {
 	dryRunFlag = flag.Bool("dry-run", false,
 		"Print the render pipeline without running it")
 
-	start.Add(&start.Command{
+	cli.Add(&start.Command{
 		Name:  "render",
 		Short: "Render the project's topic/format/audience matrix",
 		Long: "Render every topic × format × audience combination the project " +
 			"declares in folio.yml, or the subset selected by the flags. Usage: " +
-			"qm render [<topic>...]. A website covers all selected topics at " +
+			"folio render [<topic>...]. A website covers all selected topics at " +
 			"once; a document (DOCX, PDF) is written per topic and audience. " +
 			"Which formats and audiences a topic takes part in is declared " +
 			"under the topic in folio.yml, as `formats:` and `audiences:`.",
