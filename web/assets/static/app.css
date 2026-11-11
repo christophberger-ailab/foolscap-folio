@@ -105,9 +105,23 @@ body {
   }
 }
 
-.topbar-config,
+.topbar-panes,
 .topbar-nav {
   margin-left: auto;
+}
+
+/* The panes area's toggle and the Panes menu, above the area, just left
+   of Config. */
+.topbar-panes {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.panes-toggle {
+  min-width: 2rem;
+  justify-content: center;
+  font-size: 0.75rem;
 }
 
 .topbar-nav {
@@ -348,7 +362,7 @@ button:disabled:hover {
 .pane-menu-list {
   position: absolute;
   top: 100%;
-  left: 0;
+  right: 0; /* the menu sits near the bar's right end */
   z-index: 20;
   margin-top: 0.3rem;
   min-width: 11rem;

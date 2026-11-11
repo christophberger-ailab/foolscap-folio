@@ -60,15 +60,21 @@
               title="Match case" aria-label="Match case">Aa</button>
       <span id="search-results" class="search-results"></span>
     </div>
-    {{/* Every pane beside the editor is listed here, ticked while it is
-         open: a pane closed by its tab's ✕ is brought back from here.
-         dock.js fills the list. */}}
-    <div class="pane-menu" id="pane-menu-wrap">
-      <button type="button" id="pane-menu-button" aria-haspopup="menu" aria-expanded="false"
-              title="Show or hide the panes beside the editor">Panes ▾</button>
-      <div class="pane-menu-list" id="pane-menu" role="menu" hidden></div>
-    </div>
     <div class="external-editor" id="editor-panel">{{template "external-editor" .}}</div>
+    {{/* The controls of the panes area sit at the right end, above it: the
+         toggle hides and shows the whole area, its arrow pointing the way
+         the area goes; the Panes menu lists every pane, ticked while it is
+         open, and brings back one closed by its tab's ✕. dock.js keeps the
+         toggle's state and fills the list. */}}
+    <div class="topbar-panes">
+      <button type="button" class="panes-toggle" id="panes-toggle" aria-controls="dock" aria-expanded="true"
+              title="Hide the panes area" aria-label="Hide the panes area">▶</button>
+      <div class="pane-menu" id="pane-menu-wrap">
+        <button type="button" id="pane-menu-button" aria-haspopup="menu" aria-expanded="false"
+                title="Show or hide the panes beside the editor">Panes ▾</button>
+        <div class="pane-menu-list" id="pane-menu" role="menu" hidden></div>
+      </div>
+    </div>
     <a class="button topbar-config" href="/config">Config</a>
   </header>
   <main class="panes" id="main">
