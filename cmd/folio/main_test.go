@@ -38,7 +38,7 @@ func TestHelpIsTheSameWithAndWithoutFlag(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("folio exits %d", code)
 	}
-	for _, want := range []string{"chapters insert", "render", "web", "Available global flags:", "--project"} {
+	for _, want := range []string{"chapters insert", "init", "render", "web", "Available global flags:", "--project"} {
 		if !strings.Contains(plain, want) {
 			t.Errorf("folio's help lacks %q:\n%s", want, plain)
 		}
@@ -70,5 +70,24 @@ func TestWrongCommandLinesFail(t *testing.T) {
 		if _, code := folio(t, args); code != 1 {
 			t.Errorf("folio %s exits %d, want 1", args, code)
 		}
+	}
+}
+
+func TestInitWritesConfig(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.MkdirAll(dir+"/guide", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(dir+"/guide/index.md", []byte("# Guide\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if out, code := folio(t, "-p "+dir+" init"); code != 0 || !strings.Contains(out, "wrote") {
+		t.Fatalf("folio init exits %d:\n%s", code, out)
+	}
+	if _, code := folio(t, "-p "+dir+" init"); code != 1 {
+		t.Errorf("second folio init exits %d, want 1", code)
+	}
+	if _, code := folio(t, "-p "+dir+" init --force"); code != 0 {
+		t.Errorf("folio init --force exits %d, want 0", code)
 	}
 }
