@@ -1412,3 +1412,24 @@ func TestTodoHighlightedInEditorAndPreview(t *testing.T) {
 		}
 	}
 }
+
+// The page names the Foolscap Folio logo as its icon, in every form a
+// browser looks for, and the server hands each one out.
+func TestPageLinksFavicon(t *testing.T) {
+	srv, _ := testServer(t)
+	body := get(t, srv, "/").Body.String()
+	for _, link := range []string{
+		`<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">`,
+		`<link rel="icon" href="/static/favicon.ico" sizes="any">`,
+		`<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">`,
+	} {
+		if !strings.Contains(body, link) {
+			t.Errorf("page lacks %s", link)
+		}
+	}
+	for _, path := range []string{"/static/favicon.svg", "/static/favicon.ico", "/static/apple-touch-icon.png"} {
+		if rec := get(t, srv, path); rec.Code != http.StatusOK || rec.Body.Len() == 0 {
+			t.Errorf("GET %s: status %d, %d bytes", path, rec.Code, rec.Body.Len())
+		}
+	}
+}

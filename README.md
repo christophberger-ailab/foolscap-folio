@@ -1,7 +1,7 @@
 # Foolscap Folio: Build and Manage a Markdown Documentation Tree
 
 <p align="center">
-<img src="./docs/images/foolscapfolio.png">
+<img src="./docs/images/foolscapfolio.png" alt="Foolscap Folio logo">
 </p>
 
 Foolscap Folio turns a tree of pages in extended Markdown (`.qmd` or `.md` into a website, Word documents and PDFs. 
