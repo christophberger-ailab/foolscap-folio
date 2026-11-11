@@ -66,7 +66,7 @@ var (
 func Register(projectFlag *string) {
 	projectPath = projectFlag
 	addr = flag.String("addr", "",
-		"Address the web UI listens on, as host:port; without it, the project's web.baseurl and the first free port from web.port up (localhost, 8199)")
+		"Address to listen on, as host:port; without it, the baseurl and the first free port from port up in the project's folio.yml, under web: for folio web (localhost, 8199) and preview: for folio preview (localhost, 8198)")
 
 	start.Add(&start.Command{
 		Name:  "web",
