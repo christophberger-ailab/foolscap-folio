@@ -4,7 +4,9 @@
 <img src="./docs/images/foolscapfolio.png" alt="Foolscap Folio logo">
 </p>
 
-Foolscap Folio turns a tree of pages in extended Markdown (`.qmd` or `.md` into a website, Word documents and PDFs. 
+Foolscap Folio turns a tree of pages in extended Markdown (`.md` or `.qmd`) into a website, Word documents and PDFs. 
+
+97.853% (more or less) of the text below is AI slop, so please go easy on it. 
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./docs/images/folio_web_dark.png">
@@ -20,7 +22,7 @@ Foolscap Folio turns a tree of pages in extended Markdown (`.qmd` or `.md` into 
 
 ## About the Name
 
-Foolscap folio is an old English paper size. A foolscap folio sheet of writing paper measures 8" x 13" (203mm x 230mm), while a sheet for printing purposes measures 8.5" x 13.5" (216mm x 343mm).
+Foolscap folio is an old British paper size. A foolscap folio sheet of writing paper measures 8" x 13" (203mm x 230mm), while a sheet for printing purposes measures 8.5" x 13.5" (216mm x 343mm).
 
 On the origin of the paper format, Wikipedia [writes](https://en.wikipedia.org/wiki/Foolscap_folio#Europe):
 
@@ -35,13 +37,13 @@ Pre-built binaries for Linux and Windows (amd64 and arm64) are attached to each 
 To build from source, with Go 1.27 or newer:
 
 ```sh
-go install github.com/christophberger-ailab/foolscap-folio@latest
+go install github.com/christophberger-ailab/foolscap-folio/cmd/folio@latest
 ```
 
-or, from a clone:
+or, from a repo clone:
 
 ```sh
-go build -o folio .
+go build ./cmd/folio
 ```
 
 The binary is self-contained: the web UI's templates and assets, the website's stylesheet and script, and the PDF's default fonts are embedded. No external tool is needed. Optionally, `trash` is preferred by the deleting commands over permanent removal.
