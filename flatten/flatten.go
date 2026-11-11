@@ -35,8 +35,7 @@ func Register(projectFlag *string) {
 		Long: "Flatten a topic's content folder into _build/<topic>.md, then " +
 			"exit. Usage: folio flatten <topic>. The topic is one of folio.yml's " +
 			"topics (or, without folio.yml, a top-level content folder).",
-		Flags: []string{"project"},
-		Cmd:   cli.Guard(cmd),
+		Cmd: cli.Guard(cmd),
 	})
 }
 

@@ -35,8 +35,7 @@ func Register(parent string, projectFlag *string) {
 		Long: "Insert a new chapter into a folder. The chapter must already exist as " +
 			"a file (or subfolder/index.qmd) in the folder, with an `insert-at: <n>` " +
 			"frontmatter entry. Existing chapters at order >= n are renumbered.",
-		Flags: []string{"project"},
-		Cmd:   cli.Guard(cmd),
+		Cmd: cli.Guard(cmd),
 	})
 }
 

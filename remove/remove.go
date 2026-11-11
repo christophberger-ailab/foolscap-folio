@@ -33,8 +33,7 @@ func Register(parent string, projectFlag *string) {
 		Long: "Remove the chapter at the given order number from a folder. " +
 			"Asks for confirmation, then tries to trash the file using the " +
 			"`trash` command, falling back to permanent deletion.",
-		Flags: []string{"project"},
-		Cmd:   cli.Guard(cmd),
+		Cmd: cli.Guard(cmd),
 	})
 }
 

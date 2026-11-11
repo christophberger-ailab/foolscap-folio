@@ -42,7 +42,7 @@ func Register(projectFlag *string) {
 		Long: "Run lint checks against every .qmd file that belongs to " +
 			"the given topic, or against the whole project when no topic is " +
 			"named or the topic is `all`. Usage: folio lint [<topic>].",
-		Flags: []string{"project", "lint-audience"},
+		Flags: []string{"lint-audience"},
 		Cmd:   cli.Guard(cmd),
 	})
 }

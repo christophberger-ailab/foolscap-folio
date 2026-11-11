@@ -29,10 +29,10 @@ func setup(t *testing.T) (out, errOut *bytes.Buffer) {
 
 	commands = append(commands,
 		&start.Command{Name: "web", Short: "Serve the web UI", Long: "Serve a local web app.",
-			Flags: []string{"project", "addr"}},
+			Flags: []string{"addr"}},
 		&start.Command{Name: "chapters", Short: "Manage book chapters", Long: "Manage the chapters."},
 		&start.Command{Name: "insert", Parent: "chapters", Short: "Insert a chapter",
-			Long: "Insert a new chapter.", Flags: []string{"project"}},
+			Long: "Insert a new chapter."},
 	)
 	return out, errOut
 }

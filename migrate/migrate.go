@@ -49,7 +49,7 @@ func Register(projectFlag *string) {
 			"and _quarto-audience-*.yml profiles and write the equivalent " +
 			"folio.yml. Use --dry-run to print it instead, --force to overwrite " +
 			"an existing folio.yml.",
-		Flags: []string{"project", "force", "dry-run"},
+		Flags: []string{"force", "dry-run"},
 		Cmd:   cli.Guard(cmd),
 	})
 }

@@ -28,8 +28,7 @@ func Register(parent string, projectFlag *string) {
 		Long: "Move a chapter from its current order number to a new order " +
 			"number within the same folder. Other chapters are renumbered to " +
 			"close any gap and to make room at the new position.",
-		Flags: []string{"project"},
-		Cmd:   cli.Guard(cmd),
+		Cmd: cli.Guard(cmd),
 	})
 }
 

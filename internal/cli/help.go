@@ -190,25 +190,12 @@ func list(w io.Writer, cs []*start.Command, name func(*start.Command) string) {
 	}
 }
 
-// globals returns the flags that every command accepts: those no command
-// claims and those every command claims (like --project). The others belong
-// to the commands that list them.
+// globals returns the flags no command claims in its Flags. start treats
+// these as global and accepts them with every command.
 func globals() []string {
-	var leaves []*start.Command
-	for _, c := range commands {
-		if !hasChildren(c) {
-			leaves = append(leaves, c)
-		}
-	}
 	var names []string
 	flags.VisitAll(func(f *flag.Flag) {
-		claims := 0
-		for _, c := range leaves {
-			if slices.Contains(c.Flags, f.Name) {
-				claims++
-			}
-		}
-		if claims == 0 || claims == len(leaves) {
+		if !slices.ContainsFunc(commands, func(c *start.Command) bool { return slices.Contains(c.Flags, f.Name) }) {
 			names = append(names, f.Name)
 		}
 	})

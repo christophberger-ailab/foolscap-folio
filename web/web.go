@@ -76,7 +76,7 @@ func Register(projectFlag *string) {
 			"reorders pages by drag and drop, edits their content, and " +
 			"renders the project's book folders. Usage: folio web [<path>]. " +
 			"Without a path, the tree at --project is opened.",
-		Flags: []string{"project", "addr"},
+		Flags: []string{"addr"},
 		Cmd:   cli.Guard(cmd),
 	})
 }
