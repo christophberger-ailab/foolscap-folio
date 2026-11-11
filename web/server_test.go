@@ -1429,3 +1429,22 @@ func TestPageLinksFavicon(t *testing.T) {
 		}
 	}
 }
+
+// Every page's top bar shows the Foolscap Folio logo to the left of the
+// app's name, the logo served from the binary's own assets.
+func TestTopbarShowsLogo(t *testing.T) {
+	const logo = `<h1 class="brand"><img class="brand-logo" src="/static/favicon.svg" alt="" width="32" height="32">Foolscap Folio</h1>`
+	srv, _ := testServer(t)
+	for _, path := range []string{"/", "/config"} {
+		if body := get(t, srv, path).Body.String(); !strings.Contains(body, logo) {
+			t.Errorf("GET %s: top bar lacks the logo before the name", path)
+		}
+	}
+	src, err := assets.ReadFile("assets/templates/app.html.tmpl")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(src), "<h1>Foolscap Folio</h1>") {
+		t.Error("a page's top bar names the app without the logo")
+	}
+}

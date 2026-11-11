@@ -39,7 +39,7 @@
 </head>
 <body data-user="{{.User}}">
   <header class="topbar">
-    <h1>Foolscap Folio</h1>
+    {{template "brand"}}
     <div id="open-panel">{{template "open-form" .}}</div>
     {{/* The field carries the request itself rather than sitting in a form:
          there is nothing to submit, the hits arrive while it is typed in,
@@ -270,7 +270,7 @@
 </head>
 <body>
   <header class="topbar">
-    <h1>Foolscap Folio</h1>
+    {{template "brand"}}
     <nav class="topbar-nav"><a class="button" href="/">App</a></nav>
   </header>
   <main class="config-main">
@@ -303,7 +303,7 @@
 </head>
 <body>
   <header class="topbar">
-    <h1>Foolscap Folio</h1>
+    {{template "brand"}}
     <nav class="topbar-nav">
       <a class="button" href="/config">Config</a>
       <a class="button" href="/">App</a>
@@ -690,7 +690,7 @@
 </head>
 <body>
   <header class="topbar">
-    <h1>Foolscap Folio</h1>
+    {{template "brand"}}
     <nav class="topbar-nav">
       <a class="button" href="/config">Config</a>
       <a class="button" href="/">App</a>
@@ -744,7 +744,7 @@
 </head>
 <body>
   <header class="topbar">
-    <h1>Foolscap Folio</h1>
+    {{template "brand"}}
     <nav class="topbar-nav">
       <a class="button" href="/config">Config</a>
       <a class="button" href="/">App</a>
@@ -780,7 +780,7 @@
 </head>
 <body>
   <header class="topbar">
-    <h1>Foolscap Folio</h1>
+    {{template "brand"}}
     <nav class="topbar-nav">
       <a class="button" href="/config">Config</a>
       <a class="button" href="/">App</a>
@@ -845,7 +845,7 @@
 </head>
 <body>
   <header class="topbar">
-    <h1>Foolscap Folio</h1>
+    {{template "brand"}}
     <nav class="topbar-nav">
       <a class="button" href="/config">Config</a>
       <a class="button" href="/">App</a>
@@ -903,3 +903,5 @@
   </main>
 </body>
 </html>{{end}}
+
+{{define "brand"}}<h1 class="brand"><img class="brand-logo" src="/static/favicon.svg" alt="" width="32" height="32">Foolscap Folio</h1>{{end}}

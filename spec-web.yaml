@@ -182,6 +182,7 @@ constraints:
       9-3: The dialog lists the ten most recently opened projects by folder name, full path as tooltip, no project twice, and one click opens one; the list is remembered across restarts in the settings file (see SETTINGS)
       9-4: A project opened from the command line counts as opened, so it is in the list of the next session
       9-5: Opening a project updates the title along with the panes, the render and Git panes among them, and the Editor button, all of which describe the project just opened
+      9-6: The top bar of every page starts with the Foolscap Folio logo, left of the app's name; the logo is served from the binary's own assets and stays legible on the light and the dark theme
       10: A Git pane in the dock beside the editor (see 14) shows the changes since the last commit; its status is read whenever the pane comes into view
       10-1: The changes are shown in two lists -- staged, which is what the next commit would carry, and not staged, which is what it would leave behind -- each entry with its porcelain status letters and the path; a file changed in both the index and the working tree appears in both lists
       10-2: Each entry can be staged or unstaged individually, and each list as a whole
