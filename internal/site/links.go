@@ -62,17 +62,8 @@ func (b *builder) rewrite(dest []byte, p *pageInfo, image bool) []byte {
 	if u, err := url.PathUnescape(d); err == nil {
 		d = u
 	}
-	var proj string
-	if strings.HasPrefix(d, "/") {
-		proj = path.Clean(d)
-	} else {
-		proj = path.Join("/", p.srcDir, d)
-	}
-	proj = strings.TrimPrefix(proj, "/")
-	if proj == "." {
-		proj = ""
-	}
-	if strings.HasPrefix(proj, "..") {
+	proj := b.projPath(p.srcDir, d)
+	if proj == ".." || strings.HasPrefix(proj, "../") {
 		b.logf("warning: %s: link %q leaves the project", p.out, string(dest))
 		return dest
 	}
@@ -93,7 +84,11 @@ func (b *builder) rewrite(dest []byte, p *pageInfo, image bool) []byte {
 			return []byte(relURL(p.out, t.out) + suffix)
 		}
 		if ext == ".qmd" || ext == ".md" || isDirLink {
-			b.logf("warning: %s: link target %q not found", p.out, string(dest))
+			if _, ok := b.safeSource(proj); ok {
+				b.logf("warning: %s: link target %q is not a page of the site", p.out, string(dest))
+			} else {
+				b.logf("warning: %s: link target %q not found", p.out, string(dest))
+			}
 			return dest
 		}
 	}
@@ -103,6 +98,27 @@ func (b *builder) rewrite(dest []byte, p *pageInfo, image bool) []byte {
 	}
 	b.logf("warning: %s: link target %q not found", p.out, string(dest))
 	return dest
+}
+
+// projPath resolves a link destination to a project-relative path: an
+// absolute one against the project root, a relative one against srcDir the
+// way the file system does, so a link that climbs out of the root and back
+// in through the root's own name lands inside the project. A path that
+// stays outside starts with "..".
+func (b *builder) projPath(srcDir, d string) string {
+	if strings.HasPrefix(d, "/") {
+		d = strings.TrimPrefix(path.Clean(d), "/")
+		srcDir = ""
+	}
+	abs := filepath.Join(b.root, filepath.FromSlash(srcDir), filepath.FromSlash(d))
+	rel, err := filepath.Rel(b.root, abs)
+	if err != nil {
+		return ".."
+	}
+	if rel = filepath.ToSlash(rel); rel == "." {
+		return ""
+	}
+	return rel
 }
 
 func relPathTo(fromDir, to string) string {
