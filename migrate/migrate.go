@@ -17,7 +17,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/christophberger-ailab/foolscap-folio/internal/cli"
 	"github.com/christophberger-ailab/foolscap-folio/internal/config"
 	"github.com/christophberger-ailab/foolscap-folio/internal/foliocore"
 	"github.com/christophberger/start"
@@ -49,8 +48,8 @@ func Register(projectFlag *string) {
 			"and _quarto-audience-*.yml profiles and write the equivalent " +
 			"folio.yml. Use --dry-run to print it instead, --force to overwrite " +
 			"an existing folio.yml.",
-		Flags: []string{"project", "force", "dry-run"},
-		Cmd:   cli.Guard(cmd),
+		Flags: []string{"force", "dry-run"},
+		Cmd:   cmd,
 	})
 }
 

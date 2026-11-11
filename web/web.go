@@ -24,7 +24,6 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/christophberger-ailab/foolscap-folio/internal/cli"
 	"github.com/christophberger/start"
 	flag "github.com/spf13/pflag"
 )
@@ -74,10 +73,10 @@ func Register(projectFlag *string) {
 		Short: "Serve the web UI for sorting, editing, and rendering pages",
 		Long: "Serve a local web app that shows the project's page tree, " +
 			"reorders pages by drag and drop, edits their content, and " +
-			"renders the project's book folders. Usage: qm web [<path>]. " +
+			"renders the project's book folders. Usage: folio web [<path>]. " +
 			"Without a path, the tree at --project is opened.",
-		Flags: []string{"project", "addr"},
-		Cmd:   cli.Guard(cmd),
+		Flags: []string{"addr"},
+		Cmd:   cmd,
 	})
 }
 
