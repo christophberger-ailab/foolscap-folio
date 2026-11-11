@@ -1,6 +1,6 @@
 // Package gitrepo is the thin layer between folio and the `git` command: the
-// working tree's status, the diff of one file in it, and the four
-// operations the web UI offers on it — stage, unstage, commit, push.
+// working tree's status, the diff of one file in it, and the operations the
+// web UI offers on it — stage, unstage, commit, push, sync.
 //
 // It shells out rather than linking a Git implementation in: the projects
 // folio manages are ordinary clones the user also works with from a terminal,
@@ -277,6 +277,70 @@ func Push(dir string) (string, error) {
 		return run(dir, "push", "--set-upstream", "origin", st.Branch)
 	}
 	return run(dir, "push")
+}
+
+// ErrNoUpstream and ErrDiverged are the two states Sync refuses to act in:
+// a branch with no remote branch to sync with, and one that has commits of
+// its own while lacking some of its upstream's.
+var (
+	ErrNoUpstream = errors.New("this branch tracks no remote branch yet; Push sets one up")
+	ErrDiverged   = errors.New("this branch and its upstream have diverged; merge or rebase them in a terminal, then sync again")
+)
+
+// SyncResult is what a sync did: how many commits it brought in and sent
+// out, and git's transcript of both.
+type SyncResult struct {
+	Pulled int
+	Pushed int
+	Output string
+}
+
+// Sync brings the branch level with its upstream: it fetches, fast-forwards
+// over what arrived, and pushes what the remote lacks.
+//
+// It only ever fast-forwards. A merge or a rebase can stop halfway with
+// conflicts, and a panel without a terminal is no place to leave a working
+// tree in that state; so a branch that has diverged from its upstream is
+// reported and left alone. Uncommitted edits are left alone too: git
+// carries them across a fast-forward that does not touch them, and refuses
+// one that would, which Sync then reports with git's own list of the files.
+func Sync(dir string) (SyncResult, error) {
+	dir = top(dir)
+	var res SyncResult
+	st, err := GetStatus(dir)
+	if err != nil {
+		return res, err
+	}
+	if st.Upstream == "" {
+		return res, ErrNoUpstream
+	}
+	step := func(args ...string) error {
+		out, err := run(dir, args...)
+		res.Output += out
+		return err
+	}
+	if err := step("fetch"); err != nil {
+		return res, err
+	}
+	if st, err = GetStatus(dir); err != nil {
+		return res, err
+	}
+	if st.Ahead > 0 && st.Behind > 0 {
+		return res, fmt.Errorf("%w (%d commits here, %d there)", ErrDiverged, st.Ahead, st.Behind)
+	}
+	if st.Behind > 0 {
+		if err := step("merge", "--ff-only", "@{upstream}"); err != nil {
+			return res, err
+		}
+		res.Pulled = st.Behind
+	}
+	if st.Ahead > 0 {
+		if err := step("push"); err != nil {
+			return res, err
+		}
+		res.Pushed = st.Ahead
+	}
+	return res, nil
 }
 
 // Diff is the change to one path, as `git diff` writes it.
