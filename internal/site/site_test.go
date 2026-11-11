@@ -287,6 +287,7 @@ func TestSearch(t *testing.T) {
 
 	// every page has the field, with the base to resolve the index's URLs
 	sub := read(t, out, "dispatcher/a/index.html")
-	has(t, "sub", sub, `class="search" data-base="../../"`, `type="search"`, `aria-label="Suche"`)
+	has(t, "sub", sub, `class="search" data-base="../../"`, `type="search"`, `aria-label="Suche"`,
+		`<button type="button" class="search-clear" aria-label="Suche löschen" hidden>`)
 	has(t, "home", read(t, out, "index.html"), `class="search" data-base=""`)
 }

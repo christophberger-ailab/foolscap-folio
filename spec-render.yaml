@@ -77,6 +77,8 @@ constraints:
       6-2: The search is Fuse.js, embedded in the binary and written to `_site/fuse.min.js`; it and the index are loaded only when the field gets the focus
       6-3: The search is fuzzy, ignores case and diacritics, and ranks a hit in a title above one in the text; a query shorter than two characters searches nothing
       6-4: The hits are listed below the field, at most ten, each with its page title, its topic, and a snippet of the text around the match with the matched words marked; a query without hits says so
-      6-5: Up and Down select a hit, Enter opens the selected one or the first, Escape clears the field; "/" anywhere on the page puts the focus into the field
+      6-5: Up and Down select a hit, and open the closed list again; Enter opens the selected one or the first; Escape closes the list and keeps the query; "/" anywhere on the page puts the focus into the field
       6-6: Without JavaScript the field is not shown, and it is not printed
+      6-7: The query is kept in the tab's session storage, so after opening a hit or closing the list the field still holds it and shows its hits again on focus, also on the other pages of the site; without session storage the search still works, it just forgets
+      6-8: A clear button in the field, shown only while it holds a query, empties the field, closes the list, forgets the stored query, and puts the focus back into the field
       7: 'A format''s `css` lists project-relative stylesheets; each is copied verbatim (an .scss file is not compiled) to `_site/css/` and linked on every page after the site''s own stylesheet. A missing one fails the render before anything is written'

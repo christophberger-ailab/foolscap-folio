@@ -308,7 +308,9 @@ An HTML format builds a site with a layout like Quarto's:
 - a full text search field in the navbar (`/` focuses it): a fuzzy search
   with [Fuse.js](https://www.fusejs.io/) over the titles and text of all pages,
   run in the browser from an index written at render time, showing each hit
-  with a highlighted snippet;
+  with a highlighted snippet; the query and its hits stay when a hit is opened
+  or the list is closed, for as long as the browser tab is open, and a button
+  in the field clears them;
 - a responsive layout: the contents list is hidden at 75em and narrower, the
   sidebar becomes off-canvas at 50em and narrower;
 - all text sizes and the 42em text column are in `em`, so the page scales with
