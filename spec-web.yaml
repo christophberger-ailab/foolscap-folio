@@ -204,6 +204,11 @@ constraints:
       10-19: The popup keeps one width and one place whether a diff is open or not -- it is as wide as a diff needs from the start -- so opening or closing a diff never moves the paths out from under the pointer
       10-20: A popup of the top bar that would reach past the window's right edge from below its button is moved left by as much, so it stays inside the window instead of pushing the page sideways
       10-21: A filter field above the lists narrows both of them to the files whose path contains the text typed, ignoring case; the text stays in force across the operations of the panel until it is cleared, and a list it leaves empty says so
+      10-22: A Sync button brings the branch level with its upstream -- it fetches, fast-forwards over the commits that arrived, and pushes the branch's own -- and says how many commits it pulled and pushed; Refresh reads the working tree only and does not contact the remote
+      10-22-1: Sync only ever fast-forwards; a branch that has commits of its own and lacks some of its upstream's has diverged, and is reported and left as it is, since a merge or rebase could stop halfway with conflicts the panel has no way to resolve
+      10-22-2: Uncommitted edits survive a sync -- git carries them across a fast-forward that does not touch them, and one that would overwrite them is refused and reported with git's own list of the files
+      10-22-3: A branch that tracks no remote branch is not offered Sync, and a sync asked for anyway says that Push sets one up
+      10-22-4: After a pull the panel says that Reload shows the open page as it arrived, since the editor keeps the text it loaded until then
       11: A copyediting tool sits beside the editor, in a pane of its own next to the Markdown preview
       11-1: The copyedit pane is a tab of the dock (see 14)
       11-2: The copyedit pane lists the editing tasks the user configured, by title alone; the prompt itself is the task's tooltip

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/christophberger-ailab/foolscap-folio/internal/gitrepo"
@@ -76,7 +77,8 @@ func (s *server) renderGit(w http.ResponseWriter, v gitView) {
 	s.render(w, "git-status", gitStatus(s.gitRoot(), v))
 }
 
-// gitStatusHandler is the panel opening, and the Refresh button.
+// gitStatusHandler is the panel opening, and the Refresh button. It reads
+// the working tree only; asking the remote is what Sync is for.
 func (s *server) gitStatusHandler(w http.ResponseWriter, r *http.Request) {
 	s.renderGit(w, gitView{})
 }
@@ -153,6 +155,44 @@ func (s *server) gitPushHandler(w http.ResponseWriter, r *http.Request) {
 		v.Message, v.Error = "", err.Error()
 	}
 	s.renderGit(w, v)
+}
+
+// gitSyncHandler brings the branch level with its remote: what the remote
+// has comes in, what it lacks goes out (see gitrepo.Sync for what it
+// refuses to do, and why).
+func (s *server) gitSyncHandler(w http.ResponseWriter, r *http.Request) {
+	root := s.gitRoot()
+	if root == "" {
+		s.renderGit(w, gitView{})
+		return
+	}
+	res, err := gitrepo.Sync(root)
+	v := gitView{Output: strings.TrimSpace(res.Output), Message: syncMessage(res)}
+	if err != nil {
+		v.Message, v.Error = "", err.Error()
+	}
+	s.renderGit(w, v)
+}
+
+// syncMessage says what a sync moved. A pull can change the page open in
+// the editor under it, and the editor does not notice until it saves; the
+// message says how to see the page as it arrived.
+func syncMessage(res gitrepo.SyncResult) string {
+	commits := func(n int) string {
+		if n == 1 {
+			return "1 commit"
+		}
+		return strconv.Itoa(n) + " commits"
+	}
+	switch {
+	case res.Pulled > 0 && res.Pushed > 0:
+		return "Pulled " + commits(res.Pulled) + " and pushed " + commits(res.Pushed) + ". ↻ Reload shows the open page as it arrived."
+	case res.Pulled > 0:
+		return "Pulled " + commits(res.Pulled) + ". ↻ Reload shows the open page as it arrived."
+	case res.Pushed > 0:
+		return "Pushed " + commits(res.Pushed) + "."
+	}
+	return "Already in sync."
 }
 
 // diffView is the diff pane inside the Git panel: the change to the one

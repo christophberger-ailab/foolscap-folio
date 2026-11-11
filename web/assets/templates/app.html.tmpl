@@ -187,7 +187,13 @@
 <div class="git-actions">
   <button type="button" hx-post="/git/push" hx-target="#git-body" hx-swap="innerHTML"
           title="Push the commits of this branch to its remote">Push</button>
-  <button type="button" hx-get="/git" hx-target="#git-body" hx-swap="innerHTML" title="Read the working tree again">↻ Refresh</button>
+  {{/* Sync fast-forwards over the remote's new commits and pushes the
+       local ones; Refresh only reads the working tree. hx-disabled-elt
+       keeps a second click from starting a second sync while git talks
+       to the remote. */ -}}
+  <button type="button" hx-post="/git/sync" hx-target="#git-body" hx-swap="innerHTML" hx-disabled-elt="this"
+          title="Pull the remote's new commits (fast-forward only) and push this branch's own; uncommitted edits are never overwritten"{{if not .Upstream}} disabled{{end}}>⇅ Sync</button>
+  <button type="button" hx-get="/git" hx-target="#git-body" hx-swap="innerHTML" title="Read the working tree again; does not contact the remote">↻ Refresh</button>
 </div>
 {{end}}
 {{if .Output}}<pre class="git-output">{{.Output}}</pre>{{end}}{{end}}

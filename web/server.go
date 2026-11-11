@@ -160,6 +160,7 @@ func newServer(configFile string) (*server, error) {
 	s.mux.HandleFunc("POST /git/unstage", s.gitUnstageHandler)
 	s.mux.HandleFunc("POST /git/commit", s.gitCommitHandler)
 	s.mux.HandleFunc("POST /git/push", s.gitPushHandler)
+	s.mux.HandleFunc("POST /git/sync", s.gitSyncHandler)
 	return s, nil
 }
 

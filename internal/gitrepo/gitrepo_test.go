@@ -1,6 +1,7 @@
 package gitrepo
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -380,5 +381,152 @@ func TestRoot(t *testing.T) {
 	}
 	if _, err := Root(t.TempDir()); err == nil {
 		t.Error("Root outside a repository succeeded")
+	}
+}
+
+// git runs a command in dir for a test's own setup.
+func git(t *testing.T, dir string, args ...string) {
+	t.Helper()
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git %v: %v: %s", args, err, out)
+	}
+}
+
+// clones is a bare remote with two clones of it, both tracking main: one
+// the user works in, and one standing for a collaborator — or the same
+// user on another machine — whose pushes the first is to catch up with.
+func clones(t *testing.T) (mine, theirs string) {
+	t.Helper()
+	seed := testRepo(t)
+	remote := filepath.Join(t.TempDir(), "remote.git")
+	git(t, seed, "clone", "--bare", seed, remote)
+	for _, dir := range []*string{&mine, &theirs} {
+		*dir = filepath.Join(t.TempDir(), "clone")
+		git(t, filepath.Dir(*dir), "clone", remote, *dir)
+		git(t, *dir, "config", "user.email", "folio@example.com")
+		git(t, *dir, "config", "user.name", "QM Test")
+	}
+	return mine, theirs
+}
+
+// commitFile writes a file in dir and commits it.
+func commitFile(t *testing.T, dir, name, content string) {
+	t.Helper()
+	write(t, dir, name, content)
+	git(t, dir, "add", "--", name)
+	git(t, dir, "commit", "-m", "edit "+name)
+}
+
+func read(t *testing.T, dir, name string) string {
+	t.Helper()
+	b, err := os.ReadFile(filepath.Join(dir, name))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(b)
+}
+
+func level(t *testing.T, dir string) Status {
+	t.Helper()
+	st, err := GetStatus(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return st
+}
+
+// Sync brings in what the remote has and sends what it lacks: afterwards
+// the branch and its upstream stand at the same commit.
+func TestSyncPullsAndPushes(t *testing.T) {
+	mine, theirs := clones(t)
+	commitFile(t, theirs, "theirs.qmd", "theirs\n")
+	git(t, theirs, "push")
+
+	res, err := Sync(mine)
+	if err != nil {
+		t.Fatalf("Sync: %v", err)
+	}
+	if res.Pulled != 1 || res.Pushed != 0 {
+		t.Errorf("pulled %d, pushed %d; want 1, 0", res.Pulled, res.Pushed)
+	}
+	if got := read(t, mine, "theirs.qmd"); got != "theirs\n" {
+		t.Errorf("pulled file = %q", got)
+	}
+
+	commitFile(t, mine, "mine.qmd", "mine\n")
+	res, err = Sync(mine)
+	if err != nil {
+		t.Fatalf("Sync: %v", err)
+	}
+	if res.Pulled != 0 || res.Pushed != 1 {
+		t.Errorf("pulled %d, pushed %d; want 0, 1", res.Pulled, res.Pushed)
+	}
+	if st := level(t, mine); st.Ahead != 0 || st.Behind != 0 {
+		t.Errorf("after sync: ahead %d, behind %d", st.Ahead, st.Behind)
+	}
+}
+
+// Uncommitted edits to files the incoming commits leave alone stay as
+// they are; the pull goes ahead around them.
+func TestSyncKeepsUnrelatedEdits(t *testing.T) {
+	mine, theirs := clones(t)
+	commitFile(t, theirs, "theirs.qmd", "theirs\n")
+	git(t, theirs, "push")
+	write(t, mine, "index.qmd", "my unsaved edit\n")
+
+	if _, err := Sync(mine); err != nil {
+		t.Fatalf("Sync: %v", err)
+	}
+	if got := read(t, mine, "index.qmd"); got != "my unsaved edit\n" {
+		t.Errorf("local edit = %q", got)
+	}
+	if got := read(t, mine, "theirs.qmd"); got != "theirs\n" {
+		t.Errorf("pulled file = %q", got)
+	}
+}
+
+// An uncommitted edit to a file the incoming commits change is never
+// overwritten: git refuses the fast-forward, and Sync reports that.
+func TestSyncRefusesToOverwriteEdits(t *testing.T) {
+	mine, theirs := clones(t)
+	commitFile(t, theirs, "index.qmd", "theirs\n")
+	git(t, theirs, "push")
+	write(t, mine, "index.qmd", "my unsaved edit\n")
+
+	if _, err := Sync(mine); err == nil {
+		t.Fatal("Sync overwrote an uncommitted edit without complaint")
+	}
+	if got := read(t, mine, "index.qmd"); got != "my unsaved edit\n" {
+		t.Errorf("local edit = %q", got)
+	}
+}
+
+// A branch that has commits of its own and lacks some of the remote's has
+// diverged. Sync neither merges nor rebases, which could stop halfway with
+// conflicts a panel cannot resolve; it says so and changes nothing.
+func TestSyncRefusesADivergedBranch(t *testing.T) {
+	mine, theirs := clones(t)
+	commitFile(t, theirs, "theirs.qmd", "theirs\n")
+	git(t, theirs, "push")
+	commitFile(t, mine, "mine.qmd", "mine\n")
+
+	_, err := Sync(mine)
+	if !errors.Is(err, ErrDiverged) {
+		t.Fatalf("Sync = %v, want ErrDiverged", err)
+	}
+	if st := level(t, mine); st.Ahead != 1 || st.Behind != 1 {
+		t.Errorf("after refusal: ahead %d, behind %d; want 1, 1", st.Ahead, st.Behind)
+	}
+	if _, err := os.Stat(filepath.Join(mine, "theirs.qmd")); err == nil {
+		t.Error("their file arrived although the sync was refused")
+	}
+}
+
+// A branch that tracks nothing has nothing to sync with.
+func TestSyncNeedsAnUpstream(t *testing.T) {
+	if _, err := Sync(testRepo(t)); !errors.Is(err, ErrNoUpstream) {
+		t.Errorf("Sync = %v, want ErrNoUpstream", err)
 	}
 }

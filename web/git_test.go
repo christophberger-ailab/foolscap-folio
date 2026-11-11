@@ -64,7 +64,7 @@ func TestGitOutsideARepository(t *testing.T) {
 // than run git somewhere unexpected.
 func TestGitOperationsNeedAProject(t *testing.T) {
 	srv := bareServer(t)
-	for _, target := range []string{"/git/stage", "/git/unstage", "/git/commit", "/git/push"} {
+	for _, target := range []string{"/git/stage", "/git/unstage", "/git/commit", "/git/push", "/git/sync"} {
 		rec := post(t, srv, target, url.Values{"path": {"index.qmd"}, "message": {"m"}})
 		if rec.Code != http.StatusOK {
 			t.Fatalf("%s: status %d: %s", target, rec.Code, rec.Body)
@@ -395,5 +395,75 @@ func TestGitDiffOutsideTheProject(t *testing.T) {
 	}
 	if strings.Contains(body, "git-diff-open") {
 		t.Errorf("a file the editor cannot reach was offered to it:\n%s", body)
+	}
+}
+
+// gitClone is gitProject with a remote: the project is pushed to a bare
+// repository and tracks it, and a second clone of that repository stands
+// for whoever else pushes there. It returns the server, the project, and
+// the second clone.
+func gitClone(t *testing.T) (*server, string, string) {
+	t.Helper()
+	srv, root := gitProject(t)
+	remote := filepath.Join(t.TempDir(), "remote.git")
+	other := filepath.Join(t.TempDir(), "other")
+	for _, step := range []struct {
+		dir  string
+		args []string
+	}{
+		{root, []string{"init", "--bare", "-b", "main", remote}},
+		{root, []string{"remote", "add", "origin", remote}},
+		{root, []string{"push", "-u", "origin", "main"}},
+		{root, []string{"clone", remote, other}},
+		{other, []string{"config", "user.email", "folio@example.com"}},
+		{other, []string{"config", "user.name", "QM Test"}},
+	} {
+		cmd := exec.Command("git", step.args...)
+		cmd.Dir = step.dir
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v: %s", step.args, err, out)
+		}
+	}
+	return srv, root, other
+}
+
+// The panel offers Sync, which brings in what the remote has and sends
+// what it lacks, and says how much of each it moved.
+func TestGitSync(t *testing.T) {
+	srv, root, other := gitClone(t)
+	if body := get(t, srv, "/git").Body.String(); !strings.Contains(body, `hx-post="/git/sync"`) {
+		t.Errorf("no Sync button:\n%s", body)
+	}
+
+	writeFile(t, other, "theirs.qmd", "---\ntitle: Theirs\n---\n")
+	for _, args := range [][]string{{"add", "--all"}, {"commit", "-m", "theirs"}, {"push"}} {
+		cmd := exec.Command("git", args...)
+		cmd.Dir = other
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v: %s", args, err, out)
+		}
+	}
+
+	body := post(t, srv, "/git/sync", nil).Body.String()
+	if !strings.Contains(body, "Pulled 1 commit") {
+		t.Errorf("pull not reported:\n%s", body)
+	}
+	if _, err := os.Stat(filepath.Join(root, "theirs.qmd")); err != nil {
+		t.Errorf("their page did not arrive: %v", err)
+	}
+
+	body = post(t, srv, "/git/sync", nil).Body.String()
+	if !strings.Contains(body, "Already in sync") {
+		t.Errorf("an idle sync is not reported as such:\n%s", body)
+	}
+}
+
+// A branch without an upstream is told how to get one rather than shown a
+// failure from git.
+func TestGitSyncNeedsAnUpstream(t *testing.T) {
+	srv, _ := gitProject(t)
+	body := post(t, srv, "/git/sync", nil).Body.String()
+	if !strings.Contains(body, "tracks no remote branch") {
+		t.Errorf("missing upstream not reported:\n%s", body)
 	}
 }
