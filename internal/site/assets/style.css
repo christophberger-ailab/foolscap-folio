@@ -131,6 +131,11 @@ a:hover {
   flex-wrap: wrap;
   gap: 0.25em;
 }
+/* The list's gap spaces the entries; cancel the prose rule li + li,
+   whose top margin would push every entry but the first down. */
+.topics li {
+  margin: 0;
+}
 .topics a {
   display: block;
   padding: 0.35em 0.75em;
@@ -200,7 +205,7 @@ html:not(.js) .search {
 .search input {
   width: 14em;
   max-width: 100%;
-  padding: 0.4em 0.7em;
+  padding: 0.4em 2em 0.4em 0.7em;
   font: inherit;
   font-size: var(--fs-small);
   color: var(--fg);
@@ -210,6 +215,35 @@ html:not(.js) .search {
 }
 .search input:focus {
   background: var(--bg);
+}
+.search input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+.search-field {
+  position: relative;
+  display: block;
+}
+.search-clear {
+  position: absolute;
+  right: 0.3em;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  padding: 0.35em;
+  color: var(--fg-muted);
+  background: none;
+  border: 0;
+  border-radius: 0.3em;
+  cursor: pointer;
+}
+.search-clear:hover,
+.search-clear:focus-visible {
+  color: var(--fg);
+  background: var(--accent-soft);
+}
+.search-clear[hidden] {
+  display: none;
 }
 .search-results {
   position: absolute;

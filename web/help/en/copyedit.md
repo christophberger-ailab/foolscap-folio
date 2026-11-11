@@ -1,6 +1,6 @@
 # Copyediting with an LLM
 
-The copyedit pane sends the page to a language model and shows its suggestions. Open it with the `Copyedit` button (see [the panes](panes.md)).
+The copyedit pane sends the page to a language model and shows its suggestions. Open it with its `Copyedit` tab (see [the panes](panes.md)).
 
 ## Set it up first
 

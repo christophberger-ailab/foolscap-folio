@@ -1,6 +1,6 @@
 # Rendern
 
-Die Schaltfläche `Render` in der oberen Leiste öffnet das Render-Panel. Es führt denselben Ablauf aus wie der Befehl `folio render`, beide erzeugen also identische Ausgabe (siehe [die Kommandozeile](commands.md)).
+Der Tab `Render` neben dem Editor zeigt den Render-Bereich (siehe [die Bereiche](panes.md)). Es führt denselben Ablauf aus wie der Befehl `folio render`, beide erzeugen also identische Ausgabe (siehe [die Kommandozeile](commands.md)).
 
 ## Die Matrix
 
@@ -16,14 +16,14 @@ Ein Website-Format ist die Ausnahme von „einmal pro Thema“: Es fasst alle an
 
 Deine Auswahl wird pro Projekt in der [Einstellungsdatei](settings.md) gemerkt.
 
-Lässt sich die `folio.yml` nicht lesen, zeigt das Panel statt der Matrix den Fehler. Korrigiere die Datei und öffne das Panel erneut.
+Lässt sich die `folio.yml` nicht lesen, zeigt der Bereich statt der Matrix den Fehler. Korrigiere die Datei und lade die App neu.
 
 ## Ausführen
 
 1. Hake an, was du willst.
-2. Drücke unten im Panel auf `Render`.
+2. Drücke unten im Bereich auf `Render`.
 
-Das Rendering läuft im Hintergrund. Das Panel zeigt das Log und aktualisiert es jede Sekunde, solange es läuft. Am Ende steht dort `Done` oder `Render failed`.
+Das Rendering läuft im Hintergrund. Der Bereich zeigt das Log und aktualisiert es jede Sekunde, solange es läuft. Am Ende steht dort `Done` oder `Render failed`.
 
 - Es läuft immer nur ein Rendering gleichzeitig.
 - Das Log folgt der neuesten Zeile. Scrolle nach oben, um das Folgen zu beenden und deine Position zu halten; scrolle wieder ganz nach unten oder starte ein neues Rendering, um wieder zu folgen.

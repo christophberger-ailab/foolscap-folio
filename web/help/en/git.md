@@ -1,10 +1,10 @@
-# The Git panel
+# The Git pane
 
-The `Git` button in the top bar, next to `Render`, opens a panel showing the changes since the last commit. It runs the real `git` command, so your hooks, credential helpers, signing, and config apply as in a terminal. No prompts are possible, so anything that needs a terminal will fail with a message.
+The `Git` tab beside the editor shows the Git pane with the changes since the last commit (see [the panes](panes.md)). It runs the real `git` command, so your hooks, credential helpers, signing, and config apply as in a terminal. No prompts are possible, so anything that needs a terminal will fail with a message.
 
 ## Not a Git project
 
-If the project is not inside a Git working tree, or git is not installed, the panel says so instead of offering operations.
+If the project is not inside a Git working tree, or git is not installed, the pane says so instead of offering operations.
 
 ## What you see
 
@@ -12,7 +12,7 @@ If the project is not inside a Git working tree, or git is not installed, the pa
 - `Staged` lists what the next commit would carry. `Not staged` lists what it would leave behind. A file changed in both places is in both lists.
 - Each entry shows its status letters and its path.
 
-The panel covers the whole working tree. If your project is a subfolder of a larger repository, files outside the project are listed and can be staged too.
+The pane covers the whole working tree. If your project is a subfolder of a larger repository, files outside the project are listed and can be staged too.
 
 ## Staging
 
@@ -31,10 +31,10 @@ What git said (commit summary, push transcript, or the reason it was refused) is
 
 Click a path to see its diff below the lists. It shows what its own list stands for, so a file in both lists has a different diff in each. The header names the file, says `staged` or `not staged`, and counts added and removed lines. New untracked files show all their content as added.
 
-- `Open in editor` opens the file in the page editor and closes the panel. It is not offered for deleted files, binary files, or files outside the project.
+- `Open in editor` opens the file in the page editor. It is not offered for deleted files, binary files, or files outside the project.
 - `✕` closes the diff.
 - The diff is for reading only. Make changes in the [editor](editor.md).
 
-Every operation clears the diff, since the file may have moved to the other list. The status is read when you open the panel and after each operation, never earlier.
+Every operation clears the diff, since the file may have moved to the other list. The status is read whenever the pane comes into view and after each operation, never earlier.
 
 Back to [Contents](index.md).

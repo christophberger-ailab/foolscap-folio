@@ -17,9 +17,9 @@ folio web --addr :9000       # listen elsewhere
 ## Adresse und Port
 
 - Standardmäßig lauscht `folio web` auf `localhost:8199`.
-- Um dauerhaft woanders zu lauschen, setze `baseurl` (Hostname oder IP-Adresse) und `port` im Abschnitt `web` der [Einstellungsdatei](settings.md), zum Beispiel `web: {baseurl: "localhost", port: 8200}`. Sie werden beim Start von `folio web` gelesen.
+- Ein Projekt kann im Abschnitt `web` seiner `folio.yml` eine eigene Adresse angeben: `baseurl` ist der Hostname oder die IP-Adresse, `port` der Port. Zum Beispiel `web: {baseurl: localhost, port: 8200}`. Gelesen wird sie aus dem Projekt, mit dem `folio web` gestartet wird.
 - Ist dieser Port belegt, meist durch ein anderes `folio web`, wird der nächsthöhere probiert und so weiter, bis ein freier gefunden ist. Die tatsächlich verwendete Adresse wird ausgegeben.
-- Eine Adresse, die du mit `--addr` angibst, hat Vorrang vor den Einstellungen und wird genau so verwendet. Ist sie belegt, ist das ein Fehler.
+- Eine Adresse, die du mit `--addr` angibst, hat Vorrang vor der `folio.yml` und wird genau so verwendet. Ist sie belegt, ist das ein Fehler.
 
 ## Ein Projekt öffnen
 
@@ -35,7 +35,7 @@ Die obere Leiste zeigt den Titel des offenen Projekts, dann `Open`, dann `↻ Re
 - `Esc` oder `Cancel` schließt den Dialog.
 - `↻ Reload` liest die offene Seite und den Baum neu von der Platte.
 
-Beim Öffnen eines Projekts wird alles aktualisiert, was dazugehört: der Seitenbaum, die Bereiche, das Render-Panel, das Git-Panel und die Schaltfläche Editor.
+Beim Öffnen eines Projekts wird alles aktualisiert, was dazugehört: der Seitenbaum, die Bereiche, darunter Render und Git, und die Schaltfläche Editor.
 
 Die Liste der zuletzt geöffneten Projekte steht in der [Einstellungsdatei](settings.md).
 

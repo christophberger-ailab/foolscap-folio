@@ -12,41 +12,34 @@ import (
 	"github.com/christophberger-ailab/foolscap-folio/internal/gitrepo"
 )
 
-// The Git button sits in the top bar beside Render, and its body is
-// fetched when the panel opens rather than with the page.
-func TestGitPanelIsInTheTopBar(t *testing.T) {
+// The Git pane stands in the dock, and its body is fetched when the pane
+// is shown rather than with the page.
+func TestGitPaneIsInTheDock(t *testing.T) {
 	srv, _ := testServer(t)
 	body := get(t, srv, "/").Body.String()
-	i, j := strings.Index(body, `id="render-panel"`), strings.Index(body, `id="git-panel"`)
-	if i < 0 || j < 0 {
-		t.Fatalf("panels missing: render at %d, git at %d", i, j)
-	}
-	if j < i {
-		t.Error("the Git panel does not sit to the right of the render panel")
-	}
-	for _, want := range []string{`<summary title="Show the changes`, `id="git-body"`, `hx-get="/git"`} {
+	for _, want := range []string{`id="git-pane" data-pane="git"`, `id="git-body"`, `hx-get="/git"`, `hx-trigger="folio-shown from:#git-pane"`} {
 		if !strings.Contains(body, want) {
-			t.Errorf("git panel missing %q:\n%s", want, body)
+			t.Errorf("git pane missing %q:\n%s", want, body)
 		}
 	}
 }
 
 // With no project open there is nothing to show a working tree of, so the
-// button is not there either.
-func TestGitPanelNeedsAProject(t *testing.T) {
+// pane is not there either.
+func TestGitPaneNeedsAProject(t *testing.T) {
 	srv := bareServer(t)
-	if body := get(t, srv, "/").Body.String(); strings.Contains(body, `<details class="git"`) {
-		t.Errorf("git panel shown without a project:\n%s", body)
+	if body := get(t, srv, "/").Body.String(); strings.Contains(body, `id="git-pane"`) {
+		t.Errorf("git pane shown without a project:\n%s", body)
 	}
 }
 
-// /open refreshes the panel along with the panes: it belongs to the
-// project, and the top bar is out of the #main swap's reach.
-func TestOpenRefreshesTheGitPanel(t *testing.T) {
+// /open refreshes the pane along with the others: it belongs to the
+// project, and comes with the #main swap.
+func TestOpenRefreshesTheGitPane(t *testing.T) {
 	srv, _ := testServer(t)
 	body := post(t, srv, "/open", url.Values{"path": {fixture(t)}}).Body.String()
-	if !strings.Contains(body, `hx-swap-oob="innerHTML:#git-panel"`) {
-		t.Errorf("open does not refresh the git panel:\n%s", body)
+	if !strings.Contains(body, `id="git-pane"`) {
+		t.Errorf("open does not refresh the git pane:\n%s", body)
 	}
 }
 
@@ -71,7 +64,7 @@ func TestGitOutsideARepository(t *testing.T) {
 // than run git somewhere unexpected.
 func TestGitOperationsNeedAProject(t *testing.T) {
 	srv := bareServer(t)
-	for _, target := range []string{"/git/stage", "/git/unstage", "/git/commit", "/git/push"} {
+	for _, target := range []string{"/git/stage", "/git/unstage", "/git/commit", "/git/push", "/git/sync"} {
 		rec := post(t, srv, target, url.Values{"path": {"index.qmd"}, "message": {"m"}})
 		if rec.Code != http.StatusOK {
 			t.Fatalf("%s: status %d: %s", target, rec.Code, rec.Body)
@@ -402,5 +395,90 @@ func TestGitDiffOutsideTheProject(t *testing.T) {
 	}
 	if strings.Contains(body, "git-diff-open") {
 		t.Errorf("a file the editor cannot reach was offered to it:\n%s", body)
+	}
+}
+
+// gitClone is gitProject with a remote: the project is pushed to a bare
+// repository and tracks it, and a second clone of that repository stands
+// for whoever else pushes there. It returns the server, the project, and
+// the second clone.
+func gitClone(t *testing.T) (*server, string, string) {
+	t.Helper()
+	srv, root := gitProject(t)
+	remote := filepath.Join(t.TempDir(), "remote.git")
+	other := filepath.Join(t.TempDir(), "other")
+	for _, step := range []struct {
+		dir  string
+		args []string
+	}{
+		{root, []string{"init", "--bare", "-b", "main", remote}},
+		{root, []string{"remote", "add", "origin", remote}},
+		{root, []string{"push", "-u", "origin", "main"}},
+		{root, []string{"clone", remote, other}},
+		{other, []string{"config", "user.email", "folio@example.com"}},
+		{other, []string{"config", "user.name", "QM Test"}},
+	} {
+		cmd := exec.Command("git", step.args...)
+		cmd.Dir = step.dir
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v: %s", step.args, err, out)
+		}
+	}
+	return srv, root, other
+}
+
+// The panel offers Sync, which brings in what the remote has and sends
+// what it lacks, and says how much of each it moved.
+func TestGitSync(t *testing.T) {
+	srv, root, other := gitClone(t)
+	if body := get(t, srv, "/git").Body.String(); !strings.Contains(body, `hx-post="/git/sync"`) {
+		t.Errorf("no Sync button:\n%s", body)
+	}
+
+	writeFile(t, other, "theirs.qmd", "---\ntitle: Theirs\n---\n")
+	for _, args := range [][]string{{"add", "--all"}, {"commit", "-m", "theirs"}, {"push"}} {
+		cmd := exec.Command("git", args...)
+		cmd.Dir = other
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v: %s", args, err, out)
+		}
+	}
+
+	body := post(t, srv, "/git/sync", nil).Body.String()
+	if !strings.Contains(body, "Pulled 1 commit") {
+		t.Errorf("pull not reported:\n%s", body)
+	}
+	if _, err := os.Stat(filepath.Join(root, "theirs.qmd")); err != nil {
+		t.Errorf("their page did not arrive: %v", err)
+	}
+
+	body = post(t, srv, "/git/sync", nil).Body.String()
+	if !strings.Contains(body, "Already in sync") {
+		t.Errorf("an idle sync is not reported as such:\n%s", body)
+	}
+}
+
+// A branch without an upstream is told how to get one rather than shown a
+// failure from git.
+func TestGitSyncNeedsAnUpstream(t *testing.T) {
+	srv, _ := gitProject(t)
+	body := post(t, srv, "/git/sync", nil).Body.String()
+	if !strings.Contains(body, "tracks no remote branch") {
+		t.Errorf("missing upstream not reported:\n%s", body)
+	}
+}
+
+// Push and Sync talk to a remote and can take a while. While one runs, the
+// pane's action buttons are greyed out, so a second click cannot start a
+// second push or sync, and a Refresh cannot swap the pane under it; the
+// answer re-renders the buttons as the outcome leaves them.
+func TestGitRemoteButtonsDisableWhileRunning(t *testing.T) {
+	srv, _, _ := gitClone(t)
+	body := get(t, srv, "/git").Body.String()
+	for _, target := range []string{"/git/push", "/git/sync"} {
+		want := `hx-post="` + target + `" hx-target="#git-body" hx-swap="innerHTML" hx-disabled-elt=".git-actions button"`
+		if !strings.Contains(body, want) {
+			t.Errorf("%s does not disable the buttons while it runs:\n%s", target, body)
+		}
 	}
 }

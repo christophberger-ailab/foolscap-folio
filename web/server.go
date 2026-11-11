@@ -160,6 +160,7 @@ func newServer(configFile string) (*server, error) {
 	s.mux.HandleFunc("POST /git/unstage", s.gitUnstageHandler)
 	s.mux.HandleFunc("POST /git/commit", s.gitCommitHandler)
 	s.mux.HandleFunc("POST /git/push", s.gitPushHandler)
+	s.mux.HandleFunc("POST /git/sync", s.gitSyncHandler)
 	return s, nil
 }
 
@@ -620,14 +621,8 @@ func (s *server) open(w http.ResponseWriter, r *http.Request) {
 	s.render(w, "main", st)
 	// The top bar is not reached by the #main swap, so the parts of it
 	// that describe the project just opened are sent out of band: the
-	// render panel, the Git panel, the external editor button, and the
-	// title beside the Open button.
-	fmt.Fprint(w, `<div hx-swap-oob="innerHTML:#render-panel">`)
-	s.render(w, "render", st)
-	fmt.Fprint(w, `</div>`)
-	fmt.Fprint(w, `<div hx-swap-oob="innerHTML:#git-panel">`)
-	s.render(w, "git", st)
-	fmt.Fprint(w, `</div>`)
+	// external editor button and the title beside the Open button. The
+	// render and Git panes stand in the dock, which comes with #main.
 	fmt.Fprint(w, `<div hx-swap-oob="innerHTML:#editor-panel">`)
 	s.render(w, "external-editor", st)
 	fmt.Fprint(w, `</div>`)

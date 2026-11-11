@@ -7,7 +7,7 @@
 //	folio preview                    -> the first website on localhost:8198
 //	folio preview ../handbook        -> that project instead
 //	folio preview --audience pol     -> the pol variant of the site
-//	folio preview --addr :9000       -> listen elsewhere
+//	folio preview --addr :9000       -> listen elsewhere (wins over preview: in folio.yml)
 //
 // The whole site is rendered up front and again after every change: every
 // page's navigation, previous/next links and search index depend on all
@@ -24,6 +24,7 @@ import (
 	"hash/fnv"
 	"html"
 	"io/fs"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -42,10 +43,6 @@ import (
 	flag "github.com/spf13/pflag"
 )
 
-// defaultAddr is one below folio web's default port, so both can run side
-// by side without either searching.
-const defaultAddr = "localhost:8198"
-
 // pollEvery is how often the project is checked for changes.
 const pollEvery = 300 * time.Millisecond
 
@@ -63,10 +60,11 @@ func Register(projectFlag *string) {
 		Name:  "preview",
 		Short: "Serve the website and update it live as pages change",
 		Long: "Render the project's website, serve it on localhost:8198 (or the " +
-			"next free port), and render it again whenever a file of the " +
-			"project changes; open pages reload themselves. Usage: folio " +
-			"preview [<path>]. --topic, --format and --audience pick the site " +
-			"as for `folio render`; --addr sets the listen address.",
+			"address in folio.yml's preview section, or the next free port up), " +
+			"and render it again whenever a file of the project changes; open " +
+			"pages reload themselves. Usage: folio preview [<path>]. --topic, " +
+			"--format and --audience pick the site as for `folio render`; " +
+			"--addr sets the listen address.",
 		Flags: []string{"addr", "topic", "format", "audience"},
 		Cmd:   cmd,
 	})
@@ -90,12 +88,29 @@ func cmd(c *start.Command) error {
 	return Serve(str("addr"), docPath, req)
 }
 
-// Serve renders the site, serves it on addr (or the default address and the
-// next free port up), and keeps it up to date until interrupted.
+// listenTarget is the address to listen on and whether to search for a
+// free port from it: flagAddr as given, or else the preview section of the
+// project's folio.yml, searched from. A folio.yml that does not load leaves
+// the default in place and is returned as the error, for the caller to warn
+// about; the render reports what is wrong with the file.
+func listenTarget(flagAddr, root string) (string, bool, error) {
+	if flagAddr != "" {
+		return flagAddr, false, nil
+	}
+	w := config.DefaultPreview
+	cfg, err := config.Load(root)
+	if err == nil {
+		w = cfg.Preview
+	}
+	return net.JoinHostPort(w.BaseURL, strconv.Itoa(w.Port)), true, err
+}
+
+// Serve renders the site, serves it on addr (or the address in folio.yml
+// and the next free port up), and keeps it up to date until interrupted.
 func Serve(addr, root string, req config.Request) error {
-	search := addr == ""
-	if search {
-		addr = defaultAddr
+	addr, search, err := listenTarget(addr, root)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "folio preview: %v; listening on the default address\n", err)
 	}
 	ln, shown, err := web.Listen(addr, search)
 	if err != nil {

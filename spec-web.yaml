@@ -10,8 +10,8 @@ components:
       2: No subcommand
       3: Parameters
       3-1: Flag --project sets the path to the document tree. Defaults to the current directory
-      3-2: Flag --addr sets the listen address. Without it, the address is the settings' web.baseurl and web.port, which default to "localhost" and 8199
-      3-2-1: When the port from the settings is taken -- by another folio web, most likely -- the next port up is tried, and so on, until a free one is found; the address actually served is printed. An address given with --addr wins over the settings, is used as given, and a taken one is an error
+      3-2: Flag --addr sets the listen address. Without it, the address is the `web` section of the opened project's folio.yml -- `baseurl` and `port`, which default to "localhost" and 8199 -- read once at start; a port outside 1 to 65535 is an error in folio.yml
+      3-2-1: When the port from folio.yml is taken -- by another folio web, most likely -- the next port up is tried, and so on, until a free one is found; the address actually served is printed. An address given with --addr wins over folio.yml, is used as given, and a taken one is an error
       3-3: A positional path names the project to open and takes precedence over --project
       4: The command serves until it is interrupted, printing the URL it listens on to stderr
 
@@ -24,7 +24,7 @@ constraints:
       carries the schema it is checked against.
     requirements:
       1: 'The settings are one file: `<user config dir>/folio/config.cue`. Nothing else is written beside it but the preview stylesheets, which are CSS rather than settings'
-      2: The file holds the recently opened projects, the per-project render selection and last open page, the active preview stylesheet, the copyediting setup, the external editors' command lines, the name comments are signed with, and the host and port the UI listens on
+      2: The file holds the recently opened projects, the per-project render selection and last open page, the active preview stylesheet, the copyediting setup, the external editors' command lines, and the name comments are signed with. Where the UI listens is the project's to say, in folio.yml
       3: The file is written for its owner alone, since the copyediting setup holds API keys
       4: 'The file carries its own schema: the CUE definitions the settings are checked against are written into it above them, so the file says what belongs in it and in what shape'
       4-1: The schema is written by the app and rewritten with every save, so the schema in the file is always the one the running binary checks against
@@ -80,7 +80,7 @@ constraints:
       3-1-2: The buttons flip to a page the way a click in the tree opens it, so a page inside a collapsed branch is revealed, the tree's selection follows, and an edit that could not be saved is still asked about before the editor is replaced
       3-2: The preview follows the editor's content as the user types
       3-2-1: The editor and the preview scroll together: scrolling either one brings the other to the same part of the page, matched block by block by the page line each preview block was made from, and the preview stays with the editor while the user types
-      3-3: A Preview button, a Copyedit button, and a Help button in the content header each show and hide their pane beside the editor, independently of the others; each choice is remembered across sessions
+      3-3: The preview, the copyedit tool, and the help stand beside the editor as tabs in the dock (see 14)
       3-4: The preview is rendered in the browser from the embedded marked library; it approximates the page, it is not a Quarto render
       3-4-1: A heading is previewed without its own Pandoc attribute block -- `# PERLE OnCall-Schulungen {.unnumbered .unlisted}` reads "PERLE OnCall-Schulungen" -- because the attributes direct the render and are not part of what the heading says; a heading inside a code block is left as written
       3-4-2: A page written for one target group -- an `_FW` or `_POL` suffix on its file name, or on a folder above it, the deepest name deciding -- is previewed inside that group's Quarto div, so the custom stylesheet tints and marks the whole page the way it does a `::: fw` / `::: pol` block written into the page; this is what the flattener does to such a page's content
@@ -111,6 +111,7 @@ constraints:
       3-6-5-4: The segment being typed matches anywhere in a candidate's name, not only at its start; a candidate matching at the start is listed first
       3-6-6: Every `==TODO==` in the page -- inside an HTML comment too -- is highlighted in the editor in a TODO color of its own, distinct from the search's
       3-6-7: The preview marks the spot of every `==TODO==` with a TODO marker in the same color; a TODO inside an HTML comment, which renders as nothing, gets an outlined marker where the comment stands, with the comment's text as its tooltip
+      3-6-8: In Vim mode, Ctrl-C with text selected copies it to the clipboard, as it does outside Vim mode, and leaves Visual mode; with nothing selected it stays Vim's Esc
       3-7: The page open in the editor is remembered per project and reopened when the app page loads, so a restart, or a visit to the config pages and back, returns to the page the user was working on
       3-7-1: The reopened page is selected in the page tree, and collapsed branches above it are expanded
       3-7-2: A remembered page that is no longer there is forgotten, and the editor starts empty
@@ -129,7 +130,7 @@ constraints:
       3-8-9: The preview's tooltip shows the comment and each reply, with who wrote it and when
       3-8-10: With the cursor in a comment's thread or passage and nothing selected, the rail also shows a remove button below the reply button; clicking it asks for confirmation, quoting the comment, and on OK removes the starting marker, its replies, and the closing marker, leaving the passage in place -- one step for Ctrl-Z, and the tree's 💬 goes once the page holds no comment (1-6)
       4: The tree is polled for outside changes and refreshed when the project changed on disk
-      5: The render panel selects a point in the project's three-axis matrix: topics, the audiences of each topic, and the output formats
+      5: The render pane (a tab of the dock, see 14) selects a point in the project's three-axis matrix: topics, the audiences of each topic, and the output formats
       5-1: The selection is remembered per project in the settings file (see SETTINGS)
       5-2: The topics and the formats are those of the project's folio.yml, or the defaults of a project without one (every content folder; `web` only)
       5-3: For each topic, only the audiences the topic declares under `audiences:` in folio.yml are offered or submitted for it; a topic that declares none offers every audience the project has
@@ -138,8 +139,8 @@ constraints:
       5-5-1: While the topic's own checkbox is unchecked its audience checkboxes are shown dimmed, since nothing is rendered for them; they stay usable, so the audiences can be chosen before the topic is checked
       5-6: A topic with exactly one audience shows no checkbox, but the form submits that audience through a hidden input
       5-7: A selection is turned into renders per topic for document formats, and once for the website formats, which cover all ticked topics in one site per ticked audience; a topic that takes no part in the ticked formats is skipped, and a selection that matches nothing is reported in the log
-      5-8: If folio.yml cannot be read, the panel shows the error instead of the matrix
-      6: A render runs in the background; the panel polls its log while it runs
+      5-8: If folio.yml cannot be read, the pane shows the error instead of the matrix
+      6: A render runs in the background; the pane polls its log while it runs
       6-1: Only one render runs at a time
       6-2: The log follows its newest line as it grows; scrolling up stops it following and holds the position across the polls, until the user scrolls back to the bottom or starts another render
       7: The top bar shows a Config button at the far right
@@ -181,8 +182,9 @@ constraints:
       9-2-4: The dialog closes once a project has opened; a refused open is reported in the dialog, which stays open
       9-3: The dialog lists the ten most recently opened projects by folder name, full path as tooltip, no project twice, and one click opens one; the list is remembered across restarts in the settings file (see SETTINGS)
       9-4: A project opened from the command line counts as opened, so it is in the list of the next session
-      9-5: Opening a project updates the title along with the panes, the render panel, the Git panel, and the Editor button, all of which describe the project just opened
-      10: A Git button to the right of the Render button opens a popup, like the render panel and below its own button as the render panel is, that shows the changes since the last commit
+      9-5: Opening a project updates the title along with the panes, the render and Git panes among them, and the Editor button, all of which describe the project just opened
+      9-6: The top bar of every page starts with the Foolscap Folio logo, left of the app's name; the logo is served from the binary's own assets and stays legible on the light and the dark theme
+      10: A Git pane in the dock beside the editor (see 14) shows the changes since the last commit; its status is read whenever the pane comes into view
       10-1: The changes are shown in two lists -- staged, which is what the next commit would carry, and not staged, which is what it would leave behind -- each entry with its porcelain status letters and the path; a file changed in both the index and the working tree appears in both lists
       10-2: Each entry can be staged or unstaged individually, and each list as a whole
       10-3: The panel commits the staged changes under a message the user types, and pushes the branch to its remote; a branch that tracks nothing yet is pushed with its upstream set
@@ -195,7 +197,7 @@ constraints:
       10-10: A click on a path in either list shows that file's diff in the panel, below the lists; the diff is for reading only, since the panel is where the changes are looked over and the editor is where they are made
       10-11: The diff shown is the one the list the click came from stands for -- what the next commit would carry, or what it would leave behind -- so a file changed in both places shows a different diff from each list
       10-12: An untracked file is diffed against an empty file, so the file the panel lists as new shows its whole content as added rather than nothing at all
-      10-13: The diff pane names the file, says which of the two diffs it shows, counts the added and removed lines, and offers to open the file in the editor, which closes the panel and marks the page in the tree as the tree's own click would
+      10-13: The diff pane names the file, says which of the two diffs it shows, counts the added and removed lines, and offers to open the file in the editor, which marks the page in the tree as the tree's own click would
       10-14: A file that is gone from the working tree, one git calls binary, and one that lies outside the open project are not offered to the editor, since there is nothing it could show
       10-15: Every operation clears the diff, because staging a file moves it to the other list, where its diff is a different one, and a diff left standing would be of a state that no longer exists
       10-16: The paths the panel sends back are checked the way the editor's are, against the working tree they belong to, since a diff of an arbitrary path would otherwise read any file on the machine
@@ -204,9 +206,14 @@ constraints:
       10-19: The popup keeps one width and one place whether a diff is open or not -- it is as wide as a diff needs from the start -- so opening or closing a diff never moves the paths out from under the pointer
       10-20: A popup of the top bar that would reach past the window's right edge from below its button is moved left by as much, so it stays inside the window instead of pushing the page sideways
       10-21: A filter field above the lists narrows both of them to the files whose path contains the text typed, ignoring case; the text stays in force across the operations of the panel until it is cleared, and a list it leaves empty says so
+      10-22: A Sync button brings the branch level with its upstream -- it fetches, fast-forwards over the commits that arrived, and pushes the branch's own -- and says how many commits it pulled and pushed; Refresh reads the working tree only and does not contact the remote
+      10-22-1: Sync only ever fast-forwards; a branch that has commits of its own and lacks some of its upstream's has diverged, and is reported and left as it is, since a merge or rebase could stop halfway with conflicts the panel has no way to resolve
+      10-22-2: Uncommitted edits survive a sync -- git carries them across a fast-forward that does not touch them, and one that would overwrite them is refused and reported with git's own list of the files
+      10-22-3: A branch that tracks no remote branch is not offered Sync, and a sync asked for anyway says that Push sets one up
+      10-22-4: After a pull the panel says that Reload shows the open page as it arrived, since the editor keeps the text it loaded until then
+      10-23: While a push or a sync runs, the pane's action buttons are greyed out until it completes or fails, so a second click cannot start a second one and Refresh cannot replace the pane under it
       11: A copyediting tool sits beside the editor, in a pane of its own next to the Markdown preview
-      11-1: The panes beside the editor that are shown stand side by side; dragging one pane's head onto another swaps the two, and the order is remembered across page switches and sessions
-      11-1-1: Every pane beside the editor has a draggable divider on its left; against the editor it resizes the pane and the editor, between two panes it trades width between them and leaves the editor as it is; the widths are remembered across page switches and sessions
+      11-1: The copyedit pane is a tab of the dock (see 14)
       11-2: The copyedit pane lists the editing tasks the user configured, by title alone; the prompt itself is the task's tooltip
       11-3: An editing task is a prompt with a title, written on a config page that adds, edits, and deletes them; a task without a title or without a prompt is refused
       11-4: The model an editing task runs on is configured as an API connection -- name, API kind, base URL, model, and key -- on a config page of its own that saves any number of them
@@ -300,8 +307,19 @@ constraints:
       13-5: A Back button returns to the help page shown before, and a Contents button to the table of contents
       13-6: The help page shown is remembered across page switches and sessions; a page switch, which rebuilds the pane, keeps its scroll position
       13-7: The routes serve the help pages by plain name only -- `GET /help` lists the languages and one language's pages, `GET /help/<lang>/<name>.md` serves one page's Markdown -- so nothing but the embedded pages is reachable through them
-      13-8: The help needs no page: while none is open -- none selected yet, or no project opened -- the content header still offers the Help button, and the pane stands beside a placeholder in the editor's place, laid out and resized as it is beside the editor
+      13-8: The help needs no page: while none is open -- none selected yet, or no project opened -- the dock still offers the help, beside a placeholder in the editor's place, laid out and resized as it is beside the editor
       13-9: The help is written in English and in German, one folder of pages per language under the same file names, and a menu in the pane switches between them; the pane's own buttons follow the help's language
       13-9-1: Until the user picks a language in the pane, the help is shown in the first of the browser's languages -- which follow the system's -- that it is written in, a regional tag such as de-AT asking for its language; with none of them, it is shown in English
       13-9-2: The language picked is remembered across sessions, and switching shows the page that was open in the other language
       13-9-3: A page a translation lacks, and a language the help is not written in, are answered in English rather than not at all
+      14: The panes beside the editor -- Preview, Copyedit, Comments, Render, Git, and Help -- stand in a dock of tabbed groups; a group shows the pane of its active tab, and a click on a tab makes it the active one
+      14-1: The preview and the copyedit pane come with the page; the other panes belong to the project and outlive a page switch, so the Git pane keeps its diff and the render pane its running log while pages are switched
+      14-2: Opening a project brings its Render and Git panes anew; with no project open neither is offered, and their tabs say so
+      14-3: Dragging a tab onto the tabs of a group moves the pane there, at the place it is dropped, which also reorders the tabs of one group; dropping it near the left, right, top, or bottom edge of a group puts it in a group of its own beside, above, or below that group, so groups stand side by side or stacked; while a tab is dragged, the part of the group it would take is shaded
+      14-4: A group whose last tab is moved away or closed goes, and its room goes to its neighbours; with no pane open the editor takes the whole width
+      14-5: A tab's ✕, or a middle click on it, closes its pane; a Panes menu in the top bar lists every pane, ticked while open, opens or closes the one picked, and resets the layout to one group holding every pane
+      14-6: The divider between the editor and the dock trades width between them, and the sash between two parts of a split trades room between them
+      14-7: The layout -- which panes are open, how they are grouped and split, the active tabs, and every size -- is remembered across page switches, reloads, and sessions; a layout saved by the side-by-side panes before the dock is carried over, each pane then open in a group of its own and the others as tabs of the last
+      14-8: The Comments pane lists the comments of the page in the editor, in the order they stand, each with its author and date, its text, the commented passage, and its replies, and follows the editor's text as it changes; a page without comments says so
+      14-8-1: A click on a comment puts the editor's cursor at the start of its text, as a click on its passage in the preview does; its Reply button writes a reply as the editor's reply button does (3-8-8), its Remove button removes it as the editor's remove button does (3-8-10), confirmation included
+      14-9: A toggle at the top bar's right end, beside the Panes menu and just left of Config, above the panes area, hides the whole area, the editor taking its room, and shows it again; its arrow points right while the area is shown and left while it is hidden, as a sidebar toggle's does; hiding keeps the layout, so the panes come back where they stood; picking a pane in the Panes menu while the area is hidden shows the area with that pane in view rather than closing it, and opening a pane, or resetting the layout, shows the area; whether it is hidden is remembered across reloads and sessions

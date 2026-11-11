@@ -17,6 +17,11 @@
 //	topics:
 //	  calltaker: {cover: "assets/covers/calltaker{suffix}.png"}
 //	  sysadmin:  {folder: systemadministration, audiences: [std]}
+//	web:
+//	  baseurl: localhost
+//	  port: 8200
+//	preview:
+//	  port: 8300
 //
 // A render addresses one point of the topic × format × audience matrix. The
 // selected format and audience decide which conditional blocks of the
@@ -89,6 +94,43 @@ type Config struct {
 	Formats   Entries[Format]   `yaml:"formats"`
 	Audiences Entries[Audience] `yaml:"audiences"`
 	Topics    Entries[Topic]    `yaml:"topics"`
+
+	Web     Web `yaml:"web"`
+	Preview Web `yaml:"preview"`
+}
+
+// Web is where a server listens when it is started on this project: the
+// web section for `folio web`, the preview section for `folio preview`.
+// Unlike the rest of the file it is not about rendering, but it is the
+// project's: two projects served side by side each keep their own port.
+type Web struct {
+	// BaseURL is the host name or IP address. Default "localhost".
+	BaseURL string `yaml:"baseurl"`
+	// Port is the TCP port. Default 8199 for web, 8198 for preview.
+	Port int `yaml:"port"`
+}
+
+// DefaultWeb and DefaultPreview are the listen addresses of a project that
+// names none. The preview's port is one below folio web's, so both can run
+// side by side without either searching.
+var (
+	DefaultWeb     = Web{BaseURL: "localhost", Port: 8199}
+	DefaultPreview = Web{BaseURL: "localhost", Port: 8198}
+)
+
+// complete fills in what the section named key leaves out from def and
+// checks the port.
+func (w *Web) complete(key string, def Web) error {
+	if w.BaseURL == "" {
+		w.BaseURL = def.BaseURL
+	}
+	if w.Port == 0 {
+		w.Port = def.Port
+	}
+	if w.Port < 1 || w.Port > 65535 {
+		return fmt.Errorf("%s: port %d is not a TCP port (want 1 to 65535)", key, w.Port)
+	}
+	return nil
 }
 
 // Format is how a render is produced.
@@ -202,6 +244,12 @@ func (c *Config) complete() error {
 	}
 	if c.Vars == nil {
 		c.Vars = map[string]string{}
+	}
+	if err := c.Web.complete("web", DefaultWeb); err != nil {
+		return err
+	}
+	if err := c.Preview.complete("preview", DefaultPreview); err != nil {
+		return err
 	}
 	if len(c.Formats) == 0 {
 		c.Formats = Entries[Format]{
