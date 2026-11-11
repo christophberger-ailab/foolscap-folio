@@ -17,6 +17,9 @@
 //	topics:
 //	  calltaker: {cover: "assets/covers/calltaker{suffix}.png"}
 //	  sysadmin:  {folder: systemadministration, audiences: [std]}
+//	web:
+//	  baseurl: localhost
+//	  port: 8200
 //
 // A render addresses one point of the topic × format × audience matrix. The
 // selected format and audience decide which conditional blocks of the
@@ -89,7 +92,22 @@ type Config struct {
 	Formats   Entries[Format]   `yaml:"formats"`
 	Audiences Entries[Audience] `yaml:"audiences"`
 	Topics    Entries[Topic]    `yaml:"topics"`
+
+	Web Web `yaml:"web"`
 }
+
+// Web is where `folio web` listens when it is started on this project.
+// Unlike the rest of the file it is not about rendering, but it is the
+// project's: two projects served side by side each keep their own port.
+type Web struct {
+	// BaseURL is the host name or IP address. Default "localhost".
+	BaseURL string `yaml:"baseurl"`
+	// Port is the TCP port. Default 8199.
+	Port int `yaml:"port"`
+}
+
+// DefaultWeb is the listen address of a project that names none.
+var DefaultWeb = Web{BaseURL: "localhost", Port: 8199}
 
 // Format is how a render is produced.
 type Format struct {
@@ -202,6 +220,15 @@ func (c *Config) complete() error {
 	}
 	if c.Vars == nil {
 		c.Vars = map[string]string{}
+	}
+	if c.Web.BaseURL == "" {
+		c.Web.BaseURL = DefaultWeb.BaseURL
+	}
+	if c.Web.Port == 0 {
+		c.Web.Port = DefaultWeb.Port
+	}
+	if c.Web.Port < 1 || c.Web.Port > 65535 {
+		return fmt.Errorf("web: port %d is not a TCP port (want 1 to 65535)", c.Web.Port)
 	}
 	if len(c.Formats) == 0 {
 		c.Formats = Entries[Format]{

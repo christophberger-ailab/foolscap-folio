@@ -33,8 +33,7 @@ Everything `folio web` remembers lives in one file: `<user config dir>/folio/con
 - the active preview stylesheet,
 - the copyediting tasks and connections (including API keys),
 - the external editor command lines,
-- the name your comments are signed with (`user: name:`),
-- the host and port `folio web` listens on (`web: baseurl:` and `web: port:`).
+- the name your comments are signed with (`user: name:`).
 
 It is readable by you alone because of the keys. The file is created with defaults on the first run. Older JSON settings files are carried over once and renamed to `*.migrated`.
 
