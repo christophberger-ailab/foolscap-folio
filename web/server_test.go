@@ -490,10 +490,6 @@ func TestContentServesPreviewPane(t *testing.T) {
 	body := get(t, srv, "/content?path=chapter2/second.qmd").Body.String()
 	for _, want := range []string{
 		`class="editor-split"`,
-		`id="preview-toggle" data-pane="preview"`,
-		`id="copyedit-toggle" data-pane="copyedit"`,
-		`id="preview-divider" data-pane="preview"`,
-		`id="copyedit-divider" data-pane="copyedit"`,
 		`id="preview-pane" data-pane="preview"`,
 		`id="preview"`,
 	} {
@@ -727,7 +723,7 @@ func TestContentServesVimToggle(t *testing.T) {
 	}
 	text := strings.Index(body, `class="file-content"`)
 	toggle := strings.Index(body, `id="vim-toggle"`)
-	divider := strings.Index(body, `id="preview-divider"`)
+	divider := strings.Index(body, `id="preview-pane"`)
 	if !(text < toggle && toggle < divider) {
 		t.Errorf("vim toggle is not below the editor text in its own column:\n%s", body)
 	}

@@ -308,250 +308,159 @@ function initDivider(dividerID, paneID, key, side) {
 
 // The panes beside the editor
 //
-// The Markdown preview and the copyediting tool both work on the text the
-// editor holds; the help stands beside them. Each is shown or hidden on its
-// own; those shown stand side by side, in the order the user dragged them
-// into. Which are
-// shown, their order, and their widths are kept in localStorage: the editor
-// pane is re-rendered on every page switch, and the layout should outlive
-// that -- and the session.
-//
-// The panes and their dividers never move in the DOM; the CSS order
-// property places them. Each pane's divider sits on its left and resizes
-// it against whatever stands left of it: the editor, or another pane.
-
-var SIDE_PANES = {
-  preview: { pane: 'preview-pane', divider: 'preview-divider', open: 'previewOpen', width: 'previewPaneWidth' },
-  copyedit: { pane: 'copyedit', divider: 'copyedit-divider', open: 'copyeditOpen', width: 'copyeditPaneWidth' },
-  help: { pane: 'help-pane', divider: 'help-divider', open: 'helpOpen', width: 'helpPaneWidth' }
-};
-
-var PANE_ORDER_KEY = 'paneOrder';
-
-var paneOpen = {
-  preview: localStorage.getItem(SIDE_PANES.preview.open) !== 'closed',
-  // Before the panes were separate, the copyedit pane was a tab beside the
-  // preview's; one left up is taken as the wish to see it.
-  copyedit: localStorage.getItem(SIDE_PANES.copyedit.open) === null
-    ? localStorage.getItem('paneTab') === 'copyedit'
-    : localStorage.getItem(SIDE_PANES.copyedit.open) === 'open',
-  help: localStorage.getItem(SIDE_PANES.help.open) === 'open'
-};
-
-// paneOrder is the stored order, with a pane it does not name -- one added
-// since the order was saved -- appended at the end.
-var paneOrder = (function () {
-  var order = (localStorage.getItem(PANE_ORDER_KEY) || '').split(',').filter(function (name, i, all) {
-    return SIDE_PANES[name] && all.indexOf(name) === i;
-  });
-  Object.keys(SIDE_PANES).forEach(function (name) {
-    if (order.indexOf(name) < 0) {
-      order.push(name);
-    }
-  });
-  return order;
-})();
+// The panes stand in the dock (dock.js), which says where each stands and
+// which are in view. What they show is wired here: a pane brings itself up
+// to date when it comes into view -- dock.js fires folio-shown at it then
+// -- and while it is in view, as the editor's text changes.
 
 var previewTimer = null;
+var commentsTimer = null;
 
-function sidePane(name) {
-  return document.getElementById(SIDE_PANES[name].pane);
-}
-
-function visiblePanes() {
-  return paneOrder.filter(function (name) { return paneOpen[name]; });
-}
-
-// paneWidth is the saved width of a pane, in percent of the split.
-function paneWidth(name) {
-  var saved = parseFloat(localStorage.getItem(SIDE_PANES[name].width));
-  return saved > 0 ? saved : 0;
-}
-
-// applyLayout shows the panes that are open, in their order and at their
-// widths, and marks the toggle buttons to match.
-function applyLayout() {
-  var visible = visiblePanes();
-  // Widths saved while one pane stood alone may not leave the editor room
-  // once both are shown; they are scaled down together rather than
-  // crowding it out.
-  var widths = {};
-  var total = 0;
-  visible.forEach(function (name) {
-    widths[name] = paneWidth(name) || (visible.length > 1 ? 30 : 45);
-    total += widths[name];
-  });
-  var scale = total > 70 ? 70 / total : 1;
-  paneOrder.forEach(function (name, i) {
-    var pane = sidePane(name);
-    var divider = document.getElementById(SIDE_PANES[name].divider);
-    var open = paneOpen[name];
-    if (pane) {
-      pane.hidden = !open;
-      pane.style.order = String(2 * i + 2);
-      if (open) {
-        pane.style.width = (widths[name] * scale) + '%';
-      }
-    }
-    if (divider) {
-      divider.hidden = !open;
-      divider.style.order = String(2 * i + 1);
-    }
-  });
-  document.querySelectorAll('.pane-toggle').forEach(function (button) {
-    button.setAttribute('aria-pressed', paneOpen[button.dataset.pane] ? 'true' : 'false');
-  });
-}
-
-// applyPreview brings the panes and their toggle buttons in line with the
-// layout. It runs after every swap that replaces the editor, both on
-// afterSwap (so nothing flashes) and on afterSettle (which restores the
-// swapped-in elements' attributes, including style and aria-pressed).
+// applyPreview lays the dock out with the panes now in the page. It runs
+// after every swap that replaces the editor, once the editor is mounted,
+// since the panes coming into view read the editor's text.
 function applyPreview() {
-  applyLayout();
   applyTaskSelection(); // the pane comes with the editor, ticks and all
-  if (paneOpen.preview) {
+  renderDock();
+}
+
+document.addEventListener('folio-shown', function (evt) {
+  var name = evt.target.dataset && evt.target.dataset.pane;
+  if (name === 'preview') {
     updatePreview();
   }
-  if (paneOpen.help) {
-    showHelp(helpPage, false); // the pane came back empty with the editor
+  if (name === 'help') {
+    showHelp(helpPage, false); // the pane came back empty, or was moved
   }
-}
-
-// togglePane shows or hides one of the panes beside the editor.
-function togglePane(name) {
-  if (!SIDE_PANES[name]) {
-    return;
+  if (name === 'comments') {
+    updateComments();
   }
-  paneOpen[name] = !paneOpen[name];
-  localStorage.setItem(SIDE_PANES[name].open, paneOpen[name] ? 'open' : 'closed');
-  applyPreview();
-  refreshEditor(); // the editor just gained or lost room
-}
-
-// Dragging a pane's divider resizes the pane against its left neighbour:
-// against the editor, which takes up the difference, or against the other
-// pane, the two then trading width while the editor keeps its own.
-document.addEventListener('pointerdown', function (evt) {
-  var divider = evt.target.closest && evt.target.closest('.split-divider');
-  if (!divider || evt.button !== 0) {
-    return;
-  }
-  var name = divider.dataset.pane;
-  var pane = sidePane(name);
-  var split = document.getElementById('editor-split');
-  if (!pane || !split) {
-    return;
-  }
-  var visible = visiblePanes();
-  var at = visible.indexOf(name);
-  var leftName = at > 0 ? visible[at - 1] : null;
-  var left = leftName ? sidePane(leftName) : split.querySelector('.edit-form');
-  if (!left) {
-    return;
-  }
-
-  evt.preventDefault();
-  divider.setPointerCapture(evt.pointerId);
-  divider.classList.add('dragging');
-
-  var splitWidth = split.getBoundingClientRect().width;
-  var startX = evt.clientX;
-  var startPane = pane.getBoundingClientRect().width;
-  var startLeft = left.getBoundingClientRect().width;
-  var minPane = parseFloat(getComputedStyle(pane).minWidth) || 0;
-  var minLeft = parseFloat(getComputedStyle(left).minWidth) || 0;
-
-  function onMove(e) {
-    var dx = e.clientX - startX;
-    var total = startLeft + startPane;
-    var leftWidth = Math.max(minLeft, Math.min(startLeft + dx, total - minPane));
-    pane.style.width = ((total - leftWidth) / splitWidth * 100) + '%';
-    if (leftName) {
-      left.style.width = (leftWidth / splitWidth * 100) + '%';
-    }
-    refreshEditor(); // CodeMirror measures its own width
-  }
-
-  function onUp() {
-    divider.removeEventListener('pointermove', onMove);
-    divider.removeEventListener('pointerup', onUp);
-    divider.removeEventListener('pointercancel', onUp);
-    divider.classList.remove('dragging');
-    localStorage.setItem(SIDE_PANES[name].width, parseFloat(pane.style.width));
-    if (leftName) {
-      localStorage.setItem(SIDE_PANES[leftName].width, parseFloat(left.style.width));
-    }
-  }
-
-  divider.addEventListener('pointermove', onMove);
-  divider.addEventListener('pointerup', onUp);
-  divider.addEventListener('pointercancel', onUp);
 });
 
-// Dragging one pane's head onto another pane swaps the two.
-var draggedPane = null;
+// The comments pane
+//
+// The comments pane lists the comments of the page in the editor, read
+// out of the editor's text the way the editor and the preview read them
+// (findCommentMarkers): each with who wrote it and when, its text, the
+// passage it is about, and its replies. A click on one puts the cursor at
+// the start of its text in the editor, as a click on its passage in the
+// preview does; Reply and Remove do what the editor's rail does for the
+// comment the cursor is in, so they go through the same code.
 
-function clearPaneDrag() {
-  document.querySelectorAll('.side-pane.pane-dragging, .side-pane.pane-drop-target').forEach(function (el) {
-    el.classList.remove('pane-dragging', 'pane-drop-target');
+// commentPassage is the commented text, without the markers of any comment
+// inside it, in one line and cut short.
+function commentPassage(text, start) {
+  var last = start.replies.length ? start.replies[start.replies.length - 1] : start;
+  if (!start.end) {
+    return '';
+  }
+  var passage = text.slice(last.to, start.end.from).replace(/<!--[\s\S]*?-->/g, '').replace(/\s+/g, ' ').trim();
+  return passage.length > 160 ? passage.slice(0, 159) + '…' : passage;
+}
+
+function commentByline(marker) {
+  return [marker.author, marker.date].filter(Boolean).join(' · ');
+}
+
+// updateComments lists the comments of the page in the editor anew.
+function updateComments() {
+  var list = document.getElementById('comments-list');
+  if (!list) {
+    return;
+  }
+  var editor = document.querySelector('#content textarea.file-content');
+  list.innerHTML = '';
+  if (!editor) {
+    list.appendChild(emptyNote('Open a page to see its comments.'));
+    return;
+  }
+  var text = editor.value;
+  var markers = findCommentMarkers(text);
+  pairCommentMarkers(markers);
+  var starts = markers.filter(function (m) { return m.kind === 'start'; });
+  if (!starts.length) {
+    list.appendChild(emptyNote('No comments on this page. Select text in the editor and press + or Ctrl-Alt-M to add one.'));
+    return;
+  }
+  var head = document.createElement('p');
+  head.className = 'comments-count';
+  head.textContent = starts.length === 1 ? '1 comment' : starts.length + ' comments';
+  list.appendChild(head);
+  var ol = document.createElement('ol');
+  ol.className = 'comments-entries';
+  starts.forEach(function (start, i) {
+    var li = document.createElement('li');
+    li.className = 'comments-entry';
+    li.dataset.comment = String(i);
+    li.title = 'Show this comment in the editor';
+    var by = commentByline(start);
+    if (by) {
+      li.appendChild(textBlock('div', 'comments-byline', by));
+    }
+    li.appendChild(textBlock('p', 'comments-text', start.text || '(empty comment)'));
+    var passage = commentPassage(text, start);
+    if (passage) {
+      li.appendChild(textBlock('blockquote', 'comments-passage', passage));
+    }
+    if (start.replies.length) {
+      var replies = document.createElement('ul');
+      replies.className = 'comments-replies';
+      start.replies.forEach(function (reply) {
+        var r = document.createElement('li');
+        var rby = commentByline(reply);
+        if (rby) {
+          r.appendChild(textBlock('div', 'comments-byline', rby));
+        }
+        r.appendChild(textBlock('p', 'comments-text', reply.text || '(empty reply)'));
+        replies.appendChild(r);
+      });
+      li.appendChild(replies);
+    }
+    var actions = document.createElement('div');
+    actions.className = 'comments-actions';
+    actions.appendChild(textBlock('button', 'comments-reply', 'Reply'));
+    actions.appendChild(textBlock('button', 'comments-remove', 'Remove'));
+    actions.firstChild.type = 'button';
+    actions.firstChild.title = 'Write a reply to this comment in the editor';
+    actions.lastChild.type = 'button';
+    actions.lastChild.title = 'Remove this comment and its replies; the commented text stays';
+    li.appendChild(actions);
+    ol.appendChild(li);
   });
+  list.appendChild(ol);
 }
 
-document.addEventListener('dragstart', function (evt) {
-  var head = evt.target.closest && evt.target.closest('.side-pane-head');
-  if (!head) {
-    return;
-  }
-  var pane = head.closest('.side-pane');
-  draggedPane = pane.dataset.pane;
-  evt.dataTransfer.effectAllowed = 'move';
-  // A type of its own, so the editor does not take the drop for text.
-  evt.dataTransfer.setData('application/x-folio-pane', draggedPane);
-  pane.classList.add('pane-dragging');
-});
-
-function paneDropTarget(evt) {
-  var target = draggedPane && evt.target.closest && evt.target.closest('.side-pane');
-  return target && target.dataset.pane !== draggedPane ? target : null;
+function textBlock(tag, cls, text) {
+  var el = document.createElement(tag);
+  el.className = cls;
+  el.textContent = text;
+  return el;
 }
 
-document.addEventListener('dragover', function (evt) {
-  var target = paneDropTarget(evt);
-  if (target) {
-    evt.preventDefault();
-    evt.dataTransfer.dropEffect = 'move';
-    target.classList.add('pane-drop-target');
-  }
-});
+function emptyNote(text) {
+  return textBlock('p', 'empty', text);
+}
 
-document.addEventListener('dragleave', function (evt) {
-  var target = paneDropTarget(evt);
-  if (target && !target.contains(evt.relatedTarget)) {
-    target.classList.remove('pane-drop-target');
-  }
-});
-
-document.addEventListener('drop', function (evt) {
-  var target = paneDropTarget(evt);
-  if (!target) {
+// scheduleComments coalesces the keystrokes of fast typing into one list.
+function scheduleComments() {
+  if (!paneShown('comments')) {
     return;
   }
-  evt.preventDefault();
-  var from = paneOrder.indexOf(draggedPane);
-  var to = paneOrder.indexOf(target.dataset.pane);
-  paneOrder[from] = target.dataset.pane;
-  paneOrder[to] = draggedPane;
-  localStorage.setItem(PANE_ORDER_KEY, paneOrder.join(','));
-  draggedPane = null;
-  clearPaneDrag();
-  applyLayout();
-  refreshEditor();
-});
+  clearTimeout(commentsTimer);
+  commentsTimer = setTimeout(updateComments, 300);
+}
 
-document.addEventListener('dragend', function () {
-  draggedPane = null;
-  clearPaneDrag();
+document.addEventListener('click', function (evt) {
+  var entry = evt.target.closest && evt.target.closest('#comments-list .comments-entry');
+  if (!entry) {
+    return;
+  }
+  focusComment(Number(entry.dataset.comment));
+  if (evt.target.closest('.comments-reply')) {
+    replyToComment();
+  } else if (evt.target.closest('.comments-remove')) {
+    removeComment();
+  }
 });
 
 // The help pane
@@ -781,7 +690,7 @@ function updatePreview() {
 
 // schedulePreview coalesces the keystrokes of fast typing into one render.
 function schedulePreview() {
-  if (!paneOpen.preview) {
+  if (!paneShown('preview')) {
     return;
   }
   clearTimeout(previewTimer);
@@ -791,6 +700,7 @@ function schedulePreview() {
 document.body.addEventListener('input', function (evt) {
   if (evt.target.classList.contains('file-content')) {
     schedulePreview();
+    scheduleComments();
   }
   if (evt.target.id === 'search-input') {
     // The field asks for its own hits; this only remembers the query.
@@ -1344,7 +1254,7 @@ function pageLinks() {
 // pageNeighbour is the tree entry step places away from the open page, or
 // null when there is none: at either end of the book, and whenever the
 // editor holds something the tree does not list, such as a file opened from
-// the Git panel.
+// the Git pane.
 function pageNeighbour(step) {
   var links = pageLinks();
   var at = -1;
@@ -1885,7 +1795,7 @@ document.addEventListener('DOMContentLoaded', function () {
   initSearch();
 });
 
-// The Git panel's filter. Every operation swaps the whole panel body, the
+// The Git pane's filter. Every operation swaps the whole pane body, the
 // field included, so the text lives here and is put back after each swap;
 // a filter that emptied itself whenever a file was staged would have to
 // be typed again for the next one.
@@ -1998,9 +1908,8 @@ document.body.addEventListener('htmx:afterSettle', function (evt) {
   if (id === 'main') {
     initDivider('divider', 'tree-pane', 'treePaneWidth', 'left');
   }
-  if (id === 'content' || id === 'main') { // the editor/pane split comes with the editor
-    applyPreview();
-    refreshEditor(); // the saved pane widths have just been applied
+  if (id === 'content' || id === 'main') { // dock.js puts the panes back in order
+    refreshEditor();
   }
 });
 
@@ -2097,20 +2006,13 @@ document.body.addEventListener('click', function (evt) {
     return;
   }
 
-  // The Preview, Copyedit, and Help buttons: show or hide that pane.
-  var toggle = evt.target.closest('.pane-toggle');
-  if (toggle) {
-    togglePane(toggle.dataset.pane);
-    return;
-  }
-
   // Vim toggle: switch the editor's keymap.
   if (evt.target.closest('#vim-toggle')) {
     toggleVim();
     return;
   }
 
-  // A path in the Git panel: htmx fetches the diff into the pane; the
+  // A path in the Git pane: htmx fetches the diff into the pane; the
   // mark is what says whose diff is standing there, since the pane keeps
   // showing it while the user reads on down the list.
   var gitPath = evt.target.closest('.git-path');
@@ -2135,15 +2037,10 @@ document.body.addEventListener('click', function (evt) {
     return;
   }
 
-  // "Open in editor": htmx puts the file in the editor pane, which the
-  // popup covers, so the popup closes; the tree marks the page as the one
-  // open, the way clicking it there would have.
+  // "Open in editor": htmx puts the file in the editor; the tree marks the
+  // page as the one open, the way clicking it there would have.
   var openInEditor = evt.target.closest('.git-diff-open');
   if (openInEditor) {
-    var details = document.getElementById('git-details');
-    if (details) {
-      details.open = false;
-    }
     currentPath = openInEditor.dataset.path || null;
     applySelection();
     return;
@@ -2392,36 +2289,11 @@ document.body.addEventListener('htmx:confirm', function (evt) {
   }
 });
 
-// The same for a reload or a closed tab, which htmx never sees.
-// The Render and Git popups hang below their own buttons. One that would
-// reach past the window's right edge is pulled back to the left by as much,
-// so it opens under its button where it can and inside the window always.
-function fitPopup(details) {
-  var body = details.querySelector(':scope > .render-body, :scope > .git-body');
-  if (!body) {
-    return;
-  }
-  body.style.left = '';
-  var margin = 8;
-  var rect = body.getBoundingClientRect();
-  var over = rect.right - (document.documentElement.clientWidth - margin);
-  if (over > 0) {
-    body.style.left = -Math.min(over, rect.left - margin) + 'px';
-  }
-}
-
-// toggle does not bubble, so it is listened for on the way down.
-document.addEventListener('toggle', function (evt) {
-  var details = evt.target;
-  if (details.open && details.matches && details.matches('details.render, details.git')) {
-    fitPopup(details);
-  }
-}, true);
-
 // Leaving for the config pages reloads the app when coming back; the run in
 // the copyedit pane is kept for that as for any other page switch.
 window.addEventListener('pagehide', stashSuggestions);
 
+// The same for a reload or a closed tab, which htmx never sees.
 window.addEventListener('beforeunload', function (evt) {
   if (saveFailed) {
     evt.preventDefault();

@@ -1,6 +1,6 @@
 # The Markdown preview
 
-The preview shows the page you are editing, updated as you type. Show or hide it with the `Preview` button (see [the panes](panes.md)).
+The preview shows the page you are editing, updated as you type. Bring it to the front with its `Preview` tab (see [the panes](panes.md)).
 
 The preview is an approximation. It is drawn in the browser from your Markdown and is not a render, so use [Rendering](render.md) for the real result.
 

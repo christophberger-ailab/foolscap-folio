@@ -10,12 +10,12 @@ Everything runs on your own machine. The page tree and the editor work on the `.
 - [Opening projects](projects.md): start `folio web`, open a project with the folder dialog, and use the recent projects list.
 - [The page tree](tree.md): website order, drag and drop, creating and deleting pages, drafts, status marks, hiding pages.
 - [Editing a page](editor.md): autosave, conflicts, Vim mode, and link completion.
-- [The panes beside the editor](panes.md): show, hide, swap, and resize the preview, copyedit, and help panes.
+- [The panes beside the editor](panes.md): tabs for the preview, copyedit, comments, render, Git, and help panes, arranged side by side or stacked.
 - [The Markdown preview](preview.md): what the preview shows, images, target groups, and custom CSS.
 - [Copyediting with an LLM](copyedit.md): editing tasks, API connections, and working through suggestions.
 - [Searching](search.md): find pages by the words in them.
 - [Rendering](render.md): choose topics, audiences, and formats, and run a render.
-- [The Git panel](git.md): stage, commit, push, and read diffs.
+- [The Git pane](git.md): stage, commit, push, and read diffs.
 - [Opening files in other editors](external-editor.md): hand the project or an image to another program.
 - [Config pages and the settings file](settings.md): where your settings live and how to edit them.
 - [The folio command line in brief](commands.md): the other commands of `folio`.

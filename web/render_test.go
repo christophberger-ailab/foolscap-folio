@@ -323,12 +323,12 @@ func TestRenderSelectionPersistsPerProject(t *testing.T) {
 		t.Errorf("deselected format restored as checked:\n%s", body)
 	}
 
-	// A different project keeps its own selection. /open swaps #main, which
-	// does not reach the header, so the panel comes along out of band.
+	// A different project keeps its own selection. /open swaps #main, and
+	// the render pane comes along with it.
 	other := fixture(t)
 	rec := post(t, srv2, "/open", url.Values{"path": {other}})
-	if !strings.Contains(rec.Body.String(), `hx-swap-oob="innerHTML:#render-panel"`) {
-		t.Errorf("open did not refresh the render panel:\n%s", rec.Body)
+	if !strings.Contains(rec.Body.String(), `id="render-pane"`) {
+		t.Errorf("open did not refresh the render pane:\n%s", rec.Body)
 	}
 	if strings.Contains(rec.Body.String(), `name="book" value="chapter2" checked`) {
 		t.Errorf("selection leaked into another project:\n%s", rec.Body)

@@ -1,6 +1,6 @@
 # Rendering
 
-The `Render` button in the top bar opens the render panel. It runs the same flow as the `folio render` command, so both produce identical output (see [the command line](commands.md)).
+The `Render` tab beside the editor shows the render pane (see [the panes](panes.md)). It runs the same flow as the `folio render` command, so both produce identical output (see [the command line](commands.md)).
 
 ## The matrix
 
@@ -16,14 +16,14 @@ A website format is the exception to "once per topic": it covers all checked top
 
 Your selection is remembered for each project in the [settings file](settings.md).
 
-If `folio.yml` cannot be read, the panel shows the error instead of the matrix. Fix the file and reopen the panel.
+If `folio.yml` cannot be read, the pane shows the error instead of the matrix. Fix the file and reload the app.
 
 ## Running
 
 1. Check what you want.
-2. Press `Render` at the bottom of the panel.
+2. Press `Render` at the bottom of the pane.
 
-The render runs in the background. The panel shows the log and updates it every second while it runs. At the end it says `Done` or `Render failed`.
+The render runs in the background. The pane shows the log and updates it every second while it runs. At the end it says `Done` or `Render failed`.
 
 - Only one render runs at a time.
 - The log follows the newest line. Scroll up to stop following and hold your place; scroll back to the bottom or start a new render to follow again.

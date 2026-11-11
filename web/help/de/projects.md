@@ -35,7 +35,7 @@ Die obere Leiste zeigt den Titel des offenen Projekts, dann `Open`, dann `↻ Re
 - `Esc` oder `Cancel` schließt den Dialog.
 - `↻ Reload` liest die offene Seite und den Baum neu von der Platte.
 
-Beim Öffnen eines Projekts wird alles aktualisiert, was dazugehört: der Seitenbaum, die Bereiche, das Render-Panel, das Git-Panel und die Schaltfläche Editor.
+Beim Öffnen eines Projekts wird alles aktualisiert, was dazugehört: der Seitenbaum, die Bereiche, darunter Render und Git, und die Schaltfläche Editor.
 
 Die Liste der zuletzt geöffneten Projekte steht in der [Einstellungsdatei](settings.md).
 
