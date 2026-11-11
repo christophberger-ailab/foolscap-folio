@@ -91,3 +91,12 @@ func TestCheckFences(t *testing.T) {
 		})
 	}
 }
+
+// Plain .md pages are linted like .qmd pages.
+func TestRunLintsMarkdownPages(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "index.md"), "::: open\nnever closed\n")
+	if err := Run(root, "", ""); err == nil {
+		t.Error("an unbalanced fence in index.md went unreported")
+	}
+}

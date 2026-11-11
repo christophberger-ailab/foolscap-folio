@@ -7,6 +7,8 @@ import (
 	"path"
 	"slices"
 	"strings"
+
+	"github.com/christophberger-ailab/foolscap-folio/internal/config"
 )
 
 // completeEntry is one candidate the editor's path completion offers: a
@@ -69,7 +71,7 @@ func (s *server) complete(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 		case "page":
-			if ext != ".qmd" {
+			if !config.IsContentFile(name) {
 				continue
 			}
 		}

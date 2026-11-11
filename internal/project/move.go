@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/christophberger-ailab/foolscap-folio/internal/config"
 )
 
 // Rename records a path that a Move moved on disk. From and To are
@@ -95,15 +97,15 @@ func (t *Tree) Move(src, parent string, pos int) ([]Rename, error) {
 // depth difference. It returns the page's new path and the renames it made.
 func (t *Tree) reparent(sp *Page, destDir string, destDepth int) (string, []Rename, error) {
 	src := sp.Path
-	// The unit to move: an index.qmd section moves its directory; anything
+	// The unit to move: an index page section moves its directory; anything
 	// else moves the file, plus its resource/children directory if present.
 	var renames []Rename
 	var newPath string
-	if base := path.Base(src); base == "index.qmd" {
+	if base := path.Base(src); isIndexPage(src) {
 		dir := path.Dir(src)
 		newDir := join(destDir, path.Base(dir))
 		renames = append(renames, Rename{dir, newDir})
-		newPath = newDir + "/index.qmd"
+		newPath = newDir + "/" + base
 	} else {
 		newPath = join(destDir, base)
 		renames = append(renames, Rename{src, newPath})
@@ -143,11 +145,11 @@ func (t *Tree) reparent(sp *Page, destDir string, destDepth int) (string, []Rena
 	return newPath, renames, nil
 }
 
-// shiftHeadingsBelow shifts headings in the .qmd file at abs, or in all
-// .qmd files below it if abs is a directory.
+// shiftHeadingsBelow shifts headings in the .qmd or .md file at abs, or in
+// all such files below it if abs is a directory.
 func shiftHeadingsBelow(abs string, delta int) error {
 	return filepath.WalkDir(abs, func(p string, d os.DirEntry, err error) error {
-		if err != nil || d.IsDir() || !strings.HasSuffix(p, ".qmd") {
+		if err != nil || d.IsDir() || !config.IsContentFile(p) {
 			return err
 		}
 		src, err := os.ReadFile(p)
@@ -208,12 +210,12 @@ func (t *Tree) CreatePageAfter(after, name, title string) (string, error) {
 // newPageFile writes destDir/name/index.qmd with title and order
 // frontmatter and returns its path.
 func (t *Tree) newPageFile(destDir, name, title string, order int) (string, error) {
-	name = strings.TrimSuffix(strings.ReplaceAll(strings.TrimSpace(name), " ", "-"), ".qmd")
+	name = stem(strings.ReplaceAll(strings.TrimSpace(name), " ", "-"))
 	if name == "" || strings.ContainsAny(name, `/\`) || strings.HasPrefix(name, "_") || strings.HasPrefix(name, ".") {
 		return "", fmt.Errorf("invalid page name %q", name)
 	}
 	dir := join(destDir, name)
-	for _, taken := range []string{dir, dir + ".qmd"} {
+	for _, taken := range []string{dir, dir + ".qmd", dir + ".md"} {
 		if _, err := os.Stat(t.abs(taken)); err == nil {
 			return "", fmt.Errorf("%s already exists", taken)
 		}
@@ -234,7 +236,7 @@ func (t *Tree) DeletePage(p string) error {
 		return fmt.Errorf("page %s not found", p)
 	}
 	var victims []string
-	if path.Base(p) == "index.qmd" && path.Dir(p) != "." {
+	if isIndexPage(p) && path.Dir(p) != "." {
 		victims = []string{t.abs(path.Dir(p))}
 	} else {
 		victims = []string{t.abs(p)}
@@ -247,13 +249,13 @@ func (t *Tree) DeletePage(p string) error {
 
 // RenamePage gives the page at p a new name in the directory it is in.
 //
-// A page in a file of its own (name.qmd) gets the file name name; a
-// missing .qmd extension is added, and its children directory (name/ next
-// to name.qmd) is renamed along with it, so the children stay with their
-// page. A section page (name/index.qmd), which is how pages are created,
-// is named by its directory: the directory is renamed, taking the section's
-// pages along, and index.qmd keeps its name. The project's own index.qmd
-// has no name to change. The page's frontmatter and headings are left as
+// A page in a file of its own (name.qmd or name.md) gets the file name
+// name, keeping its extension, and its children directory (name/ next to
+// the file) is renamed along with it, so the children stay with their
+// page. A section page (name/index.qmd or name/index.md), which is how
+// pages are created, is named by its directory: the directory is renamed,
+// taking the section's pages along, and the index page keeps its name. The
+// project's own index page has no name to change. The page's frontmatter and headings are left as
 // they are: the page keeps its place in the tree.
 //
 // It returns the renames it performed, like Move; renaming a page to the
@@ -263,28 +265,28 @@ func (t *Tree) RenamePage(p, name string) ([]Rename, error) {
 	if sp == nil {
 		return nil, fmt.Errorf("page %s not found", p)
 	}
-	section := path.Base(p) == "index.qmd"
+	section := isIndexPage(p)
 	if section && path.Dir(p) == "." {
-		return nil, fmt.Errorf("the project's own index.qmd cannot be renamed")
+		return nil, fmt.Errorf("the project's own %s cannot be renamed", path.Base(p))
 	}
-	stem := strings.TrimSuffix(strings.TrimSpace(name), ".qmd")
-	if stem == "" || strings.ContainsAny(stem, `/\`) || strings.HasPrefix(stem, "_") || strings.HasPrefix(stem, ".") {
+	newName := stem(strings.TrimSpace(name))
+	if newName == "" || strings.ContainsAny(newName, `/\`) || strings.HasPrefix(newName, "_") || strings.HasPrefix(newName, ".") {
 		return nil, fmt.Errorf("invalid name %q", name)
 	}
-	if stem == "index" {
-		return nil, fmt.Errorf("index.qmd is reserved for a section's own page")
+	if newName == "index" {
+		return nil, fmt.Errorf("index.qmd and index.md are reserved for a section's own page")
 	}
 
 	var renames []Rename
 	var newDir string // the children directory the new name implies
 	if section {
 		dir := path.Dir(p)
-		newDir = join(path.Dir(dir), stem)
+		newDir = join(path.Dir(dir), newName)
 		renames = []Rename{{dir, newDir}}
 	} else {
 		dir := path.Dir(p)
-		newDir = join(dir, stem)
-		renames = []Rename{{p, newDir + ".qmd"}}
+		newDir = join(dir, newName)
+		renames = []Rename{{p, newDir + path.Ext(p)}}
 		if fi, err := os.Stat(t.abs(sp.Dir)); err == nil && fi.IsDir() {
 			renames = append(renames, Rename{sp.Dir, newDir})
 		}
@@ -296,7 +298,7 @@ func (t *Tree) RenamePage(p, name string) ([]Rename, error) {
 	// directory already there would make a renamed file the section of
 	// pages that are not its children, and a file already there would
 	// compete with a renamed section for the same name.
-	for _, r := range []Rename{{sp.Dir, newDir}, {p, newDir + ".qmd"}} {
+	for _, r := range []Rename{{sp.Dir, newDir}, {p, newDir + path.Ext(p)}} {
 		// A rename that changes only the case finds the page itself on a
 		// case-insensitive file system; that is not a collision.
 		if to, err := os.Stat(t.abs(r.To)); err == nil {
@@ -360,7 +362,7 @@ func (t *Tree) resolveParent(parent string) (string, []*Page, int, error) {
 // groupDir returns the directory of the sibling group a page path belongs to.
 func groupDir(p string) string {
 	d := path.Dir(p)
-	if path.Base(p) == "index.qmd" && d != "." {
+	if isIndexPage(p) && d != "." {
 		return path.Dir(d)
 	}
 	return d
@@ -433,4 +435,17 @@ func join(dir, name string) string {
 		return name
 	}
 	return dir + "/" + name
+}
+
+// isIndexPage reports whether p is an index.qmd or index.md page.
+func isIndexPage(p string) bool {
+	return stem(path.Base(p)) == "index" && config.IsContentFile(p)
+}
+
+// stem returns name without a .qmd or .md extension.
+func stem(name string) string {
+	if config.IsContentFile(name) {
+		return strings.TrimSuffix(name, path.Ext(name))
+	}
+	return name
 }

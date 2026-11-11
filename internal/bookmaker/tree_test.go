@@ -1,6 +1,7 @@
 package bookmaker
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -153,5 +154,40 @@ func TestHumanise(t *testing.T) {
 		if got := humanise(tc.in); got != tc.want {
 			t.Errorf("humanise(%q) = %q, want %q", tc.in, got, tc.want)
 		}
+	}
+}
+
+// .md pages make up a book just like .qmd pages, and a folder with neither
+// is an error rather than a nil tree.
+func TestLoadTreeMarkdown(t *testing.T) {
+	dir := t.TempDir()
+	for rel, content := range map[string]string{
+		"book/index.md":     "---\ntitle: Book\n---\n",
+		"book/a.qmd":        "---\ntitle: A\norder: 1\n---\n",
+		"book/sub/index.md": "---\ntitle: Sub\norder: 2\n---\n",
+		"empty/notes.txt":   "x",
+	} {
+		p := filepath.Join(dir, filepath.FromSlash(rel))
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	root, err := LoadTree(filepath.Join(dir, "book"), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var titles []string
+	root.Walk(func(n *Node) { titles = append(titles, n.Title()) })
+	if got := strings.Join(titles, ","); got != "Book,A,Sub" {
+		t.Errorf("titles = %s, want Book,A,Sub", got)
+	}
+	if _, err := LoadTree(filepath.Join(dir, "empty"), dir); err == nil {
+		t.Error("LoadTree of a folder without pages: want an error")
+	}
+	if got, _ := BookFolders(dir); len(got) != 1 {
+		t.Errorf("BookFolders = %v, want only book", got)
 	}
 }
