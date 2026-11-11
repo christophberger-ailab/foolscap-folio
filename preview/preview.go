@@ -36,7 +36,6 @@ import (
 	"time"
 
 	"github.com/christophberger-ailab/foolscap-folio/internal/build"
-	"github.com/christophberger-ailab/foolscap-folio/internal/cli"
 	"github.com/christophberger-ailab/foolscap-folio/internal/config"
 	"github.com/christophberger-ailab/foolscap-folio/web"
 	"github.com/christophberger/start"
@@ -68,8 +67,8 @@ func Register(projectFlag *string) {
 			"project changes; open pages reload themselves. Usage: folio " +
 			"preview [<path>]. --topic, --format and --audience pick the site " +
 			"as for `folio render`; --addr sets the listen address.",
-		Flags: []string{"project", "addr", "topic", "format", "audience"},
-		Cmd:   cli.Guard(cmd),
+		Flags: []string{"addr", "topic", "format", "audience"},
+		Cmd:   cmd,
 	})
 }
 
