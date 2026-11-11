@@ -131,6 +131,11 @@ a:hover {
   flex-wrap: wrap;
   gap: 0.25em;
 }
+/* The list's gap spaces the entries; cancel the prose rule li + li,
+   whose top margin would push every entry but the first down. */
+.topics li {
+  margin: 0;
+}
 .topics a {
   display: block;
   padding: 0.35em 0.75em;
