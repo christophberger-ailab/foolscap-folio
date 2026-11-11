@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/christophberger-ailab/foolscap-folio/internal/cli"
 	"github.com/christophberger-ailab/foolscap-folio/internal/foliocore"
 	"github.com/christophberger/start"
 	"gopkg.in/yaml.v3"
@@ -21,14 +20,14 @@ var projectPath *string
 // Register adds the move subcommand to the given parent command.
 func Register(parent string, projectFlag *string) {
 	projectPath = projectFlag
-	cli.Add(&start.Command{
+	start.Add(&start.Command{
 		Name:   "move",
 		Parent: parent,
 		Short:  "Move a chapter to a new order position within its folder",
 		Long: "Move a chapter from its current order number to a new order " +
 			"number within the same folder. Other chapters are renumbered to " +
 			"close any gap and to make room at the new position.",
-		Cmd: cli.Guard(cmd),
+		Cmd: cmd,
 	})
 }
 

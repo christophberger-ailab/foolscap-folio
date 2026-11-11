@@ -17,7 +17,6 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/christophberger-ailab/foolscap-folio/internal/cli"
 	"github.com/christophberger-ailab/foolscap-folio/internal/foliocore"
 	"github.com/christophberger/start"
 	"gopkg.in/yaml.v3"
@@ -28,14 +27,14 @@ var projectPath *string
 // Register adds the insert subcommand to the given parent command.
 func Register(parent string, projectFlag *string) {
 	projectPath = projectFlag
-	cli.Add(&start.Command{
+	start.Add(&start.Command{
 		Name:   "insert",
 		Parent: parent,
 		Short:  "Insert a new chapter into a quarto book folder",
 		Long: "Insert a new chapter into a folder. The chapter must already exist as " +
 			"a file (or subfolder/index.qmd) in the folder, with an `insert-at: <n>` " +
 			"frontmatter entry. Existing chapters at order >= n are renumbered.",
-		Cmd: cli.Guard(cmd),
+		Cmd: cmd,
 	})
 }
 

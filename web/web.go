@@ -24,7 +24,6 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/christophberger-ailab/foolscap-folio/internal/cli"
 	"github.com/christophberger/start"
 	flag "github.com/spf13/pflag"
 )
@@ -69,7 +68,7 @@ func Register(projectFlag *string) {
 	addr = flag.String("addr", "",
 		"Address the web UI listens on, as host:port; without it, the settings' web.baseurl and the first free port from web.port up (localhost, 8199)")
 
-	cli.Add(&start.Command{
+	start.Add(&start.Command{
 		Name:  "web",
 		Short: "Serve the web UI for sorting, editing, and rendering pages",
 		Long: "Serve a local web app that shows the project's page tree, " +
@@ -77,7 +76,7 @@ func Register(projectFlag *string) {
 			"renders the project's book folders. Usage: folio web [<path>]. " +
 			"Without a path, the tree at --project is opened.",
 		Flags: []string{"addr"},
-		Cmd:   cli.Guard(cmd),
+		Cmd:   cmd,
 	})
 }
 

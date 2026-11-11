@@ -16,7 +16,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/christophberger-ailab/foolscap-folio/internal/cli"
 	"github.com/christophberger-ailab/foolscap-folio/internal/config"
 	"github.com/christophberger-ailab/foolscap-folio/internal/foliocore"
 	"github.com/christophberger/start"
@@ -36,14 +35,14 @@ func Register(projectFlag *string) {
 	audienceFlag = flag.String("lint-audience", "",
 		"Only lint the files of this audience's _POL/_FW variants")
 
-	cli.Add(&start.Command{
+	start.Add(&start.Command{
 		Name:  "lint",
 		Short: "Run lint checks on the files of a topic",
 		Long: "Run lint checks against every .qmd file that belongs to " +
 			"the given topic, or against the whole project when no topic is " +
 			"named or the topic is `all`. Usage: folio lint [<topic>].",
 		Flags: []string{"lint-audience"},
-		Cmd:   cli.Guard(cmd),
+		Cmd:   cmd,
 	})
 }
 

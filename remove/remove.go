@@ -16,7 +16,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/christophberger-ailab/foolscap-folio/internal/cli"
 	"github.com/christophberger-ailab/foolscap-folio/internal/foliocore"
 	"github.com/christophberger/start"
 )
@@ -26,14 +25,14 @@ var projectPath *string
 // Register adds the remove subcommand to the given parent command.
 func Register(parent string, projectFlag *string) {
 	projectPath = projectFlag
-	cli.Add(&start.Command{
+	start.Add(&start.Command{
 		Name:   "remove",
 		Parent: parent,
 		Short:  "Remove a chapter from a folder after confirmation",
 		Long: "Remove the chapter at the given order number from a folder. " +
 			"Asks for confirmation, then tries to trash the file using the " +
 			"`trash` command, falling back to permanent deletion.",
-		Cmd: cli.Guard(cmd),
+		Cmd: cmd,
 	})
 }
 

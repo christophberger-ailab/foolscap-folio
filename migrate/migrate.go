@@ -17,7 +17,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/christophberger-ailab/foolscap-folio/internal/cli"
 	"github.com/christophberger-ailab/foolscap-folio/internal/config"
 	"github.com/christophberger-ailab/foolscap-folio/internal/foliocore"
 	"github.com/christophberger/start"
@@ -42,7 +41,7 @@ func Register(projectFlag *string) {
 		dryRunLookup = func() bool { return *d }
 	}
 
-	cli.Add(&start.Command{
+	start.Add(&start.Command{
 		Name:  "migrate",
 		Short: "Write folio.yml from the project's Quarto configuration",
 		Long: "Read _quarto.yml and the _quarto-topic-*.yml, _quarto-format-*.yml " +
@@ -50,7 +49,7 @@ func Register(projectFlag *string) {
 			"folio.yml. Use --dry-run to print it instead, --force to overwrite " +
 			"an existing folio.yml.",
 		Flags: []string{"force", "dry-run"},
-		Cmd:   cli.Guard(cmd),
+		Cmd:   cmd,
 	})
 }
 

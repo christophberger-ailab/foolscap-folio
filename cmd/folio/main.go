@@ -15,7 +15,6 @@ import (
 
 	"github.com/christophberger-ailab/foolscap-folio/flatten"
 	"github.com/christophberger-ailab/foolscap-folio/insert"
-	"github.com/christophberger-ailab/foolscap-folio/internal/cli"
 	"github.com/christophberger-ailab/foolscap-folio/lint"
 	"github.com/christophberger-ailab/foolscap-folio/migrate"
 	"github.com/christophberger-ailab/foolscap-folio/move"
@@ -35,18 +34,17 @@ func main() {
 	// constraint SUBCOMMANDS.2-2 these have matching environment
 	// variables (QM_PROJECT) and config file entries (project=).
 	projectFlag := flag.StringP("project", "p", ".", "Path to the document tree")
-	helpFlag := flag.BoolP("help", "h", false, "Show help for folio or for a command")
 
-	cli.Description = "folio manages and renders a Markdown documentation tree."
+	start.SetDescription("folio manages and renders a Markdown documentation tree. " +
+		"Usage: folio <object> <subcommand> [flags] [args].")
 	start.SetVersion(version)
 	start.SetInitFunc(func() error { return nil })
 
 	// Register the dummy "chapters" object command. start has no notion
 	// of an <object> parameter, so we model it as a parent command that
-	// only dispatches to its subcommands (SUBCOMMANDS.3). Cmd stays
-	// nil: start v0.6.0 panics when Cmd is set but no subcommand was
-	// supplied, and cli.Help answers a missing subcommand anyway.
-	if err := cli.Add(&start.Command{
+	// only dispatches to its subcommands (SUBCOMMANDS.3). Leaving Cmd
+	// nil makes start reject `folio chapters` without a subcommand.
+	if err := start.Add(&start.Command{
 		Name:  "chapters",
 		Short: "Manage book chapters",
 		Long:  "Manage the chapters of a content folder with one of the subcommands.",
@@ -76,22 +74,11 @@ func main() {
 	// The `web` object serves the sorter UI; no sub-commands either.
 	web.Register(projectFlag)
 
-	// start's own help prints different texts for `folio` and `folio
-	// --help` and lists every command's flags as global; cli.Help answers
-	// all requests for help instead. Parsing twice is harmless: start
-	// reads the environment and config file only once.
-	flag.Usage = cli.Usage
-	if err := start.Parse(); err != nil {
-		fatal(err)
-	}
-	if !cli.Help(flag.Args(), *helpFlag) {
-		start.Up()
-	}
-
-	// start.Up() prints a command's error and returns; it does not set an
-	// exit status. Scripts and CI read it to tell a failed render from a
-	// good one. See internal/cli.
-	cli.Exit()
+	// start.Up() answers `folio`, `folio help` and `--help` with the same
+	// help, and exits with status 1 when the command line is wrong or the
+	// command fails. Scripts and CI read the status to tell a failed render
+	// from a good one.
+	start.Up()
 }
 
 func fatal(err error) {

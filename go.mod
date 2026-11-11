@@ -4,7 +4,7 @@ go 1.27
 
 require (
 	cuelang.org/go v0.17.1
-	github.com/christophberger/start v0.6.0
+	github.com/christophberger/start v0.6.3-0.20261111064401-400e59e0b565
 	github.com/github/copilot-sdk/go v1.0.14
 	github.com/mmonterroca/docxgo/v2 v2.15.0
 	github.com/signintech/gopdf v0.38.1

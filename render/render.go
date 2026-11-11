@@ -19,7 +19,6 @@ import (
 	"strings"
 
 	"github.com/christophberger-ailab/foolscap-folio/internal/build"
-	"github.com/christophberger-ailab/foolscap-folio/internal/cli"
 	"github.com/christophberger-ailab/foolscap-folio/internal/config"
 	"github.com/christophberger/start"
 	flag "github.com/spf13/pflag"
@@ -49,7 +48,7 @@ func Register(projectFlag *string) {
 	dryRunFlag = flag.Bool("dry-run", false,
 		"Print the render pipeline without running it")
 
-	cli.Add(&start.Command{
+	start.Add(&start.Command{
 		Name:  "render",
 		Short: "Render the project's topic/format/audience matrix",
 		Long: "Render every topic × format × audience combination the project " +
@@ -59,7 +58,7 @@ func Register(projectFlag *string) {
 			"Which formats and audiences a topic takes part in is declared " +
 			"under the topic in folio.yml, as `formats:` and `audiences:`.",
 		Flags: []string{"topic", "format", "audience", "clean", "dry-run"},
-		Cmd:   cli.Guard(cmd),
+		Cmd:   cmd,
 	})
 }
 
