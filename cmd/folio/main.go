@@ -3,7 +3,8 @@
 // Usage: folio <object> <subcommand> [flags] [args]
 //
 // The object "chapters" carries the subcommands `insert`, `move`, and
-// `remove`; "lint", "flatten", "render", "migrate", and "web" have no
+// `remove`; "lint", "flatten", "render", "migrate", "init", "web" and
+// "preview" have no
 // subcommands. The "chapters" command itself is a dummy wrapper
 // required because github.com/christophberger/start has no native notion of
 // an "object" parameter (see spec.yaml, constraint SUBCOMMANDS.3).
@@ -14,6 +15,7 @@ import (
 	"os"
 
 	"github.com/christophberger-ailab/foolscap-folio/flatten"
+	"github.com/christophberger-ailab/foolscap-folio/initialize"
 	"github.com/christophberger-ailab/foolscap-folio/insert"
 	"github.com/christophberger-ailab/foolscap-folio/lint"
 	"github.com/christophberger-ailab/foolscap-folio/migrate"
@@ -71,6 +73,10 @@ func main() {
 
 	// `migrate` writes folio.yml from a project's old Quarto configuration.
 	migrate.Register(projectFlag)
+
+	// `init` writes a starter folio.yml into a tree that has none; it
+	// shares --force and --dry-run with `migrate`.
+	initialize.Register(projectFlag)
 
 	// The `web` object serves the sorter UI; no sub-commands either.
 	web.Register(projectFlag)

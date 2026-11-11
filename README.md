@@ -66,6 +66,7 @@ Global flags apply to every command:
 | ------------------------------------------ | --------------------------------------------------------------------------------------------------- |
 | `folio render [<topic>…]`                  | render the project's topic × format × audience matrix                                               |
 | `folio flatten <topic>`                    | write the Markdown a document render of one topic parses, to `_build/<topic>.md`, without rendering |
+| `folio init`                               | write a starter `folio.yml` into a Markdown tree that has none                                      |
 | `folio migrate`                            | write `folio.yml` from the project's old `_quarto*.yml` files                                       |
 | `folio lint [<topic>]`                     | check the `.qmd` sources (currently: unclosed `:::` fences)                                         |
 | `folio chapters insert <folder>`           | give a new page its `order:`, renumbering its siblings                                              |
@@ -369,6 +370,16 @@ typography:
 
 The PDF has its own layout; it does not reproduce the Word template. Library research and rationale: [docs/native-rendering.md](docs/native-rendering.md).
 
+### Starting a folio.yml
+
+```sh
+folio init --dry-run     # print the folio.yml that would be written
+folio init               # write it
+folio init --force       # overwrite an existing folio.yml
+```
+
+`folio init` writes a starter `folio.yml` into a tree of `.md` or `.qmd` pages that has none yet. It takes the title from the root `index.qmd` or `index.md` (its `title:`, else its first heading), else from the first heading of `README.md`, else from the folder's name; lists every content folder as a topic; adds the `web` format; and spells out where `folio web` and `folio preview` listen. Commented examples show a document format, audiences and `lang`. It refuses to overwrite an existing `folio.yml` (or `qm.yml`) without `--force`, refuses a tree without content folders, sends a tree that still has `_quarto*.yml` files to `folio migrate`, and checks that the result loads.
+
 ### Migrating an existing project
 
 Foolscap Folio is the offspring of Quarto Manager. Quarto isn't ideal for this use case; it is a tools for writing scientific documentation. The `migrate` command turns the overly complex set of Quarto yaml files that the latest Quarto Manager version needed into a single config file.
@@ -424,7 +435,7 @@ internal/project/       the editable page tree behind the web UI
 internal/gitrepo/       the `git` command behind the web UI's Git pane
 web/                    the local web UI: server, settings (CUE), copyediting
 insert/ move/ remove/   the `folio chapters` subcommands
-lint/ flatten/ render/ migrate/ web/   the leaf commands
+lint/ flatten/ render/ migrate/ initialize/ web/ preview/   the leaf commands (initialize/ is `folio init`)
 spec.yaml, spec-*.yaml  the specification each package implements
 testdata/               a miniature project and the flattener's golden files
 ```
