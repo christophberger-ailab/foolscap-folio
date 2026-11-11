@@ -25,12 +25,12 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
 	copilot "github.com/github/copilot-sdk/go"
 
+	"github.com/christophberger-ailab/foolscap-folio/internal/config"
 	"github.com/christophberger-ailab/foolscap-folio/internal/project"
 )
 
@@ -309,11 +309,11 @@ func (d *docTools) pageText(rel string) string {
 }
 
 // isProjectPage says whether a path the model named is one of the pages
-// the tree shows -- a .qmd file outside the "_" and "." folders and not
+// the tree shows -- a .qmd or .md file outside the "_" and "." folders and not
 // itself prefixed with "_" -- which is all the chat may read. The rest of
 // the project, configuration and all, is not the documentation.
 func isProjectPage(rel string) bool {
-	if !safeRel(rel) || path.Ext(rel) != ".qmd" {
+	if !safeRel(rel) || !config.IsContentFile(rel) {
 		return false
 	}
 	for _, part := range strings.Split(rel, "/") {

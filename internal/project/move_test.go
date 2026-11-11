@@ -421,3 +421,73 @@ func TestRenameSection(t *testing.T) {
 		t.Fatalf("renamed section lost its children or place: %+v", p)
 	}
 }
+
+func TestRenamePageMarkdown(t *testing.T) {
+	root := t.TempDir()
+	for rel, body := range map[string]string{
+		"index.md":     "---\norder: 1\n---\n",
+		"one.md":       "---\norder: 2\n---\n",
+		"one/kid.md":   "---\norder: 1\n---\n",
+		"sec/index.md": "---\norder: 3\n---\n",
+	} {
+		p := filepath.Join(root, filepath.FromSlash(rel))
+		os.MkdirAll(filepath.Dir(p), 0o755)
+		os.WriteFile(p, []byte(body), 0o644)
+	}
+	if _, err := load(t, root).RenamePage("index.md", "x"); err == nil {
+		t.Error("root index.md renamed")
+	}
+	if _, err := load(t, root).RenamePage("one.md", "index"); err == nil {
+		t.Error("index accepted")
+	}
+	if _, err := load(t, root).RenamePage("one.md", "index.md"); err == nil {
+		t.Error("index.md accepted")
+	}
+	if _, err := load(t, root).RenamePage("one.md", "sec"); err == nil {
+		t.Error("collision with sec/ accepted")
+	}
+	if _, err := load(t, root).RenamePage("one.md", "two"); err != nil {
+		t.Fatal(err)
+	}
+	tree := load(t, root)
+	two := tree.Find("two.md")
+	if two == nil || len(two.Children) != 1 || two.Children[0].Path != "two/kid.md" {
+		t.Fatalf("two.md = %+v", two)
+	}
+	if _, err := tree.RenamePage("two.md", "three.md"); err != nil {
+		t.Fatal(err)
+	}
+	if load(t, root).Find("three.md") == nil {
+		t.Error("three.md missing")
+	}
+	// A name taken by a .md file blocks creating a page.
+	if _, err := load(t, root).CreatePage("", "three", "T"); err == nil {
+		t.Error("CreatePage over three.md accepted")
+	}
+}
+
+func TestMoveMarkdownSection(t *testing.T) {
+	root := t.TempDir()
+	for rel, body := range map[string]string{
+		"index.md":    "---\norder: 1\n---\n",
+		"a/index.md":  "---\norder: 2\n---\n# A\n",
+		"a/leaf.md":   "---\norder: 1\n---\n# Leaf\n",
+		"b/index.qmd": "---\norder: 3\n---\n# B\n",
+		"loose.md":    "---\norder: 4\n---\n# Loose\n",
+	} {
+		p := filepath.Join(root, filepath.FromSlash(rel))
+		os.MkdirAll(filepath.Dir(p), 0o755)
+		os.WriteFile(p, []byte(body), 0o644)
+	}
+	tree := mustMove(t, root, "a/index.md", "b/index.qmd", 0)
+	if tree.Find("b/a/index.md") == nil || tree.Find("b/a/leaf.md") == nil {
+		t.Fatal("section not moved")
+	}
+	if got := readFile(t, root, "b/a/leaf.md"); !strings.Contains(got, "## Leaf") {
+		t.Errorf("headings not shifted: %q", got)
+	}
+	mustMove(t, root, "loose.md", "b/index.qmd", 0)
+	if load(t, root).Find("b/loose.md") == nil {
+		t.Error("loose.md not moved")
+	}
+}

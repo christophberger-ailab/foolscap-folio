@@ -150,15 +150,21 @@ func (b *builder) allPages() []*pageInfo {
 
 // load reads the topic trees and the home page.
 func (b *builder) load() error {
-	if data, err := os.ReadFile(filepath.Join(b.root, "index.qmd")); err == nil {
+	for _, name := range []string{"index.qmd", "index.md"} {
+		file := filepath.Join(b.root, name)
+		data, err := os.ReadFile(file)
+		if err != nil {
+			continue
+		}
 		title, body := splitFront(string(data))
 		n := &bookmaker.Node{Name: "index", Rel: "index", Level: 1,
-			Page: &bookmaker.Page{File: filepath.Join(b.root, "index.qmd"), Rel: "index.qmd", Body: body}}
+			Page: &bookmaker.Page{File: file, Rel: name, Body: body}}
 		n.Page.Title = title
 		bookmaker.Pages(n, "")
 		p := &pageInfo{node: n, out: "index.html", title: n.Title(), srcDir: ".", home: true}
 		b.homePg = p
 		b.pages[""] = p
+		break
 	}
 	for _, t := range b.o.Topics {
 		dir := filepath.Join(b.root, filepath.FromSlash(t.Folder))

@@ -38,7 +38,7 @@ func Register(projectFlag *string) {
 	start.Add(&start.Command{
 		Name:  "lint",
 		Short: "Run lint checks on the files of a topic",
-		Long: "Run lint checks against every .qmd file that belongs to " +
+		Long: "Run lint checks against every .qmd and .md file that belongs to " +
 			"the given topic, or against the whole project when no topic is " +
 			"named or the topic is `all`. Usage: folio lint [<topic>].",
 		Flags: []string{"lint-audience"},
@@ -67,7 +67,7 @@ func cmd(c *start.Command) error {
 
 // Run performs all lint checks on the files belonging to topicArg,
 // resolved against docPath. When topicArg is empty or names a whole-project
-// topic (`all`, `none`), every .qmd file under docPath is linted (except
+// topic (`all`, `none`), every .qmd and .md file under docPath is linted (except
 // those matching the default exclude pattern). It prints one line per
 // finding to stderr and returns a non-nil error when at least one finding
 // was reported.
@@ -144,7 +144,7 @@ func topicFiles(docPath, topicArg, audience string) ([]string, error) {
 	}
 	out := make([]string, 0, len(entries))
 	for rel := range entries {
-		if filepath.Ext(rel) != ".qmd" {
+		if !config.IsContentFile(rel) {
 			continue
 		}
 		out = append(out, rel)
@@ -153,7 +153,7 @@ func topicFiles(docPath, topicArg, audience string) ([]string, error) {
 	return out, nil
 }
 
-// allDocFiles returns every .qmd file under docPath (recursively),
+// allDocFiles returns every .qmd and .md file under docPath (recursively),
 // relative to docPath, in sorted order. Files whose basename matches the
 // default exclude pattern are skipped.
 func allDocFiles(docPath string) ([]string, error) {
@@ -169,7 +169,7 @@ func allDocFiles(docPath string) ([]string, error) {
 		if d.IsDir() {
 			return nil
 		}
-		if filepath.Ext(d.Name()) != ".qmd" {
+		if !config.IsContentFile(d.Name()) {
 			return nil
 		}
 		rel, err := filepath.Rel(docPath, path)

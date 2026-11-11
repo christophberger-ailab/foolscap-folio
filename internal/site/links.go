@@ -92,7 +92,7 @@ func (b *builder) rewrite(dest []byte, p *pageInfo, image bool) []byte {
 		if t, ok := b.pages[k]; ok {
 			return []byte(relURL(p.out, t.out) + suffix)
 		}
-		if ext == ".qmd" || isDirLink {
+		if ext == ".qmd" || ext == ".md" || isDirLink {
 			b.logf("warning: %s: link target %q not found", p.out, string(dest))
 			return dest
 		}

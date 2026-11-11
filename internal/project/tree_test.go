@@ -186,3 +186,51 @@ func TestFind(t *testing.T) {
 		t.Errorf("chapter3.qmd Dir = %q, want chapter3", tree.Find("chapter3.qmd").Dir)
 	}
 }
+
+func TestLoadMarkdownPages(t *testing.T) {
+	root := t.TempDir()
+	files := map[string]string{
+		"index.md":      "---\ntitle: Home\norder: 1\n---\n",
+		"a/index.md":    "---\norder: 2\n---\nbody\n",
+		"a/leaf.md":     "---\norder: 1\n---\nbody\n",
+		"b.md":          "---\norder: 3\n---\nbody\n",
+		"b/child.qmd":   "---\norder: 1\n---\nbody\n",
+		"c_FW/index.md": "---\norder: 4\n---\nbody\n",
+		"c_FW/kid.qmd":  "---\norder: 1\n---\nbody\n",
+		"plain-name.md": "body\n",
+		"_hidden.md":    "body\n",
+		"notes.txt":     "no\n",
+	}
+	for rel, body := range files {
+		p := filepath.Join(root, filepath.FromSlash(rel))
+		os.MkdirAll(filepath.Dir(p), 0o755)
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	tree := load(t, root)
+	if tree.Find("_hidden.md") != nil || tree.Find("notes.txt") != nil {
+		t.Error("ignored files loaded")
+	}
+	a := tree.Find("a/index.md")
+	if a == nil || a.Dir != "a" || a.Title != "a" || len(a.Children) != 1 {
+		t.Fatalf("a/index.md = %+v", a)
+	}
+	if home := tree.Find("index.md"); home == nil || home.Dir != "" {
+		t.Errorf("root index.md = %+v", home)
+	}
+	b := tree.Find("b.md")
+	if b == nil || b.Dir != "b" || b.Title != "b" || len(b.Children) != 1 || b.Children[0].Path != "b/child.qmd" {
+		t.Fatalf("b.md = %+v", b)
+	}
+	if p := tree.Find("plain-name.md"); p == nil || p.Title != "plain-name" {
+		t.Errorf("plain-name.md = %+v", p)
+	}
+	c := tree.Find("c_FW/index.md")
+	if c == nil || c.Marker != markerFW || c.Children[0].Marker != markerFW {
+		t.Errorf("c_FW = %+v", c)
+	}
+	if tree.Find("a/leaf.md").Marker != "" {
+		t.Error("unexpected marker")
+	}
+}
