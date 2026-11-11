@@ -25,7 +25,8 @@
       {{range .Nav}}<li><a href="{{.URL}}"{{if .Active}} class="active" aria-current="true"{{end}}>{{.Title}}</a></li>
       {{end}}</ul></nav>{{end}}
     <div class="search" data-base="{{.Base}}" data-nohits="{{.L.NoHits}}" role="search">
-      <input type="search" placeholder="{{.L.Search}}" aria-label="{{.L.Search}}" autocomplete="off" spellcheck="false" aria-controls="search-results" aria-expanded="false">
+      <span class="search-field"><input type="search" placeholder="{{.L.Search}}" aria-label="{{.L.Search}}" autocomplete="off" spellcheck="false" aria-controls="search-results" aria-expanded="false">
+      <button type="button" class="search-clear" aria-label="{{.L.Clear}}" hidden><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></span>
       <ul id="search-results" class="search-results" hidden></ul>
     </div>
   </div>

@@ -47,9 +47,26 @@
   function search(box) {
     var input = box.querySelector('input');
     var list = box.querySelector('.search-results');
+    var clear = box.querySelector('.search-clear');
     var base = box.getAttribute('data-base') || '';
     var fuse = null, loading = false, sel = -1, timer = 0;
-    var radius = 70, max = 10;
+    var radius = 70, max = 10, key = 'folio-search';
+
+    // The query outlives the page for the browser tab, so the hits are
+    // there again after opening one of them. Storage may be unavailable
+    // (privacy settings, some file:// setups); the search works without it.
+    function store(q) {
+      try { if (q) sessionStorage.setItem(key, q); else sessionStorage.removeItem(key); } catch (e) {}
+    }
+    function stored() {
+      try { return sessionStorage.getItem(key) || ''; } catch (e) { return ''; }
+    }
+    function changed() {
+      if (clear) clear.hidden = !input.value;
+      store(input.value);
+    }
+    if (!input.value) input.value = stored();
+    changed();
 
     function script(src, done) {
       var s = document.createElement('script');
@@ -142,18 +159,31 @@
 
     input.addEventListener('focus', load);
     input.addEventListener('input', function () {
+      changed();
       clearTimeout(timer);
       timer = setTimeout(run, 120);
     });
     input.addEventListener('keydown', function (e) {
-      if (e.key === 'ArrowDown') { e.preventDefault(); move(1); }
+      if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && list.hidden) {
+        e.preventDefault();
+        if (list.childNodes.length) show(true); else run();
+      } else if (e.key === 'ArrowDown') { e.preventDefault(); move(1); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); }
       else if (e.key === 'Enter') {
         var hit = list.querySelectorAll('.search-hit')[Math.max(sel, 0)];
         if (hit) location.href = hit.href;
       } else if (e.key === 'Escape') {
-        if (input.value) { e.stopPropagation(); input.value = ''; run(); } else input.blur();
+        // Escape dismisses the hits but keeps them for the next focus; the
+        // default would clear a search field.
+        e.preventDefault();
+        if (!list.hidden) { e.stopPropagation(); show(false); } else input.blur();
       }
+    });
+    if (clear) clear.addEventListener('click', function () {
+      input.value = '';
+      changed();
+      run();
+      input.focus();
     });
     box.addEventListener('focusout', function (e) {
       if (!box.contains(e.relatedTarget)) show(false);
