@@ -139,7 +139,7 @@ func (p *Page) HasVisibleChildren() bool {
 	return false
 }
 
-// Tree is the page tree of a Quarto project.
+// Tree is the page tree of a folio project.
 type Tree struct {
 	Root  string // absolute path of the project
 	Pages []*Page
@@ -363,26 +363,4 @@ func find(pages []*Page, p string) *Page {
 		}
 	}
 	return nil
-}
-
-// Profiles returns the profile names of the _quarto-<name>.yml files in
-// root that configure a book (contain a top-level book key).
-func Profiles(root string) ([]string, error) {
-	matches, err := filepath.Glob(filepath.Join(root, "_quarto-*.yml"))
-	if err != nil {
-		return nil, err
-	}
-	var names []string
-	for _, m := range matches {
-		src, err := os.ReadFile(m)
-		if err != nil {
-			return nil, err
-		}
-		if !hasBook(src) {
-			continue
-		}
-		names = append(names, strings.TrimSuffix(strings.TrimPrefix(filepath.Base(m), "_quarto-"), ".yml"))
-	}
-	sort.Strings(names)
-	return names, nil
 }

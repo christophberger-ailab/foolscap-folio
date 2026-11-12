@@ -353,35 +353,8 @@ func joinRel(dir, name string) string {
 	return dir + "/" + name
 }
 
-// FindProjectRoot walks up from start looking for the directory that holds
-// the project configuration. It returns an empty string when no `folio.yml`
-// (or, from before folio.yml, `qm.yml`, `_quarto.yml` / `_quarto.yaml`) is found.
-func FindProjectRoot(start string) string {
-	dir, err := filepath.Abs(start)
-	if err != nil {
-		return ""
-	}
-	for {
-		for _, name := range []string{"folio.yml", "qm.yml", "_quarto.yml", "_quarto.yaml"} {
-			if st, err := os.Stat(filepath.Join(dir, name)); err == nil && !st.IsDir() {
-				return dir
-			}
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return ""
-		}
-		dir = parent
-	}
-}
-
 // HasProjectConfig reports whether dir itself contains a project
 // configuration file.
 func HasProjectConfig(dir string) bool {
-	for _, name := range []string{"folio.yml", "qm.yml", "_quarto.yml", "_quarto.yaml"} {
-		if st, err := os.Stat(filepath.Join(dir, name)); err == nil && !st.IsDir() {
-			return true
-		}
-	}
-	return false
+	return config.Find(dir) != ""
 }

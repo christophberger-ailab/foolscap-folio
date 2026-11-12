@@ -375,7 +375,7 @@
 <section id="content-pane"><div id="content">{{if .Page}}{{template "content" .Page}}{{else}}{{template "no-page" "Select a page to view its content."}}{{end}}</div>
 {{template "dock" .}}</section>
 {{else}}
-<section id="tree-pane"><p class="empty">Open a Quarto project to get started.</p></section>
+<section id="tree-pane"><p class="empty">Open a project to get started.</p></section>
 <div id="divider" role="separator" aria-orientation="vertical" title="Drag to resize"></div>
 <section id="content-pane"><div id="content">{{template "no-page" "Open a project to view its pages."}}</div>
 {{template "dock" .}}</section>
@@ -706,7 +706,7 @@
   </header>
   <main class="config-main">
     <h2>External editor</h2>
-    <p class="config-intro">The <strong>Editor ↗</strong> button in the top bar runs this command to open the project in another editor — for the files the app does not edit, like <code>_quarto.yml</code>, filters, and stylesheets.</p>
+    <p class="config-intro">The <strong>Editor ↗</strong> button in the top bar runs this command to open the project in another editor — for the files the app does not edit, like <code>folio.yml</code> and stylesheets.</p>
     <p class="config-intro"><code>{root}</code> stands for the project's directory and <code>{file}</code> for the page open in the app. When no page is open, the argument naming <code>{file}</code> is left out, together with an option right before it (<code>--goto {file}</code> goes as a whole). Leave <code>{file}</code> out if your editor cannot be told to open a file inside a folder. Quote an argument that contains spaces. The command is run directly, not through a shell, so it has to be on your <code>PATH</code> or named by its full path.</p>
     {{if .Error}}<div class="error">{{.Error}}</div>{{end}}
     {{if .Message}}<div class="notice">{{.Message}}</div>{{end}}

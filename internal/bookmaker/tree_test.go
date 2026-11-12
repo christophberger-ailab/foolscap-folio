@@ -93,15 +93,7 @@ func TestLoadTreeRejectsFiles(t *testing.T) {
 	}
 }
 
-func TestFindProjectRoot(t *testing.T) {
-	abs, err := filepath.Abs(testProject)
-	if err != nil {
-		t.Fatal(err)
-	}
-	got := FindProjectRoot(testBook + "/erster/alpha")
-	if got != abs {
-		t.Errorf("FindProjectRoot = %q, want %q", got, abs)
-	}
+func TestHasProjectConfig(t *testing.T) {
 	if !HasProjectConfig(testProject) {
 		t.Error("HasProjectConfig should be true for the project root")
 	}
@@ -129,7 +121,7 @@ func TestBookFoldersSkipsHiddenAndNestedProjects(t *testing.T) {
 	writeFile(t, filepath.Join(dir, "buch", "index.qmd"), "# Buch\n")
 	writeFile(t, filepath.Join(dir, "_entwurf", "index.qmd"), "# Entwurf\n")
 	writeFile(t, filepath.Join(dir, ".hidden", "index.qmd"), "# Versteckt\n")
-	writeFile(t, filepath.Join(dir, "eigenes", "_quarto.yml"), "project:\n  type: book\n")
+	writeFile(t, filepath.Join(dir, "eigenes", "folio.yml"), "title: Eigenes\n")
 	writeFile(t, filepath.Join(dir, "eigenes", "index.qmd"), "# Eigenes\n")
 	writeFile(t, filepath.Join(dir, "bilder", "x.png"), "")
 

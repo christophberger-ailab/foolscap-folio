@@ -169,7 +169,7 @@ func TestChatReadsOnlyThePages(t *testing.T) {
 	if isProjectPage("assets/snippet.md") || isProjectPage("chapter2/assets/a.md") {
 		t.Error("a page in an assets folder counts as a page of the project")
 	}
-	for _, p := range []string{"../outside.qmd", "_quarto.yml", "_quarto-format-pdf.yml", "/etc/passwd", "chapter2/missing.qmd", "assets/snippet.md"} {
+	for _, p := range []string{"../outside.qmd", "/etc/passwd", "chapter2/missing.qmd", "assets/snippet.md"} {
 		if got := d.readPage(p); !strings.HasPrefix(got, "Error:") {
 			t.Errorf("read_page(%q) = %q, want a refusal", p, got)
 		}

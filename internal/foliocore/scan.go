@@ -2,7 +2,6 @@ package foliocore
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -257,62 +256,4 @@ func ApplyVariantFilter(entries map[string]*FileEntry, profileVariant string) ma
 	}
 
 	return result
-}
-
-// rewriteFrontmatterRegex matches an existing frontmatter block at the start
-// of a file. Group 1 is the block content between the delimiters.
-var rewriteFrontmatterRegex = regexp.MustCompile(`(?s)\A---\r?\n(.*?)\r?\n(?:---|\.\.\.)\r?\n`)
-
-// UpdateFrontmatter rewrites a file's frontmatter. It parses the existing
-// frontmatter block as YAML, calls mutate to modify it, then writes the file
-// back with the new frontmatter. The body content is preserved verbatim.
-//
-// If the file has no frontmatter, a new one is created and prepended.
-func UpdateFrontmatter(path string, mutate func(*yaml.Node) error) error {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return err
-	}
-
-	var fmYAML []byte
-	var body []byte
-	if m := rewriteFrontmatterRegex.FindSubmatchIndex(data); m != nil {
-		fmYAML = data[m[2]:m[3]]
-		body = data[m[1]:]
-	} else {
-		fmYAML = []byte{}
-		body = data
-	}
-
-	var node yaml.Node
-	if len(bytes.TrimSpace(fmYAML)) > 0 {
-		if err := yaml.Unmarshal(fmYAML, &node); err != nil {
-			return fmt.Errorf("parse frontmatter: %w", err)
-		}
-	}
-	if node.Kind == 0 {
-		node = yaml.Node{Kind: yaml.DocumentNode, Content: []*yaml.Node{
-			{Kind: yaml.MappingNode},
-		}}
-	}
-	if node.Kind != yaml.DocumentNode || len(node.Content) == 0 {
-		return fmt.Errorf("unexpected frontmatter structure in %s", path)
-	}
-
-	if err := mutate(node.Content[0]); err != nil {
-		return err
-	}
-
-	var out bytes.Buffer
-	out.WriteString("---\n")
-	enc := yaml.NewEncoder(&out)
-	enc.SetIndent(2)
-	if err := enc.Encode(node.Content[0]); err != nil {
-		return err
-	}
-	enc.Close()
-	out.WriteString("---\n")
-	out.Write(body)
-
-	return os.WriteFile(path, out.Bytes(), 0644)
 }

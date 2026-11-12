@@ -46,17 +46,6 @@ func writeFixture(t *testing.T) string {
 			t.Fatal(err)
 		}
 	}
-	yml := map[string]string{
-		"_quarto.yml":              "project:\n  type: book\nbook:\n  title: Test Book # keep\n  chapters:\n    - index.qmd\n",
-		"_quarto-chapter2.yml":     "book:\n  chapters:\n    - index.qmd\n",
-		"_quarto-chapter3-pol.yml": "book:\n  chapters:\n    - index.qmd\n",
-		"_quarto-web.yml":          "format:\n  html: default\n",
-	}
-	for name, content := range yml {
-		if err := os.WriteFile(filepath.Join(root, name), []byte(content), 0o644); err != nil {
-			t.Fatal(err)
-		}
-	}
 	return root
 }
 
@@ -159,19 +148,6 @@ func TestLoadSkipsUnderscoreHiddenAndAssetsDirs(t *testing.T) {
 	}
 	if got := tree.Find("real.qmd"); got == nil || len(got.Children) != 0 {
 		t.Errorf("real.qmd = %+v, want no children", got)
-	}
-}
-
-// Profiles lists only profiles that configure a book; _quarto-web.yml has
-// no book key and stays hidden.
-func TestProfiles(t *testing.T) {
-	root := writeFixture(t)
-	got, err := Profiles(root)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if want := []string{"chapter2", "chapter3-pol"}; !reflect.DeepEqual(got, want) {
-		t.Errorf("Profiles() = %v, want %v", got, want)
 	}
 }
 
