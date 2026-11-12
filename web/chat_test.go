@@ -156,6 +156,8 @@ func TestChatOnOpenAIRunsFunctionCalls(t *testing.T) {
 func TestChatReadsOnlyThePages(t *testing.T) {
 	_, root := configTestServer(t)
 	os.WriteFile(filepath.Join(filepath.Dir(root), "outside.qmd"), []byte("secret"), 0o644)
+	os.MkdirAll(filepath.Join(root, "assets"), 0o755)
+	os.WriteFile(filepath.Join(root, "assets", "snippet.md"), []byte("not a page"), 0o644)
 	d := &docTools{root: root, index: &searchIndex{}, openPath: "index.qmd", openText: "# Unsaved edit\n"}
 
 	if got := d.readPage("index.qmd"); !strings.Contains(got, "# Unsaved edit") {
@@ -164,7 +166,10 @@ func TestChatReadsOnlyThePages(t *testing.T) {
 	if got := d.readPage("chapter2/second.qmd"); !strings.Contains(got, "# Second") {
 		t.Errorf("a page was not read: %q", got)
 	}
-	for _, p := range []string{"../outside.qmd", "_quarto.yml", "_quarto-format-pdf.yml", "/etc/passwd", "chapter2/missing.qmd"} {
+	if isProjectPage("assets/snippet.md") || isProjectPage("chapter2/assets/a.md") {
+		t.Error("a page in an assets folder counts as a page of the project")
+	}
+	for _, p := range []string{"../outside.qmd", "_quarto.yml", "_quarto-format-pdf.yml", "/etc/passwd", "chapter2/missing.qmd", "assets/snippet.md"} {
 		if got := d.readPage(p); !strings.HasPrefix(got, "Error:") {
 			t.Errorf("read_page(%q) = %q, want a refusal", p, got)
 		}

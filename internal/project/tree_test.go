@@ -141,9 +141,11 @@ func TestLoadTitleFallback(t *testing.T) {
 	}
 }
 
-func TestLoadSkipsUnderscoreAndHiddenDirs(t *testing.T) {
+// The tree leaves out "_" and "." directories and every assets directory,
+// at the root or further down.
+func TestLoadSkipsUnderscoreHiddenAndAssetsDirs(t *testing.T) {
 	root := t.TempDir()
-	for _, d := range []string{"_book", ".quarto"} {
+	for _, d := range []string{"_book", ".quarto", "assets", "real/assets", "real/_entwurf", "real/.hidden"} {
 		os.MkdirAll(filepath.Join(root, d), 0o755)
 		os.WriteFile(filepath.Join(root, d, "x.qmd"), []byte("x\n"), 0o644)
 	}
@@ -154,6 +156,9 @@ func TestLoadSkipsUnderscoreAndHiddenDirs(t *testing.T) {
 	}
 	if got := paths(tree.Pages); !reflect.DeepEqual(got, []string{"real.qmd"}) {
 		t.Errorf("pages = %v, want [real.qmd]", got)
+	}
+	if got := tree.Find("real.qmd"); got == nil || len(got.Children) != 0 {
+		t.Errorf("real.qmd = %+v, want no children", got)
 	}
 }
 

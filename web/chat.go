@@ -309,19 +309,21 @@ func (d *docTools) pageText(rel string) string {
 }
 
 // isProjectPage says whether a path the model named is one of the pages
-// the tree shows -- a .qmd or .md file outside the "_" and "." folders and not
+// the tree shows -- a .qmd or .md file outside the folders it skips and not
 // itself prefixed with "_" -- which is all the chat may read. The rest of
 // the project, configuration and all, is not the documentation.
 func isProjectPage(rel string) bool {
 	if !safeRel(rel) || !config.IsContentFile(rel) {
 		return false
 	}
-	for _, part := range strings.Split(rel, "/") {
-		if strings.HasPrefix(part, "_") || strings.HasPrefix(part, ".") {
+	parts := strings.Split(rel, "/")
+	for _, dir := range parts[:len(parts)-1] {
+		if project.SkipDir(dir) {
 			return false
 		}
 	}
-	return true
+	file := parts[len(parts)-1]
+	return !strings.HasPrefix(file, "_") && !strings.HasPrefix(file, ".")
 }
 
 // pageTitles maps every page's path to its title, as the tree shows it.
