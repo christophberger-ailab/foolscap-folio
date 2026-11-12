@@ -300,6 +300,7 @@ func TestImages(t *testing.T) {
 	}
 	writePNG(t, filepath.Join(root, "img", "a.png"), 200, 100)
 	writePNG(t, filepath.Join(root, "big.png"), 3000, 1500)
+	os.WriteFile(filepath.Join(root, "logo.svg"), []byte(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20"><rect width="40" height="20" fill="blue"/></svg>`), 0o644)
 	p := build(t, `![natural](img/a.png)
 
 ![rooted](/img/a.png){width=50%}
@@ -318,8 +319,8 @@ Inline ![small](img/a.png){height=1cm} picture.
 `, Options{Root: root})
 	doc := p["word/document.xml"]
 	exts := regexp.MustCompile(`<wp:extent cx="(\d+)" cy="(\d+)"/>`).FindAllStringSubmatch(doc, -1)
-	if len(exts) != 7 {
-		t.Fatalf("%d pictures, want 7:\n%s", len(exts), abbreviate(doc))
+	if len(exts) != 8 {
+		t.Fatalf("%d pictures, want 8:\n%s", len(exts), abbreviate(doc))
 	}
 	full := 9072 * 635 // A4 with 2.5 cm margins, in EMU
 	want := [][2]int{
@@ -328,8 +329,9 @@ Inline ![small](img/a.png){height=1cm} picture.
 		{8 * 360000, 4 * 360000},
 		{300 * 9525, 150 * 9525},
 		{3 * 914400, 3 * 914400 / 2},
-		{full, full / 2}, // capped at the text width
-		{720000, 360000}, // height=1cm keeps the aspect ratio
+		{full, full / 2},       // capped at the text width
+		{40 * 9525, 20 * 9525}, // an SVG, at its natural size
+		{720000, 360000},       // height=1cm keeps the aspect ratio
 	}
 	for i, w := range want {
 		var cx, cy int
@@ -339,7 +341,7 @@ Inline ![small](img/a.png){height=1cm} picture.
 			t.Errorf("picture %d is %d x %d EMU, want %d x %d", i+1, cx, cy, w[0], w[1])
 		}
 	}
-	has(t, doc, `r:embed="rIdQmImg1"`, `descr="natural"`, "[vector]", `<w:jc w:val="center"/>`)
+	has(t, doc, `r:embed="rIdQmImg1"`, `descr="natural"`, `descr="vector"`, `<w:jc w:val="center"/>`)
 	has(t, p["word/_rels/document.xml.rels"], `Target="media/folio-image1.png"`)
 	has(t, p["[Content_Types].xml"], `Extension="png"`)
 	if _, ok := p["word/media/folio-image1.png"]; !ok {
@@ -357,13 +359,30 @@ func abs(i int) int {
 	return i
 }
 
+// A missing image does not stop the render: the project's placeholder
+// stands in for it, and the warning names the image.
 func TestMissingImage(t *testing.T) {
-	d := markdown.Parse([]byte("![x](nope.png)\n"))
-	d.Prepare(markdown.Options{})
-	err := Write(filepath.Join(t.TempDir(), "o.docx"), d, Options{Root: t.TempDir()})
-	if err == nil || !strings.Contains(err.Error(), "nope.png") {
-		t.Errorf("err = %v, want an error naming the image", err)
+	root := t.TempDir()
+	ph := filepath.Join(root, "assets", "static", "_placeholder.svg")
+	os.MkdirAll(filepath.Dir(ph), 0o755)
+	os.WriteFile(ph, []byte(`<svg xmlns="http://www.w3.org/2000/svg" width="64" height="32"><rect width="64" height="32" fill="red"/></svg>`), 0o644)
+	var warned []string
+	p := build(t, "![x](nope.png)\n", Options{Root: root, Warn: func(f string, a ...any) {
+		warned = append(warned, fmt.Sprintf(f, a...))
+	}})
+	has(t, p["word/document.xml"], fmt.Sprintf(`<wp:extent cx="%d" cy="%d"/>`, 64*9525, 32*9525))
+	if !strings.HasPrefix(p["word/media/folio-image1.png"], "\x89PNG") {
+		t.Error("the placeholder is not embedded as a PNG")
 	}
+	if len(warned) != 1 || !strings.Contains(warned[0], "nope.png") {
+		t.Errorf("warnings %q, want one naming the image", warned)
+	}
+}
+
+// A project without a placeholder gets the one built into folio.
+func TestMissingImageBuiltInPlaceholder(t *testing.T) {
+	p := build(t, "![x](nope.png)\n", Options{Root: t.TempDir()})
+	has(t, p["word/document.xml"], fmt.Sprintf(`<wp:extent cx="%d" cy="%d"/>`, 320*9525, 180*9525))
 }
 
 func TestRawBlocks(t *testing.T) {

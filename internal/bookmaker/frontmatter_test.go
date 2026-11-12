@@ -3,6 +3,8 @@ package bookmaker
 import (
 	"strings"
 	"testing"
+
+	"github.com/christophberger-ailab/foolscap-folio/internal/foliocore"
 )
 
 func lines(s string) []string { return strings.Split(strings.TrimPrefix(s, "\n"), "\n") }
@@ -58,7 +60,7 @@ func TestSplitFrontMatter(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			yamlText, body, found := splitFrontMatter(tc.src)
+			yamlText, body, found := foliocore.SplitFrontMatter(tc.src)
 			if found != tc.found {
 				t.Fatalf("found = %v, want %v", found, tc.found)
 			}

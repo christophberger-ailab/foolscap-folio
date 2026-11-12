@@ -2,10 +2,14 @@ package bookmaker
 
 import (
 	"fmt"
+	"os"
 	"path"
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/christophberger-ailab/foolscap-folio/internal/foliocore"
+	"github.com/christophberger-ailab/foolscap-folio/internal/shortcode"
 )
 
 // Options controls how a book folder is flattened.
@@ -179,6 +183,13 @@ func renderPage(n *Node, targets linkTargets, opts Options, res *Result) (page, 
 	// the top, so a page that starts with `##` stays one level below a
 	// page that starts with `#` in the same folder.
 	delta := n.Level - 1
+
+	// Includes are expanded before Quarto reads the page, so a page without
+	// a title whose included files bring the heading needs none generated.
+	if base == 0 && declared == "" && !n.bookRoot && n.Page != nil && opts.ProjectRoot != "" &&
+		includesHeading(lines, opts.ProjectRoot, path.Dir(n.Page.Rel), 0) {
+		return strings.Join(lines, "\n"), slides
+	}
 
 	if base == 0 || !echoesTitle(headings, base, declared) {
 		head := strings.Repeat("#", n.Level) + " " + n.Title() +
@@ -388,6 +399,38 @@ func absoluteIncludes(lines []string, dir string) []string {
 		lines[i] = m[1] + abs + m[3]
 	}
 	return lines
+}
+
+// includesHeading reports whether a file included by lines, directly or
+// through further includes, contributes a heading. dir is the project-relative
+// folder of the file holding lines. Includes in code blocks are ignored, and
+// so are files that cannot be read: the shortcode expander reports those.
+func includesHeading(lines []string, root, dir string, depth int) bool {
+	if depth >= shortcode.MaxIncludeDepth {
+		return false
+	}
+	var code codeTracker
+	for _, line := range lines {
+		m := includeLine.FindStringSubmatch(line)
+		if code.step(line) || m == nil {
+			continue
+		}
+		rel := shortcode.ResolveInclude(dir, strings.Trim(m[2], `"'`))
+		abs, err := foliocore.ProjectPath(root, rel)
+		if err != nil {
+			continue
+		}
+		data, err := os.ReadFile(abs)
+		if err != nil {
+			continue
+		}
+		_, body, _ := foliocore.SplitFrontMatter(normaliseNewlines(string(data)))
+		sub := strings.Split(body, "\n")
+		if len(findHeadings(sub)) > 0 || includesHeading(sub, root, path.Dir(rel), depth+1) {
+			return true
+		}
+	}
+	return false
 }
 
 // Pages prepares a tree for rendering page by page, as a website does:

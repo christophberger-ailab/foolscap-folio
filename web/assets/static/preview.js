@@ -409,7 +409,7 @@ var placeholderURL = '/static/placeholder.svg';
 
 // showPlaceholder stands in for an image the browser could not load. An
 // image of the project that is missing never gets here: /media answers it
-// with the project's placeholder, `/assets/images/_placeholder.png`, or
+// with the project's placeholder, `/assets/static/_placeholder.svg`, or
 // with the app's own when the project has none. What is left is an image
 // /media cannot answer for -- an external one that is not there, a path
 // that climbs out of the project -- and that gets the app's placeholder,

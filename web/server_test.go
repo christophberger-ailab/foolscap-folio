@@ -851,10 +851,14 @@ func TestMediaWithoutProject(t *testing.T) {
 }
 
 // An image link that names no image of the project shows the project's
-// placeholder, /assets/images/_placeholder.png, in the preview.
+// placeholder, /assets/static/_placeholder.svg, in the preview.
 func TestMediaMissingFileShowsProjectPlaceholder(t *testing.T) {
 	srv, root := testServer(t)
-	want := writePNG(t, root, "assets/images/_placeholder.png")
+	want := []byte(`<svg xmlns="http://www.w3.org/2000/svg" width="2" height="1"/>`)
+	ph := filepath.Join(root, "assets", "static", "_placeholder.svg")
+	os.MkdirAll(filepath.Dir(ph), 0o755)
+	os.WriteFile(ph, want, 0o644)
+	writePNG(t, root, "assets/images/_placeholder.png") // the old place counts no more
 	os.MkdirAll(filepath.Join(root, "assets", "dir.png"), 0o755)
 
 	for _, p := range []string{"/media/assets/nope.png", "/media/chapter2/nope.jpg", "/media/assets/dir.png"} {
@@ -862,8 +866,8 @@ func TestMediaMissingFileShowsProjectPlaceholder(t *testing.T) {
 		if rec.Code != http.StatusOK {
 			t.Fatalf("GET %s: status %d, want 200", p, rec.Code)
 		}
-		if ct := rec.Header().Get("Content-Type"); ct != "image/png" {
-			t.Errorf("GET %s: Content-Type %q, want image/png", p, ct)
+		if ct := rec.Header().Get("Content-Type"); ct != "image/svg+xml" {
+			t.Errorf("GET %s: Content-Type %q, want image/svg+xml", p, ct)
 		}
 		if !bytes.Equal(rec.Body.Bytes(), want) {
 			t.Errorf("GET %s: body is not the project's placeholder", p)

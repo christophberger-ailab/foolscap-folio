@@ -16,7 +16,12 @@ import (
 	"github.com/yuin/goldmark/ast"
 
 	"github.com/christophberger-ailab/foolscap-folio/internal/markdown"
+	"github.com/christophberger-ailab/foolscap-folio/internal/svgimage"
 )
+
+// svgScale is how many pixels of the PNG an SVG becomes go to one of
+// its own, so the picture stays sharp when printed.
+const svgScale = 3
 
 const (
 	emuPerPx    = 9525 // 96 dpi
@@ -27,9 +32,10 @@ const (
 	emuPerPoint = 12700
 )
 
-// image writes an inline picture. SVG, remote and undecodable pictures
-// become their alternative text; a local file that cannot be read is an
-// error.
+// image writes an inline picture. An SVG is embedded as a PNG drawn from
+// it; a local file that cannot be read gets the project's placeholder in
+// its place, with a warning. Remote and undecodable pictures become their
+// alternative text.
 func (w *writer) image(buf *bytes.Buffer, n *ast.Image, rp runProps, c ctx) {
 	alt := markdown.PlainText(n, w.src)
 	placeholder := func() {
@@ -42,15 +48,27 @@ func (w *writer) image(buf *bytes.Buffer, n *ast.Image, rp runProps, c ctx) {
 	}
 	dest := w.dest(n.Destination)
 	lower := strings.ToLower(dest)
-	if c.note || dest == "" || strings.Contains(lower, "://") || strings.HasPrefix(lower, "data:") ||
-		strings.HasSuffix(lower, ".svg") {
+	if c.note || dest == "" || strings.Contains(lower, "://") || strings.HasPrefix(lower, "data:") {
 		placeholder()
 		return
 	}
 	data, err := os.ReadFile(w.imagePath(dest))
+	svg := svgimage.IsSVG(dest)
 	if err != nil {
-		w.fail(fmt.Errorf("docx: image %q: %w", dest, err))
-		return
+		if w.opt.Warn != nil {
+			w.opt.Warn("image %q not found; the placeholder stands in for it", dest)
+		}
+		data, svg = svgimage.Placeholder(w.opt.Root), true
+	}
+	var svgW, svgH float64
+	if svg {
+		if svgW, svgH, err = svgimage.Size(data); err == nil {
+			data, err = svgimage.PNG(data, svgScale)
+		}
+		if err != nil {
+			placeholder()
+			return
+		}
 	}
 	cfg, format, err := image.DecodeConfig(bytes.NewReader(data))
 	if err != nil || cfg.Width == 0 || cfg.Height == 0 {
@@ -60,7 +78,11 @@ func (w *writer) image(buf *bytes.Buffer, n *ast.Image, rp runProps, c ctx) {
 	ext := format // png, jpeg or gif
 	w.imgTypes[ext] = "image/" + format
 
-	cx, cy := w.imageSize(markdown.AttrsOf(n), int64(cfg.Width)*emuPerPx, int64(cfg.Height)*emuPerPx)
+	natW, natH := int64(cfg.Width)*emuPerPx, int64(cfg.Height)*emuPerPx
+	if svg { // the PNG is drawn larger than the SVG's own size
+		natW, natH = int64(svgW*emuPerPx), int64(svgH*emuPerPx)
+	}
+	cx, cy := w.imageSize(markdown.AttrsOf(n), natW, natH)
 	w.drawID++
 	name := fmt.Sprintf("folio-image%d.%s", w.drawID, ext)
 	w.media = append(w.media, mediaFile{name: name, data: data})

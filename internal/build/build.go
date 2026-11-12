@@ -131,6 +131,7 @@ func Render(sel config.Selection, dryRun bool, log Logf) error {
 		case config.TypeDOCX:
 			err = docx.Write(out, doc, docx.Options{
 				Root: sel.Config.Root, Template: template, Title: title, Lang: lang, TOC: sel.Format.TOC,
+				Warn: warn(log),
 			})
 			if err == nil && cover != "" {
 				err = docrender.CoverDOCX(out, cover)
@@ -145,7 +146,7 @@ func Render(sel config.Selection, dryRun bool, log Logf) error {
 			if err == nil {
 				err = docrender.RunPDF(context.Background(), pdfTimeout, out, nil, docrender.Options{
 					Root: sel.Config.Root, Cover: cover, Title: title, TOC: sel.Format.TOC, Lang: lang, Fonts: fonts,
-					Markdown: doc,
+					Markdown: doc, Warn: warn(log),
 				})
 			}
 		}
@@ -155,6 +156,11 @@ func Render(sel config.Selection, dryRun bool, log Logf) error {
 		log("wrote %s", rel(sel.Config.Root, out))
 	}
 	return nil
+}
+
+// warn turns log into a writer's warning hook.
+func warn(log Logf) func(string, ...any) {
+	return func(format string, args ...any) { log("warning: "+format, args...) }
 }
 
 // Document builds the parsed, filtered document of a document selection,
@@ -204,7 +210,7 @@ func Flatten(sel config.Selection, log Logf) (string, string, error) {
 func Expander(sel config.Selection, log Logf) *shortcode.Expander {
 	log = log.or()
 	return shortcode.New(sel.Config.Root, shortcode.Variables(sel.Config.Root, sel.Vars()),
-		func(format string, args ...any) { log("warning: "+format, args...) })
+		warn(log))
 }
 
 func loadTopic(root string, t config.Topic) (*bookmaker.Node, error) {

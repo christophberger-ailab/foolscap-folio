@@ -473,6 +473,35 @@ func TestAbsoluteIncludes(t *testing.T) {
 	}
 }
 
+func TestFlattenTitleWithIncludedHeading(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, dir+"/book/index.qmd", "---\ntitle: B\n---\n\n# B\n")
+	writeFile(t, dir+"/book/kolophon.qmd", "---\norder: 1\n---\n\n{{< include /assets/a.md >}}\n")
+	writeFile(t, dir+"/book/plain.qmd", "---\norder: 2\n---\n\n{{< include /assets/plain.md >}}\n")
+	writeFile(t, dir+"/book/loop.qmd", "---\norder: 3\n---\n\n{{< include /assets/loop.md >}}\n")
+	writeFile(t, dir+"/assets/a.md", "---\norder: 9999\n---\n\n{{< include b.md >}}\n")
+	writeFile(t, dir+"/assets/b.md", "```\n# not a heading\n```\n\n# Rechtliche Hinweise\n")
+	writeFile(t, dir+"/assets/plain.md", "Just text.\n\n```\n# code\n```\n")
+	writeFile(t, dir+"/assets/loop.md", "{{< include /assets/loop.md >}}\n")
+
+	root, err := LoadTree(dir+"/book", dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := Flatten(root, Options{ProjectRoot: dir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if containsHeading(res.Content, "#", " Kolophon") {
+		t.Errorf("a title was generated although the include brings a heading:\n%s", res.Content)
+	}
+	for _, name := range []string{"Plain", "Loop"} {
+		if !containsHeading(res.Content, "# ", name) {
+			t.Errorf("missing generated heading %q:\n%s", name, res.Content)
+		}
+	}
+}
+
 func TestFlattenRelativeInclude(t *testing.T) {
 	dir := t.TempDir()
 	writeFile(t, dir+"/book/index.qmd", "---\ntitle: B\n---\n\n# B\n")

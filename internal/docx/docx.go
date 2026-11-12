@@ -40,6 +40,9 @@ type Options struct {
 	// TOC inserts a Word table of contents field, headed "Inhaltsverzeichnis"
 	// for German and "Contents" otherwise, at the start.
 	TOC bool
+	// Warn, if set, receives the problems that do not stop the render,
+	// such as an image that is not there.
+	Warn func(format string, args ...any)
 }
 
 // Write writes the prepared document d to a DOCX file at path.
