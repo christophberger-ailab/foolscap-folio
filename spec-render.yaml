@@ -48,7 +48,7 @@ constraints:
       2: Conditional content the selected format and audience do not show is removed after parsing (see CONDITIONAL in spec.yaml)
       3: The DOCX is written in Go. A format's `template` names a reference DOCX whose styles, page setup, headers, footers and numbering are used and whose body is discarded; a missing template fails before anything is written
       3-1: 'With `toc: true` the DOCX has a Word contents field'
-      4: The PDF is laid out in Go (gopdf) from the same parsed document, A4, with embedded fonts, pagination, contents, links, headings, lists, ordinary tables and local raster images
+      4: The PDF is laid out in Go (gopdf) from the same parsed document, A4, with embedded fonts, pagination, contents, links, headings, lists, ordinary tables and local images
       4-1: Emoji render in a monochrome emoji font, and a line never breaks inside a word that spans quote marks, emphasis or links
       4-2: An image among text in a paragraph is drawn inline on the text's baseline, and a line with a tall image grows to hold it; an image alone in its paragraph stays a block of its own
       4-3: Image width and height attributes are honoured in cm, mm, in, pt, px, em, per cent of the available width, and bare numbers as pixels; with one of the two given the other follows the aspect ratio, and an image too large for the text width or the page shrinks to fit
@@ -56,6 +56,8 @@ constraints:
       4-5: Callouts are drawn in a box in the callout type's own color, with a thick left bar; the title of a default callout sits on a header background for that type and stays with the first lines of the body, and a callout running over pages keeps its box open at the page breaks
       4-6: A `{{< pagebreak >}}` starts a new page, also inside lists, block quotes and callouts; a break on a page that holds nothing yet adds no blank page, and one inside a table cell is ignored
       4-7: A heading without text or image draws nothing, takes no space and opens no page; every page the layout starts can be addressed for its page number, contents entry and callout box, even if nothing was drawn on it
+      4-8: 'A local SVG image is drawn as a PNG made from it, in the DOCX and the PDF alike, at its own size (width and height in px, else its viewBox); its shapes are drawn as the SVG subset oksvg supports, its text in the Go fonts, unrotated'
+      4-9: An image that names no file of the project does not stop the render. The project's placeholder, `/assets/static/_placeholder.svg`, stands in for it in the DOCX, the PDF and the website, and a warning names the image; a project without that file gets the placeholder built into folio
       5: A topic may declare `cover:` as a project-relative PNG path supporting placeholders; a missing or invalid cover fails before rendering
       5-1: The cover is put in front of both the DOCX and the PDF with preserved aspect ratio, full-page for the PDF; the DOCX cover uses its own zero-margin section and page-relative image, and the original body section properties, styles, headers and footers are preserved
       6: Unsupported PDF constructs produce actionable errors rather than silently discarding content

@@ -4,13 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"image"
 	"math"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 	"unicode"
 
 	"github.com/signintech/gopdf"
+
+	"github.com/christophberger-ailab/foolscap-folio/internal/svgimage"
 )
 
 const pageW, pageH, margin = 595.28, 841.89, 48.0
@@ -30,6 +35,13 @@ type pdfWriter struct {
 	left, right, inset float64
 	// dry lays text out without drawing it or breaking pages, to measure.
 	dry bool
+	// warn receives the problems that do not stop the render; warned
+	// keeps each from being reported more than once.
+	warn   func(format string, args ...any)
+	warned map[string]bool
+	// rasters holds the PNGs drawn from SVG images, by the key fitImage
+	// hands out for them.
+	rasters map[string][]byte
 }
 type tocEntry struct {
 	title, id   string
@@ -79,7 +91,7 @@ func layoutPDF(ctx context.Context, path string, bb []Block, o Options) error {
 	if err = fonts.register(p); err != nil {
 		return err
 	}
-	w := &pdfWriter{p: p, root: o.Root, ctx: ctx, fonts: fonts, left: margin, right: pageW - margin}
+	w := &pdfWriter{p: p, root: o.Root, ctx: ctx, fonts: fonts, left: margin, right: pageW - margin, warn: o.Warn}
 	if o.Cover != "" {
 		if err = ValidateCover(o.Cover); err != nil {
 			return err
@@ -434,7 +446,7 @@ func (w *pdfWriter) paragraph(runs []Run, size, left, width float64) error {
 			y, h := w.y+above-ascent, lh
 			if s.Image != "" {
 				y, h = w.y+above-s.height, s.height
-				if err := w.p.Image(s.Image, x, y, &gopdf.Rect{W: s.width, H: s.height}); err != nil {
+				if err := w.drawImage(s.Image, x, y, s.width, s.height); err != nil {
 					return err
 				}
 			} else {
@@ -537,7 +549,7 @@ func (w *pdfWriter) paragraph(runs []Run, size, left, width float64) error {
 			}
 			w.ensure(ih + 10)
 			if !w.dry {
-				if err = w.p.Image(path, left, w.y, &gopdf.Rect{W: iw, H: ih}); err != nil {
+				if err = w.drawImage(path, left, w.y, iw, ih); err != nil {
 					return err
 				}
 			}
@@ -754,7 +766,7 @@ func (w *pdfWriter) table(b Block) error {
 				for _, it := range items[i][next[i] : next[i]+take[i]] {
 					switch {
 					case it.image != "":
-						if err := w.p.Image(it.image, x+cellPadding, y, &gopdf.Rect{W: it.w, H: it.h - 4}); err != nil {
+						if err := w.drawImage(it.image, x+cellPadding, y, it.w, it.h-4); err != nil {
 							return err
 						}
 					case it.text != "":
@@ -784,18 +796,40 @@ func (w *pdfWriter) table(b Block) error {
 // page height, honouring explicit width and height attributes. With only one
 // of them the other follows the aspect ratio; with both the image takes
 // exactly that size, unless it must shrink to fit. An em is the font size of
-// the surrounding text.
-func (w *pdfWriter) fitImage(r Run, size, width float64) (path string, iw, ih float64, err error) {
-	path, err = resource(w.root, r.Image)
+// the surrounding text. The key it returns is what drawImage draws.
+//
+// An image that is not there gets the project's placeholder in its place,
+// with a warning; an SVG is drawn as a PNG made from it.
+func (w *pdfWriter) fitImage(r Run, size, width float64) (key string, iw, ih float64, err error) {
+	key, err = resource(w.root, r.Image)
 	if err != nil {
 		return "", 0, 0, err
 	}
-	c, err := imageSize(path)
+	var cw, ch float64
+	if info, statErr := os.Stat(key); statErr != nil || !info.Mode().IsRegular() {
+		if !w.warned[r.Image] && w.warn != nil {
+			w.warn("image %q not found; the placeholder stands in for it", r.Image)
+		}
+		if w.warned == nil {
+			w.warned = map[string]bool{}
+		}
+		w.warned[r.Image] = true
+		key = filepath.Join(w.root, filepath.FromSlash(svgimage.PlaceholderPath))
+		cw, ch, err = w.raster(key, svgimage.Placeholder(w.root))
+	} else if svgimage.IsSVG(key) {
+		var data []byte
+		if data, err = os.ReadFile(key); err == nil {
+			cw, ch, err = w.raster(key, data)
+		}
+	} else {
+		var c image.Config
+		c, err = imageSize(key)
+		cw, ch = float64(c.Width), float64(c.Height)
+	}
 	if err != nil {
 		return "", 0, 0, fmt.Errorf("image %s: %w", r.Image, err)
 	}
 	maxH := w.bottom() - w.top() - 20
-	cw, ch := float64(c.Width), float64(c.Height)
 	dw, dh := imageLength(r.ImageWidth, size, width), imageLength(r.ImageHeight, size, maxH)
 	switch {
 	case dw > 0 && dh > 0:
@@ -810,7 +844,45 @@ func (w *pdfWriter) fitImage(r Run, size, width float64) (path string, iw, ih fl
 	if scale := math.Min(width/iw, maxH/ih); scale < 1 {
 		iw, ih = iw*scale, ih*scale
 	}
-	return path, iw, ih, nil
+	return key, iw, ih, nil
+}
+
+// svgScale is how many pixels of the PNG drawn from an SVG go to one of
+// its own, so the picture stays sharp when printed.
+const svgScale = 4
+
+// raster makes the PNG of an SVG image, once per key, and returns the
+// SVG's own size in pixels.
+func (w *pdfWriter) raster(key string, data []byte) (cw, ch float64, err error) {
+	if cw, ch, err = svgimage.Size(data); err != nil {
+		return 0, 0, err
+	}
+	if _, ok := w.rasters[key]; ok {
+		return cw, ch, nil
+	}
+	b, err := svgimage.PNG(data, svgScale)
+	if err != nil {
+		return 0, 0, err
+	}
+	if w.rasters == nil {
+		w.rasters = map[string][]byte{}
+	}
+	w.rasters[key] = b
+	return cw, ch, nil
+}
+
+// drawImage draws the image fitImage handed out key for.
+func (w *pdfWriter) drawImage(key string, x, y, iw, ih float64) error {
+	rect := &gopdf.Rect{W: iw, H: ih}
+	b, ok := w.rasters[key]
+	if !ok {
+		return w.p.Image(key, x, y, rect)
+	}
+	h, err := gopdf.ImageHolderByBytes(b)
+	if err != nil {
+		return err
+	}
+	return w.p.ImageByHolder(h, x, y, rect)
 }
 
 // imageLength converts a Pandoc image dimension to points. A bare number

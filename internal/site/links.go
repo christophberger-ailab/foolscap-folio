@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/christophberger-ailab/foolscap-folio/internal/markdown"
+	"github.com/christophberger-ailab/foolscap-folio/internal/svgimage"
 	"github.com/yuin/goldmark/ast"
 )
 
@@ -96,8 +97,31 @@ func (b *builder) rewrite(dest []byte, p *pageInfo, image bool) []byte {
 	if proj != "" && b.copyFile(proj) {
 		return []byte(escapePath(relPathTo(path.Dir(p.out), proj)) + suffix)
 	}
+	if image && b.placeholder() {
+		b.logf("warning: %s: image %q not found; the placeholder stands in for it", p.out, string(dest))
+		return []byte(escapePath(relPathTo(path.Dir(p.out), svgimage.PlaceholderPath)))
+	}
 	b.logf("warning: %s: link target %q not found", p.out, string(dest))
 	return dest
+}
+
+// placeholder puts the image that stands in for a missing one into the
+// site: the project's own, or the one built into folio.
+func (b *builder) placeholder() bool {
+	if b.copied[svgimage.PlaceholderPath] || b.copyFile(svgimage.PlaceholderPath) {
+		return true
+	}
+	dst := filepath.Join(b.outAbs, filepath.FromSlash(svgimage.PlaceholderPath))
+	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+		b.logf("warning: %v", err)
+		return false
+	}
+	if err := os.WriteFile(dst, svgimage.Placeholder(b.root), 0o644); err != nil {
+		b.logf("warning: %v", err)
+		return false
+	}
+	b.copied[svgimage.PlaceholderPath] = true
+	return true
 }
 
 // projPath resolves a link destination to a project-relative path: an

@@ -372,6 +372,8 @@ typography:
     weight: semi-bold
 ```
 
+**Images.** A local SVG image goes into the DOCX and the PDF as a PNG drawn from it. An image that is not there does not stop the render: the project's placeholder, `/assets/static/_placeholder.svg`, stands in for it in every format, and the render log names the missing image. A project without that file gets folio's own placeholder. `folio web` shows the same placeholder in its preview.
+
 **Covers.** A topic's `cover:` is a project-relative PNG, and may use placeholders. It is put in front of the DOCX and the PDF. Both covers keep the image's aspect ratio and are anchored at the bottom-right corner of the page, where the brand graphic ends. The PDF cover (A4) fills the page and crops any overflow at the top or left. The DOCX cover uses the document's page size, shrinks to fit, and never crops. It sits in a dedicated zero-margin section, and the body's original section properties, styles, headers and footers are preserved. No header or footer is added to either cover. A missing or invalid cover fails the render before anything is written.
 
 The PDF has its own layout; it does not reproduce the Word template. Library research and rationale: [docs/native-rendering.md](docs/native-rendering.md).

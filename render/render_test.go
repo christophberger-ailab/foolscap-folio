@@ -160,3 +160,33 @@ func TestSplitList(t *testing.T) {
 		}
 	}
 }
+
+// A missing image does not stop a render: every format shows the
+// project's placeholder in its place.
+func TestRunUsesPlaceholderForMissingImages(t *testing.T) {
+	root := fixture(t)
+	page := filepath.Join(root, "chapter2", "second.qmd")
+	os.WriteFile(page, []byte("---\ntitle: Second\norder: 1\n---\n# Second\n\n![gone](/assets/images/gone.png)\n"), 0o644)
+	ph := filepath.Join(root, "assets", "static", "_placeholder.svg")
+	os.MkdirAll(filepath.Dir(ph), 0o755)
+	os.WriteFile(ph, []byte(`<svg xmlns="http://www.w3.org/2000/svg" width="64" height="32"><rect width="64" height="32" fill="red"/></svg>`), 0o644)
+
+	if err := Run(root, config.Request{Topics: []string{"chapter2"}, Audiences: []string{"std"}}, false, false); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"handout/chapter2-std.docx", "handout/chapter2-std.pdf", "handbook/chapter2-std.docx"} {
+		if fi, err := os.Stat(filepath.Join(root, "_output", name)); err != nil || fi.Size() == 0 {
+			t.Errorf("%s: %v", name, err)
+		}
+	}
+	html, err := os.ReadFile(filepath.Join(root, "_output", "web-std", "chapter2", "second.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(html), `src="../assets/static/_placeholder.svg"`) {
+		t.Errorf("the site page does not show the placeholder:\n%s", html)
+	}
+	if _, err := os.Stat(filepath.Join(root, "_output", "web-std", "assets", "static", "_placeholder.svg")); err != nil {
+		t.Errorf("the placeholder is not copied into the site: %v", err)
+	}
+}

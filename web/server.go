@@ -20,6 +20,7 @@ import (
 	"github.com/christophberger-ailab/foolscap-folio/internal/build"
 	"github.com/christophberger-ailab/foolscap-folio/internal/config"
 	"github.com/christophberger-ailab/foolscap-folio/internal/project"
+	"github.com/christophberger-ailab/foolscap-folio/internal/svgimage"
 )
 
 //go:embed assets
@@ -914,33 +915,20 @@ func (s *server) media(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, abs)
 }
 
-// placeholderImage is the project's own stand-in for an image that is not
-// there, addressed website-absolute like the images it stands in for.
-const placeholderImage = "assets/images/_placeholder.png"
-
 // servePlaceholder answers a /media request whose path names no image file
 // of the project -- a link to a file that is missing, or to a file that is
-// not an image -- with the project's placeholder image, so that the preview
-// shows where the image goes instead of the browser's broken-image icon. A
-// project without a placeholder gets the one built into the app. It is
-// never cached: the preview asks again once the image turns up (the
-// watch's media fingerprint moves), and the answer then must be the image.
+// not an image -- with the project's placeholder image,
+// /assets/static/_placeholder.svg, so that the preview shows where the
+// image goes instead of the browser's broken-image icon. A project without
+// a placeholder gets the one built into the app. It is never cached: the
+// preview asks again once the image turns up (the watch's media
+// fingerprint moves), and the answer then must be the image.
 // The caller must hold s.mu.
 func (s *server) servePlaceholder(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-Qm-Placeholder", "true")
-	abs := filepath.Join(s.root, filepath.FromSlash(placeholderImage))
-	if isRegularFile(abs) {
-		http.ServeFile(w, r, abs)
-		return
-	}
-	body, err := assets.ReadFile("assets/static/placeholder.svg")
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
 	w.Header().Set("Content-Type", "image/svg+xml")
-	w.Write(body)
+	w.Write(svgimage.Placeholder(s.root))
 }
 
 // isRegularFile reports whether abs is a file, not a directory or nothing.

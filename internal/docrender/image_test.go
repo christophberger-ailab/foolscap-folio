@@ -3,6 +3,7 @@ package docrender
 import (
 	"fmt"
 	"math"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -157,5 +158,46 @@ func TestImageHeightAttribute(t *testing.T) {
 	}
 	if len(runs) != 1 || runs[0].ImageWidth != "2cm" || runs[0].ImageHeight != "1cm" {
 		t.Fatalf("runs %+v", runs)
+	}
+}
+
+// An SVG image is drawn, at its own size.
+func TestFitImageSVG(t *testing.T) {
+	w := testWriter(t)
+	w.root = t.TempDir()
+	os.WriteFile(filepath.Join(w.root, "a.svg"), []byte(`<svg xmlns="http://www.w3.org/2000/svg" width="80" height="40"><rect width="80" height="40" fill="red"/></svg>`), 0o644)
+	key, iw, ih, err := w.fitImage(Run{Image: "/a.svg"}, 11, 400)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if iw != 60 || ih != 30 {
+		t.Errorf("size %gx%g, want 60x30", iw, ih)
+	}
+	if err := w.drawImage(key, 0, 0, iw, ih); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// A missing image does not stop the PDF: the project's placeholder stands
+// in for it, and one warning names it, however often it is measured.
+func TestFitImageMissingShowsPlaceholder(t *testing.T) {
+	w := testWriter(t)
+	w.root = t.TempDir()
+	var warned []string
+	w.warn = func(f string, a ...any) { warned = append(warned, fmt.Sprintf(f, a...)) }
+	for range 2 {
+		key, iw, ih, err := w.fitImage(Run{Image: "/nope.png"}, 11, 400)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if iw != 240 || ih != 135 { // the built-in placeholder, 320x180 px
+			t.Errorf("size %gx%g, want 240x135", iw, ih)
+		}
+		if err := w.drawImage(key, 0, 0, iw, ih); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if len(warned) != 1 || !strings.Contains(warned[0], "nope.png") {
+		t.Errorf("warnings %q, want one naming the image", warned)
 	}
 }
