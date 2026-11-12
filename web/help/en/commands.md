@@ -17,12 +17,7 @@ folio <object> <subcommand> [flags] [args]
 | command | what it does |
 | --- | --- |
 | `folio render [<topic>…]` | render the project's topic × format × audience matrix |
-| `folio flatten <topic>` | write the Markdown a document render of one topic parses, to `_build/<topic>.md`, without rendering |
-| `folio migrate` | write `folio.yml` from the project's old `_quarto*.yml` files (`--dry-run` prints it, `--force` overwrites) |
-| `folio lint [<topic>]` | check the `.qmd` sources (currently: unclosed `:::` fences) |
-| `folio chapters insert <folder>` | give a new page its `order:`, renumbering its siblings |
-| `folio chapters move <folder> <old> <new>` | move a chapter to another order position |
-| `folio chapters remove <folder> <order>` | remove a chapter, after confirmation |
+| `folio lint [<topic>]` | check the `.md` and `.qmd` sources (currently: unclosed `:::` fences) |
 | `folio web [<path>]` | serve the local sorting, editing and rendering UI |
 
 Every command takes `--help`, which lists its flags and arguments.

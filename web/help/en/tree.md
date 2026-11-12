@@ -1,6 +1,6 @@
 # The page tree
 
-The left side of the window shows the project's `.qmd` pages as a tree, in the order of the website, nested by folder. Click a title to open the page in the [editor](editor.md).
+The left side of the window shows the project's `.md` (and older `.qmd`) pages as a tree, in the order of the website, nested by folder. The `assets` folder at the top of the project, and folders whose names start with `_` or `.`, are left out, along with everything inside them. Click a title to open the page in the [editor](editor.md).
 
 ## Titles
 
@@ -59,7 +59,7 @@ Drag a page by its `⠿` handle.
 
 ## Creating pages
 
-- Type a file name (without `.qmd`) and an optional title at the top, then press `＋ Page`.
+- Type a file name (without `.md`) and an optional title at the top, then press `＋ Page`.
 - The `＋` button on a row adds a child page under that page. You are asked for the name.
 
 ## Deleting pages

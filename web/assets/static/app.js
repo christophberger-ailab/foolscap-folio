@@ -2141,14 +2141,26 @@ function saveNow(force) {
   htmx.ajax('POST', '/save', { source: form, swap: 'none', values: values });
 }
 
+// renameParts splits a page's path for the rename field: head is the text
+// before the field, name what the field holds, and tail the text after it
+// -- /index.md or /index.qmd for a section page, nothing otherwise.
+function renameParts(full) {
+  var m = /\/index\.q?md$/.exec(full);
+  var tail = m ? m[0] : '';
+  var rest = full.slice(0, full.length - tail.length);
+  var cut = rest.lastIndexOf('/') + 1;
+  return { head: rest.slice(0, cut), name: rest.slice(cut), tail: tail };
+}
+
 // File renaming
 //
 // The pencil after the path in the editor's heading turns the page's name,
 // and only that, into a field; the rest of the path stays text, since a
 // rename never moves a page out of its directory. A page's name is its
-// file name, except for a section page -- name/index.qmd, which is how
-// pages are created -- whose name is its directory's: there the field
-// stands in for the directory and /index.qmd stays text after it. Enter
+// file name, except for a section page -- name/index.md, which is how
+// pages are created, or the older name/index.qmd -- whose name is its
+// directory's: there the field stands in for the directory and the index
+// file name stays text after it. Enter
 // renames the page; Esc, or
 // leaving the field, gives up and puts the path back as it was. The server
 // re-points the editor at the new path the way a move does, and answers a
@@ -2161,10 +2173,9 @@ function startRename(button, typed, problem) {
     return;
   }
   var full = span.dataset.path;
-  var tail = /\/index\.qmd$/.test(full) ? '/index.qmd' : '';
-  var head = full.slice(0, full.length - tail.length);
-  var cut = head.lastIndexOf('/') + 1;
-  var name = head.slice(cut);
+  var parts = renameParts(full);
+  var tail = parts.tail;
+  var name = parts.name;
   var input = document.createElement('input');
   input.type = 'text';
   input.className = 'rename-input';
@@ -2176,15 +2187,15 @@ function startRename(button, typed, problem) {
     input.classList.add('invalid');
     input.title = problem;
   }
-  span.textContent = head.slice(0, cut);
+  span.textContent = parts.head;
   span.appendChild(input);
   span.appendChild(document.createTextNode(tail));
   button.hidden = true;
   input.focus();
   // The name without its extension is selected, so typing replaces the
-  // name and leaves .qmd in place.
-  var stem = input.value.lastIndexOf('.qmd');
-  input.setSelectionRange(0, stem > 0 ? stem : input.value.length);
+  // name and leaves .md or .qmd in place.
+  var ext = /\.q?md$/.exec(input.value);
+  input.setSelectionRange(0, ext && ext.index > 0 ? ext.index : input.value.length);
 
   var done = false;
   function finish(commit) {

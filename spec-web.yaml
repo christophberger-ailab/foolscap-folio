@@ -47,7 +47,7 @@ constraints:
 
   UI:
     requirements:
-      1: The page tree shows the project's .qmd pages in website order, nested by folder
+      1: The page tree shows the project's .md and .qmd pages in website order, nested by folder; the top-level assets folder, and folders whose names start with "_" or "." at any depth, are left out with everything below them; an assets folder further down is an ordinary folder
       1-1: A page's title is its `title:` frontmatter, else the text of its first Markdown heading, else a title made from its file name
       1-2: A title taken from a heading drops the heading's own Pandoc attribute block, so `# PERLE OnCall-Schulungen {.unnumbered .unlisted}` shows as "PERLE OnCall-Schulungen"; a `{...}` directly after a `]` belongs to a bracketed span and is left to it
       1-3: A Quarto span in a title is shown as the symbol its class carries followed by the span's text, so `# [Polizei-]{.pol}[Feuerwehr-]{.fw}Spickzettel` shows as "🚔Polizei-🚒Feuerwehr-Spickzettel"
@@ -64,10 +64,10 @@ constraints:
       2-1: A drag that moves a page to another parent renames its file on disk; if the page open in the editor is the moved one, or sits inside a moved section, the editor is re-pointed at the new path, so autosave keeps writing to the file instead of to a path that no longer exists
       2-2: The re-pointing replaces the editor's path and heading only, never its text, which may hold edits that are not on disk yet; an autosave that the rename had already broken is retried at the new path
       2-3: A pencil button after the path in the editor's heading turns the page's file name -- and only the file name, the directory staying text -- into a field; Enter renames the file on disk within its directory, Esc or leaving the field cancels and puts the path back
-      2-3-1: A name typed without the .qmd extension gets it; a name that is not a plain file name, starts with "_" or ".", or is index.qmd is refused
-      2-3-2: The page's children directory (name/ beside name.qmd) is renamed with it, so its children stay its children; the page's frontmatter and headings are left as they are
+      2-3-1: A name typed without an extension keeps the page's own, .md or .qmd; a name that is not a plain file name, starts with "_" or ".", or is index (.md or .qmd) is refused
+      2-3-2: The page's children directory (name/ beside name.md or name.qmd) is renamed with it, so its children stay its children; the page's frontmatter and headings are left as they are
       2-3-3: A name already taken -- by a file, or by a directory the renamed page would become the section of -- is refused with the tree's error, and the field opens again on the name typed so it can be corrected; a rename that changes only the case is not a collision
-      2-3-4: A section page (name/index.qmd, the shape new pages are created in) is named by its directory: the field holds the directory's name with /index.qmd staying text after it, and the rename renames the directory with the pages in it; only the project's own top-level index.qmd is not offered for renaming
+      2-3-4: A section page (name/index.md, the shape new pages are created in, or the older name/index.qmd) is named by its directory: the field holds the directory's name with /index.md or /index.qmd staying text after it, and the rename renames the directory with the pages in it; only the project's own top-level index.md or index.qmd is not offered for renaming
       2-3-5: The editor is re-pointed at the new path as a move re-points it (2-1, 2-2), and the copyedit suggestions kept for the page follow it
       3: Pages can be created, deleted, and edited in place
       3-0: A failed save is shown as an error next to the heading, naming why it failed, and leaving the page -- opening another one, reloading, closing the tab -- asks for confirmation while an edit is unsaved
@@ -106,7 +106,7 @@ constraints:
       3-6-4: The textarea remains the field the edit form posts, so autosave and the preview are unaffected by the editor
       3-6-5: Typing a Markdown link's destination -- `[text](` or `![alt](`, whichever bracket opened it -- offers the entries of the directory named so far in a popup below the cursor; Up and Down move the selection, Tab or Enter inserts it, Esc closes the popup
       3-6-5-1: A destination starting with "/" completes against the project root; any other completes against the folder of the edited page, the same rule the preview's images resolve by
-      3-6-5-2: "`![alt](` offers image files, `[text](` offers `.qmd` pages; a directory is offered either way, so the user can descend into it a level at a time"
+      3-6-5-2: "`![alt](` offers image files, `[text](` offers `.md` and `.qmd` pages; a directory is offered either way, so the user can descend into it a level at a time"
       3-6-5-3: A completed destination containing a character that would otherwise end it -- a space above all -- is wrapped in Markdown's own `<...>` form; a destination that no longer needs the wrapping loses it again
       3-6-5-4: The segment being typed matches anywhere in a candidate's name, not only at its start; a candidate matching at the start is listed first
       3-6-6: Every `==TODO==` in the page -- inside an HTML comment too -- is highlighted in the editor in a TODO color of its own, distinct from the search's
@@ -280,7 +280,7 @@ constraints:
       11-14: 'What went wrong is shown in the pane where the suggestions would be: no connection configured, the API''s own refusal, an unreadable answer'
       11-15: A chat box at the foot of the copyedit pane lets the user talk to the selected model about the documentation; Enter sends, Shift+Enter starts a new line, and the box is offered only once a connection is configured
       11-15-1: 'To answer, the model is given tools that read the open project and nothing else: search_pages answers from the search field''s index and rules, list_pages lists the pages as the tree does, and read_page reads one page; the page open in the editor is read from the editor''s text, unsaved edits included'
-      11-15-2: The tools reach only the pages the tree shows -- .qmd files outside the "_" and "." folders, inside the project -- so a path naming configuration, a file outside the project, or a link out of it is refused rather than read
+      11-15-2: The tools reach only the pages the tree shows -- .md and .qmd files outside the folders the tree leaves out, inside the project -- so a path naming configuration, a file outside the project, or a link out of it is refused rather than read
       11-15-3: No tool writes. A change the model would make to the open page is proposed with suggest_edit -- the passage, what to put there, and why -- and comes back as a suggestion listed below the answer exactly as a run lists one, so it is marked, applied, and finished with as one (11-8 to 11-11); a passage not in the open page is refused back to the model, which may quote it again
       11-15-4: Every connection kind is given the same tools in the form it speaks -- Anthropic tool use, OpenAI-compatible function calling, and the Copilot SDK's custom tools, which are then the only tools the Copilot session has
       11-15-5: An answer says below it what the model looked up to give it

@@ -144,9 +144,14 @@ func TestRejectsUnsuitableTrees(t *testing.T) {
 	if _, err := Run(empty, Options{}); err == nil || !strings.Contains(err.Error(), "no content folders") {
 		t.Errorf("empty tree: err = %v", err)
 	}
-	quarto := tree(t)
-	write(t, quarto, "_quarto.yml", "project: {type: website}\n")
-	if _, err := Run(quarto, Options{}); err == nil || !strings.Contains(err.Error(), "folio migrate") {
-		t.Errorf("Quarto tree: err = %v", err)
+}
+
+// Quarto's configuration files mean nothing to folio: a tree that still has
+// one is initialized like any other.
+func TestIgnoresQuartoFiles(t *testing.T) {
+	root := tree(t)
+	write(t, root, "_quarto.yml", "project: {type: website}\n")
+	if _, err := Run(root, Options{}); err != nil {
+		t.Errorf("tree with _quarto.yml: %v", err)
 	}
 }

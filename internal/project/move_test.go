@@ -159,7 +159,7 @@ func TestMoveIntoRootIndex(t *testing.T) {
 	}
 }
 
-// CreatePage creates the new page as name/index.qmd, ordered after the
+// CreatePage creates the new page as name/index.md, ordered after the
 // last ordered sibling.
 func TestCreatePage(t *testing.T) {
 	root := writeFixture(t)
@@ -167,11 +167,11 @@ func TestCreatePage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if created != "chapter2/fifth/index.qmd" {
+	if created != "chapter2/fifth/index.md" {
 		t.Fatalf("created = %q", created)
 	}
 	tree := load(t, root)
-	p := tree.Find("chapter2/fifth/index.qmd")
+	p := tree.Find("chapter2/fifth/index.md")
 	if p == nil {
 		t.Fatal("created page not in tree")
 	}
@@ -189,11 +189,11 @@ func TestCreatePageAtRoot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if created != "about/index.qmd" {
+	if created != "about/index.md" {
 		t.Fatalf("created = %q", created)
 	}
-	if p := load(t, root).Find("about/index.qmd"); p == nil || order(t, p) != 5 {
-		t.Fatalf("about/index.qmd = %+v", p)
+	if p := load(t, root).Find("about/index.md"); p == nil || order(t, p) != 5 {
+		t.Fatalf("about/index.md = %+v", p)
 	}
 }
 
@@ -205,13 +205,13 @@ func TestCreatePageAfter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if created != "chapter2/inserted/index.qmd" {
+	if created != "chapter2/inserted/index.md" {
 		t.Fatalf("created = %q", created)
 	}
 	tree := load(t, root)
 	ch2 := tree.Find("chapter2/index.qmd")
 	want := []string{
-		"chapter2/second.qmd", "chapter2/inserted/index.qmd",
+		"chapter2/second.qmd", "chapter2/inserted/index.md",
 		"chapter2/third.qmd", "chapter2/fourth.qmd",
 	}
 	if got := paths(ch2.Children); !reflect.DeepEqual(got, want) {
@@ -231,12 +231,12 @@ func TestCreatePageAfterAtRoot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if created != "intro/index.qmd" {
+	if created != "intro/index.md" {
 		t.Fatalf("created = %q", created)
 	}
 	tree := load(t, root)
 	want := []string{
-		"index.qmd", "intro/index.qmd", "chapter1/index.qmd",
+		"index.qmd", "intro/index.md", "chapter1/index.qmd",
 		"chapter2/index.qmd", "chapter3.qmd",
 	}
 	if got := paths(tree.Pages); !reflect.DeepEqual(got, want) {

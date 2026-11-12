@@ -14,13 +14,13 @@ If a save fails, the reason is shown as an error next to the page heading.
 
 ## Renaming the file
 
-The heading above the editor shows the page's path. The `✎` button after it turns the file name, and only the file name, into a field: the page stays in its folder. Type the new name and press `Enter`; `.qmd` is added if you leave it out. `Esc`, or clicking elsewhere, cancels.
+The heading above the editor shows the page's path. The `✎` button after it turns the file name, and only the file name, into a field: the page stays in its folder. Type the new name and press `Enter`; the page keeps its extension, `.md` or `.qmd`, if you leave it out. `Esc`, or clicking elsewhere, cancels.
 
 - If the page has child pages in a folder of the same name, that folder is renamed too, so the children stay with it.
 - A name that is already taken is refused, and the field stays open so you can correct it.
 - The editor follows the file to its new name. Your unsaved text stays untouched, and autosave keeps writing to the right file.
-- A page stored as `name/index.qmd`, which is how new pages are created, is named by its folder. For such a page the field holds the folder name, `/index.qmd` stays as it is, and the folder is renamed together with the pages inside it.
-- The project's own top-level `index.qmd` cannot be renamed.
+- A page stored as `name/index.md`, which is how new pages are created, or as the older `name/index.qmd`, is named by its folder. For such a page the field holds the folder name, `/index.md` or `/index.qmd` stays as it is, and the folder is renamed together with the pages inside it.
+- The project's own top-level `index.md` or `index.qmd` cannot be renamed.
 
 ## Moves while you edit
 
@@ -75,7 +75,7 @@ Below the `↩`, the rail shows a `×`. Click it to remove the comment the curso
 
 When you type the destination of a Markdown link, a popup below the cursor offers matching entries.
 
-- `[text](` offers `.qmd` pages, `![alt](` offers image files. Folders are offered in both cases so you can go down a level at a time.
+- `[text](` offers pages, `![alt](` offers image files. Folders are offered in both cases so you can go down a level at a time.
 - A destination starting with `/` completes from the project root. Any other completes from the folder of the page you are editing.
 - What you type matches anywhere in a name; names that match at the start come first.
 - Up and Down move the selection, Tab or Enter inserts it, Esc closes the popup.

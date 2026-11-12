@@ -1,27 +1,15 @@
 // Command folio manages and renders a Markdown documentation tree.
 //
-// Usage: folio <object> <subcommand> [flags] [args]
+// Usage: folio <command> [flags] [args]
 //
-// The object "chapters" carries the subcommands `insert`, `move`, and
-// `remove`; "lint", "flatten", "render", "migrate", "init", "web" and
-// "preview" have no
-// subcommands. The "chapters" command itself is a dummy wrapper
-// required because github.com/christophberger/start has no native notion of
-// an "object" parameter (see spec.yaml, constraint SUBCOMMANDS.3).
+// The commands "lint", "render", "init", "web" and "preview" have no
+// subcommands.
 package main
 
 import (
-	"fmt"
-	"os"
-
-	"github.com/christophberger-ailab/foolscap-folio/flatten"
 	"github.com/christophberger-ailab/foolscap-folio/initialize"
-	"github.com/christophberger-ailab/foolscap-folio/insert"
 	"github.com/christophberger-ailab/foolscap-folio/lint"
-	"github.com/christophberger-ailab/foolscap-folio/migrate"
-	"github.com/christophberger-ailab/foolscap-folio/move"
 	"github.com/christophberger-ailab/foolscap-folio/preview"
-	"github.com/christophberger-ailab/foolscap-folio/remove"
 	"github.com/christophberger-ailab/foolscap-folio/render"
 	"github.com/christophberger-ailab/foolscap-folio/web"
 
@@ -39,43 +27,16 @@ func main() {
 	projectFlag := flag.StringP("project", "p", ".", "Path to the document tree")
 
 	start.SetDescription("folio manages and renders a Markdown documentation tree. " +
-		"Usage: folio <object> <subcommand> [flags] [args].")
+		"Usage: folio <command> [flags] [args].")
 	start.SetVersion(version)
 	start.SetInitFunc(func() error { return nil })
 
-	// Register the dummy "chapters" object command. start has no notion
-	// of an <object> parameter, so we model it as a parent command that
-	// only dispatches to its subcommands (SUBCOMMANDS.3). Leaving Cmd
-	// nil makes start reject `folio chapters` without a subcommand.
-	if err := start.Add(&start.Command{
-		Name:  "chapters",
-		Short: "Manage book chapters",
-		Long:  "Manage the chapters of a content folder with one of the subcommands.",
-	}); err != nil {
-		fatal(err)
-	}
-
-	// Register each subcommand under "chapters" as its own package.
-	insert.Register("chapters", projectFlag)
-	move.Register("chapters", projectFlag)
-	remove.Register("chapters", projectFlag)
-
-	// The `lint` object has no sub-commands, so it is registered as a
-	// leaf command directly (SUBCOMMANDS.3 does not apply when there is
-	// nothing to dispatch to).
 	lint.Register(projectFlag)
 
-	// The `render` object also has no sub-commands.
+	// `render` builds the project's topic × format × audience matrix.
 	render.Register(projectFlag)
 
-	// The `flatten` object saves render's generated inputs without rendering.
-	flatten.Register(projectFlag)
-
-	// `migrate` writes folio.yml from a project's old Quarto configuration.
-	migrate.Register(projectFlag)
-
-	// `init` writes a starter folio.yml into a tree that has none; it
-	// shares --force and --dry-run with `migrate`.
+	// `init` writes a starter folio.yml into a tree that has none.
 	initialize.Register(projectFlag)
 
 	// The `web` object serves the sorter UI; no sub-commands either.
@@ -90,9 +51,4 @@ func main() {
 	// command fails. Scripts and CI read the status to tell a failed render
 	// from a good one.
 	start.Up()
-}
-
-func fatal(err error) {
-	fmt.Fprintln(os.Stderr, "error:", err)
-	os.Exit(1)
 }

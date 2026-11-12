@@ -17,12 +17,7 @@ folio <object> <subcommand> [flags] [args]
 | Befehl                                     | Was er tut                                                                                                                |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
 | `folio render [<topic>…]`                  | rendert die Matrix aus Thema × Format × Zielgruppe des Projekts                                                           |
-| `folio flatten <topic>`                    | schreibt das Markdown, das ein Dokument-Rendering des Themas einliest, nach `_build/<topic>.md`, ohne zu rendern          |
-| `folio migrate`                            | schreibt `folio.yml` aus den alten `_quarto*.yml`-Dateien des Projekts (`--dry-run` gibt sie aus, `--force` überschreibt) |
-| `folio lint [<topic>]`                     | prüft die `.qmd`-Quellen (derzeit: nicht geschlossene `:::`-Fences)                                                       |
-| `folio chapters insert <folder>`           | gibt einer neuen Seite ihr `order:` und nummeriert die Geschwisterseiten neu                                              |
-| `folio chapters move <folder> <old> <new>` | verschiebt ein Kapitel an eine andere `order`-Position                                                                    |
-| `folio chapters remove <folder> <order>`   | entfernt ein Kapitel nach Rückfrage                                                                                       |
+| `folio lint [<topic>]`                     | prüft die `.md`- und `.qmd`-Quellen (derzeit: nicht geschlossene `:::`-Fences)                                                       |
 | `folio web [<path>]`                       | startet die lokale Oberfläche zum Sortieren, Bearbeiten und Rendern                                                       |
 
 Jeder Befehl kennt `--help`, das seine Flags und Argumente auflistet.

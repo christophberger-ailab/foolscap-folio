@@ -3,7 +3,7 @@
 This document reads the code once, from front to back, in the order the
 pieces depend on each other. It follows one `folio render` from the command line
 down to the written file, then doubles back for the commands that do not take
-part in a render (`chapters`, `lint`, `migrate`) and for the web UI.
+part in a render (`lint`) and for the web UI.
 
 Every section names the files it covers, so it can also be used as a map.
 
@@ -50,18 +50,10 @@ requirement id (`SUBCOMMANDS.3`, `BOOKS.2-1`, …).
 **It declares the flag that is not owned by a single command.**
 `--project`/`-p` is folio-wide and passed to the subcommands as `*string`, which is
 the shape [`github.com/christophberger/start`](https://github.com/christophberger/start)
-uses — the flag is parsed by the time a command body runs. (The `--profile`
-flag the Quarto hooks used is gone with them.)
-
-**It models the `<object>` parameter.** The command pattern is
-`folio <object> <subcommand> [flags]`, but `start` has no notion of an object. So
-`chapters` is registered as a parent command with no `Cmd` of its own
-(`main.go:59`), and `insert`, `move`, `remove` register themselves underneath
-it. Leaving `Cmd` nil is deliberate: `start` then auto-generates the "missing
-subcommand" usage instead of panicking.
+uses — the flag is parsed by the time a command body runs.
 
 **It registers everything else as a leaf command**: `lint`, `render`,
-`flatten`, `migrate`, `web`. Each of those packages exposes a single
+`web`. Each of those packages exposes a single
 `Register(...)` function and keeps its flag pointers in package-level
 variables — the same pattern in all command packages, so once you have read
 one you have read them all.
@@ -116,27 +108,16 @@ The project's vocabulary for rendering. Read this before `build`.
 
 ## 3. `internal/foliocore` — front matter and page scans
 
-Per `spec.yaml` MAIN.2-4 the user-facing object name (`chapters`) is
-deliberately *not* a package name. The package once held the Quarto profile
-vocabulary — axes, `ParseSelection`, `LoadProfile`, `BuildMatrix`, in
-`selection.go`, `profile.go`, `profileconfig.go` and `matrix.go`. Rendering no
-longer uses any of it; `internal/config` replaced it. It stays only because
-`folio migrate` reads the old profile files with it (`LoadSelection`,
-`AxisValues`), and can go once migrating is no longer needed.
+The package holds what both the bookmaker and the web UI need to read a page:
+`SplitFrontMatter`, `ProjectPath`, the page scans and the exclude rules
+(`DefaultExcludePattern`, `ShouldExcludeChapter`). The Quarto profile vocabulary
+it once held is gone; `internal/config` replaced it.
 
-### 3.1 Front matter, on disk — `scan.go`, `profile_yaml.go`, `types.go`
+### 3.1 Front matter, on disk — `scan.go`, `frontmatter.go`, `types.go`
 
-`ReadFrontmatter` (`scan.go`) scans a `.qmd` for its leading YAML block and
-unmarshals the three fields folio cares about (`order`, `insert-at`, `title` —
-`types.go:18`). A file without front matter is not an error, it is a zero
-value.
-
-`UpdateFrontmatter` (`scan.go`) is the write side, and the reason the
-`chapters` subcommands do not mangle files: it parses the block into a
-`yaml.Node`, hands the node to a mutation callback, and writes it back with the
-body preserved *verbatim*. The node-level helpers the callbacks use —
-`SetMappingScalar`, `RemoveMappingKey`, `RenameMappingKey` — are in
-`profile_yaml.go`.
+`ReadFrontmatter` (`scan.go`) scans a page for its leading YAML block and
+unmarshals the two fields folio cares about (`order`, `title` — `types.go`). A
+file without front matter is not an error, it is a zero value.
 
 `ScanFiles` (`scan.go:76`) walks a content folder and applies the audience
 filter. `ApplyVariantFilter` (`scan.go:142`) implements the `_FW`/`_POL` rules
@@ -144,13 +125,6 @@ of `spec.yaml` BOOKS.4 in three passes: drop folders whose suffix does not
 match the audience; drop plain folders superseded by a variant folder; and
 group files by their base name so that `x_POL.qmd` supersedes `x.qmd` for the
 `pol` audience. Every supersession prints a warning to stderr.
-
-`ScanFolderChapters` (`build.go:26`) is the odd one out: a single-folder,
-non-recursive scan that returns one `ChapterItem` per chapter, where a chapter
-is either a `.qmd` in the folder or a subfolder represented by its `index.qmd`.
-It exists purely for `chapters insert|move|remove`, which reason about one
-folder's order list. Its sort is deliberately total: by order, then by path,
-with unordered entries last.
 
 ---
 
@@ -187,7 +161,7 @@ Three rules are worth noticing:
 `humanise` (`tree.go:319`) turns a slug into a readable heading for a page with
 no title. `BookFolders` (`tree.go:305`) lists a project's content folders,
 skipping media directories and sub-projects that carry their own
-`_quarto.yml` — it backs the "the project has: …" hint in error messages.
+`folio.yml` (`HasProjectConfig`) — it backs the "the project has: …" hint in error messages.
 
 ### 4.2 Front matter — `frontmatter.go`
 
@@ -362,7 +336,7 @@ type of the format: `docx.Write` plus `docrender.CoverDOCX`, or
 `brandFonts` (`brand.go`) found in `_brand.yml`. `Run` walks the selections,
 carries on after a failure so one broken combination does not hide the others,
 and after `--clean` empties each output directory once, refusing one that is not
-below the output directory. `Flatten` is also what `folio flatten` calls.
+below the output directory.
 
 `Logf` is the callback the whole flow reports through, which is what lets it
 print to a terminal from `folio render` and to a polled HTML panel from `folio web`.
@@ -414,56 +388,9 @@ to `Run`. `BuildOptions` loads `folio.yml`, expands the request with
 logger that prints to stdout. That is all `folio render` is. `folio web` builds the same
 `build.Options` through `server.selections` and runs them in its background `job`.
 
-### 6.2 `folio flatten`
-
-`flatten/flatten.go`. `Run` loads the config, looks the topic up and calls
-`build.Flatten` with the first format and audience, then writes
-`_build/<topic>.md`. It is the way to look at what a document render parses —
-heading demotion, rewritten links, resolved shortcodes — without writing a
-document. The conditional content is still in it; removing it needs a
-selection.
-
-### 6.3 `folio migrate`
-
-`migrate/migrate.go`. The old setup was one `_quarto.yml` plus one profile file
-per axis value. `Run` reads them with `foliocore` (and `rawQuarto` for the keys foliocore
-does not know), builds the equivalent `folio.yml` as a `yaml.Node` tree so that key
-order and comments survive, turns `{{< var x >}}` into `{x}`, collects warnings
-for everything it cannot carry over (slide formats, variables in titles, a
-template generated into `_build/`, output directories outside the common
-parent), and verifies the result with `config.Load` before writing it. It refuses
-to overwrite an existing `folio.yml` without `--force`; `--dry-run` prints it.
-
 ---
 
-## 7. The `chapters` subcommands
-
-Three small commands that edit `order:` front matter in one folder. All three
-share the same shape: resolve `--project`, resolve the folder argument, call
-`foliocore.ScanFolderChapters`, then rewrite front matter through
-`foliocore.UpdateFrontmatter`. None of them touches a chapter list — there is
-none to touch, because a document is its folder flattened at render time.
-
-- **`insert`** (`insert/insert.go`). The new chapter is a file the user has
-  already created, carrying `insert-at: <n>` and no `order:`.
-  `findInsertCandidate` (`insert.go:95`) insists on exactly one such file,
-  `renumberForInsert` (`insert.go:127`) shifts everything at `order >= n` by
-  one, and `convertInsertAtToOrder` (`insert.go:155`) renames the key.
-- **`move`** (`move/move.go`). `Run` (`move.go:70`) locates the chapter at
-  `oldOrder` and computes a new order for every affected sibling: moving up
-  shifts `[new, old)` by +1, moving down shifts `(old, new]` by −1
-  (`move.go:105`). The updates are collected into a map and applied in one
-  pass.
-- **`remove`** (`remove/remove.go`). `Run` (`remove.go:72`) takes `io.Reader`
-  and `io.Writer` so the confirmation prompt is testable. It prints file, order
-  and title, asks, and then `trashOrRemove` (`remove.go:139`) tries the
-  external `trash` CLI before falling back to permanent deletion. A directory
-  chapter deletes its whole folder, since its front matter lives in the
-  `index.qmd` inside it.
-
----
-
-## 8. `folio lint`
+## 7. `folio lint`
 
 `lint/lint.go`. `Run` (`lint.go:72`) collects the files — the whole project
 (`allDocFiles`, `lint.go:158`) or one topic's content folder (`topicFiles`,
@@ -485,20 +412,20 @@ Adding a second linter means writing a `Check…` function returning
 
 ---
 
-## 9. `folio web` — the local UI
+## 8. `folio web` — the local UI
 
 `folio web` is the [quarto-sorter](https://github.com/christophberger-ailab/quarto-sorter)
 tool merged into folio. Its render panel drives the same `internal/build`
 flow `folio render` does, so both produce identical output.
 
-### 9.1 Entry point — `web/web.go`
+### 8.1 Entry point — `web/web.go`
 
 `Register` (`web.go:36`) adds the `--addr` flag; `cmd` (`web.go:53`) lets a
 positional path win over `--project`, so `folio web ../book` reads as it looks.
 `Serve` (`web.go:72`) builds the server and blocks in
 `http.ListenAndServe`.
 
-### 9.2 The server — `web/server.go`
+### 8.2 The server — `web/server.go`
 
 `server` (`web/server.go:28`) holds the currently open project behind a single
 mutex — this is a single-user local tool — plus three things with their own
@@ -540,7 +467,7 @@ The rest is htmx plumbing: out-of-band swaps (`renderTreeOOB`,
 `server.go:758`) refresh the tree pane from a response whose main target is
 somewhere else.
 
-### 9.3 The page tree — `internal/project`
+### 8.3 The page tree — `internal/project`
 
 A separate package from `bookmaker`, and deliberately so: it reads and *edits*
 the website's page tree, where `bookmaker` only reads it to flatten it. It came
@@ -571,7 +498,7 @@ feeding the tree's `BadFences` flag, which is the same check `folio lint` runs.
 right after a `]` is a bracketed span's and is left alone, the same rule
 `bookmaker`'s `heading.Text()` applies.
 
-### 9.4 Background work — `web/job.go`, `web/search.go`
+### 8.4 Background work — `web/job.go`, `web/search.go`
 
 `job` (`job.go:13`) is the single background render: `start` (`job.go:51`)
 refuses to start a second one, the goroutine appends lines through `logf`, and
@@ -599,7 +526,7 @@ whitespace is a word character, emoji included. `parseQuery`
 `TestParseQueryReadsQuotesAndWords` is where the two readings are kept
 honest.
 
-### 9.5 Settings — `web/settings.go`, `web/migrate.go`, `web/prefs.go`
+### 8.5 Settings — `web/settings.go`, `web/migrate.go`, `web/prefs.go`
 
 Everything the UI remembers between runs is one value, `storedConfig`
 (`settings.go`), in one file: `<user config dir>/folio/config.cue`. It holds the
@@ -642,13 +569,13 @@ are CSS: `ensureDefaultCSS` materialises the baked-in default once and never
 rewrites it, and `sanitizeCSSName` keeps user-supplied names to a safe shape.
 *Which* of them is active is a setting, so it moved into the settings file.
 
-### 9.5.2 Copyediting — `web/copyedit.go`, `web/llm.go`
+### 8.5.2 Copyediting — `web/copyedit.go`, `web/llm.go`
 
 The copyedit pane beside the editor runs an *editing task* — a prompt with a
 title — over the page the editor holds. `copyedit.go` keeps both halves of the
 setup: the tasks, and the API connections they run on. Both are the user's own
 rather than the project's, which is why they live in the settings file
-(§ 9.5) and not in the tree. `connectionView`
+(§ 8.5) and not in the tree. `connectionView`
 (`copyedit.go:227`) is what the pages and the pane are rendered from, and it
 has no key field at all: the key travels to the API and nowhere else.
 
@@ -728,7 +655,7 @@ rarely reproduces a line break. Positions come out in UTF-16 code units
 marks by them, and an emoji ahead of a passage would otherwise shift the mark
 off it.
 
-### 9.5.1 Tree titles — `web/spans.go`
+### 8.5.1 Tree titles — `web/spans.go`
 
 The preview marks a Quarto span by its class, with the symbol the stylesheet
 puts in front of it (`.quarto.pol:before { content: "🚔" }`). The tree has no
@@ -742,7 +669,7 @@ rule names is left as written, so nothing disappears unannounced. `load`
 (`server.go:231`) applies it to the freshly loaded tree it is about to render;
 the tree on disk never sees it.
 
-### 9.6 The front end — `web/assets`
+### 8.6 The front end — `web/assets`
 
 `assets/templates/app.html.tmpl` holds every template the server renders by
 name (`page`, `main`, `treewrap`, `content`, `render`, `render-log`,
@@ -793,7 +720,7 @@ as it does for the audience filter.
 
 ---
 
-## 10. Tests and test data
+## 9. Tests and test data
 
 Every package has a `_test.go` file beside its source; `spec.yaml`
 IMPLEMENTATION.4 asks for red/green TDD. Two things are worth knowing before
@@ -816,7 +743,7 @@ Run everything with `go test ./...`; the release workflow additionally runs
 
 ---
 
-## 11. Reading order, condensed
+## 10. Reading order, condensed
 
 | #   | file(s)                                                   | what you get                                      |
 | --- | --------------------------------------------------------- | ------------------------------------------------- |
@@ -827,9 +754,8 @@ Run everything with `go test ./...`; the release workflow additionally runs
 | 5   | `internal/shortcode/`, `internal/markdown/`               | shortcodes, the parser, the conditional filter    |
 | 6   | `internal/build/build.go`                                 | one render: flatten, parse, filter, write         |
 | 7   | `internal/site/`, `internal/docx/`, `internal/docrender/` | the three writers                                 |
-| 8   | `render/`, `flatten/`, `migrate/`                         | the commands on the render path                   |
-| 9   | `insert/`, `move/`, `remove/`, `lint/`                    | the standalone commands                           |
-| 10  | `web/`, `internal/project/`                               | the local UI                                      |
+| 8   | `render/`, `lint/`                                        | the commands                                      |
+| 9   | `web/`, `internal/project/`                               | the local UI                                      |
 
 If you only read four files, read `internal/config/config.go`,
 `internal/bookmaker/flatten.go`, `internal/markdown/filter.go`, and

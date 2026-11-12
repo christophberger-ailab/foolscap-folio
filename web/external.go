@@ -3,7 +3,7 @@ package web
 // external.go — opening the project in an editor outside the app.
 //
 // The app's own editor is for writing pages; everything else a project
-// holds -- the _quarto.yml files, the filters, the stylesheets -- is better
+// holds -- folio.yml, the stylesheets, the images -- is better
 // worked on in the editor the user already has. The top bar's Editor button
 // hands the project to it, and with it the page open in the app, so the
 // other editor starts where the user is.

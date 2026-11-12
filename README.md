@@ -23,8 +23,7 @@ History: I was looking for a tool that can produces websites and PDF/DOCX from t
 
 - **A three-axis render matrix.** A render is addressed by *topic* (what), *format* (how) and *audience* (for whom). One file, `folio.yml`, declares them; `folio render` builds any part of the matrix, and `folio web` does the same from a panel.
 - **Conditional content.** A block or span can be marked for a format (`explanation`) or an audience (`pol`); a render keeps only what the selection shows.
-- **Editing helpers.** Chapter insert/move/remove that keep the `order:` front matter consistent, a linter for unclosed block fences, and a local web UI for reordering pages by drag and drop, editing them, copyediting them with an LLM, and rendering.
-- **Migration.** `folio migrate` writes `folio.yml` from an older Quarto setup (`_quarto.yml` and its profiles).
+- **Editing helpers.** A linter for unclosed block fences, and a local web UI for reordering pages by drag and drop, editing them, copyediting them with an LLM, and rendering.
 
 ## About the Name
 
@@ -71,13 +70,8 @@ Global flags apply to every command:
 | command                                    | what it does                                                                                        |
 | ------------------------------------------ | --------------------------------------------------------------------------------------------------- |
 | `folio render [<topic>…]`                  | render the project's topic × format × audience matrix                                               |
-| `folio flatten <topic>`                    | write the Markdown a document render of one topic parses, to `_build/<topic>.md`, without rendering |
 | `folio init`                               | write a starter `folio.yml` into a Markdown tree that has none                                      |
-| `folio migrate`                            | write `folio.yml` from the project's old `_quarto*.yml` files                                       |
 | `folio lint [<topic>]`                     | check the `.qmd` sources (currently: unclosed `:::` fences)                                         |
-| `folio chapters insert <folder>`           | give a new page its `order:`, renumbering its siblings                                              |
-| `folio chapters move <folder> <old> <new>` | move a chapter to another order position                                                            |
-| `folio chapters remove <folder> <order>`   | remove a chapter, after confirmation                                                                |
 | `folio web [<path>]`                       | serve the local sorting, editing and rendering UI                                                   |
 | `folio preview [<path>]`                   | serve the website and update it live as pages change                                                |
 
@@ -96,8 +90,6 @@ folio render --dry-run                    # print what would be written, write n
 Positional arguments name topics and are added to `--topic`. `--topic`, `--format` and `--audience` take comma-separated lists; a name `folio.yml` does not define is an error. Without them every topic, format and audience the project offers is rendered, cut down to what each topic and format declares (see [`folio.yml`](#folioyml)).
 
 A **website** format covers all selected topics in one site, one site per selected audience. A **document** format (DOCX, PDF) is written per topic and audience. The topic `all` has no folder: `--topic=all` selects every topic, and a topic `all` declared in `folio.yml` puts every topic into the websites it takes part in (`all: {formats: [website]}`), whatever the topics restrict themselves to. A failing combination does not stop the others; the command reports how many failed and exits non-zero. `--clean` empties each selected format's output directory once, before the first render; it refuses a directory that is not below the output directory. `--dry-run` prints the files that would be written.
-
-`folio flatten <topic>` writes `_build/<topic>.md`: the topic's pages in folder order, with demoted headings, in-book links turned into anchors and shortcodes resolved. It is the text a document render parses, so it is the way to look at what a render works from. Conditional content is still in it; a render removes what the selected format and audience do not show.
 
 #### `folio web`
 
@@ -265,7 +257,7 @@ topics:
 
 (`suffix` is an example variable: it means something only because `template`, `file` and `cover` use it. The project-level default keeps `{suffix}` defined for the audience `std`, which sets none.)
 
-A minimal project needs no `folio.yml` at all. Without one, every top-level content folder (one holding a `.qmd` or `.md` file, and not starting with `_` or `.`) is a topic, the only format is `web` (HTML), and there is one audience, `all`. A project that has no `folio.yml` but still has `_quarto.yml` or `_quarto-*.yml` files is an error rather than a render on the defaults: run `folio migrate` first (see below). A `folio.yml` states only what differs:
+A minimal project needs no `folio.yml` at all. Without one, every top-level content folder (one holding a `.qmd` or `.md` file, and not starting with `_` or `.`) is a topic, the only format is `web` (HTML), and there is one audience, `all`. `_quarto*.yml` files are not read and play no role: a project without `folio.yml` renders on the defaults even if they exist. A `folio.yml` states only what differs:
 
 ```yaml
 title: Handbook
@@ -301,8 +293,6 @@ The project's Lua filters no longer run. What an audience filter did there is do
 ### Heading demotion
 
 Folder structure and `order:` drive every output; there is no distinction between a "book" and a "website". Pages that lie directly in a topic's folder, and the `index.qmd` of a subfolder (which sorts among its *parent's* pages), use their headings as written. Every deeper folder level adds one heading level. A page that writes `##` two levels below the topic folder therefore ends up as `####`. A page whose front-matter `title:` is not spelled out by a heading at its top level gets a generated title heading, and its own headings stay below it.
-
-`folio flatten <topic>` shows the result for a document.
 
 ### The website
 
@@ -386,21 +376,7 @@ folio init               # write it
 folio init --force       # overwrite an existing folio.yml
 ```
 
-`folio init` writes a starter `folio.yml` into a tree of `.md` or `.qmd` pages that has none yet. It takes the title from the root `index.qmd` or `index.md` (its `title:`, else its first heading), else from the first heading of `README.md`, else from the folder's name; lists every content folder as a topic; adds the `web` format; and spells out where `folio web` and `folio preview` listen. Commented examples show a document format, audiences and `lang`. It refuses to overwrite an existing `folio.yml` (or `qm.yml`) without `--force`, refuses a tree without content folders, sends a tree that still has `_quarto*.yml` files to `folio migrate`, and checks that the result loads.
-
-### Migrating an existing project
-
-Foolscap Folio is the offspring of Quarto Manager. Quarto isn't ideal for this use case; it is a tools for writing scientific documentation. The `migrate` command turns the overly complex set of Quarto yaml files that the latest Quarto Manager version needed into a single config file.
-
-```sh
-folio migrate --dry-run     # print the folio.yml that would be written
-folio migrate               # write it
-folio migrate --force       # overwrite an existing folio.yml
-```
-
-`folio migrate` reads `_quarto.yml` and the profile files `_quarto-topic-<t>.yml`, `_quarto-format-<f>.yml` and `_quarto-audience-<a>.yml` and writes the equivalent `folio.yml`: `folio:` keys such as `folder`, `formats`, `audiences` and `cover`, the `make:` flags that are true, the `_quarto-vars`, and the output directories. It refuses to overwrite an existing `folio.yml` without `--force`, checks that the result loads, and prints a warning for everything it could not carry over: a title that contains a variable, an output directory outside the common output directory, a template generated into `_build/`, a slide deck format (skipped) or a PPTX output (dropped).
-
-The old `_quarto*.yml` files are **not read anymore** by `folio` itself. Delete them once you no longer render with Quarto; the `project: pre-render` and `post-render` hooks (`folio prepare`, `folio finalize`) no longer exist and must go from `_quarto.yml` if you keep the file for other tools.
+`folio init` writes a starter `folio.yml` into a tree of `.md` or `.qmd` pages that has none yet. It takes the title from the root `index.qmd` or `index.md` (its `title:`, else its first heading), else from the first heading of `README.md`, else from the folder's name; lists every content folder as a topic; adds the `web` format; and spells out where `folio web` and `folio preview` listen. Commented examples show a document format, audiences and `lang`. It refuses to overwrite an existing `folio.yml` (or `qm.yml`) without `--force`, refuses a tree without content folders, and checks that the result loads.
 
 ### Known differences from Quarto
 
@@ -428,10 +404,10 @@ The old `_quarto*.yml` files are **not read anymore** by `folio` itself. Delete 
 ## Repository layout
 
 ```
-main.go                 command wiring: flags, the `chapters` object, registration
+main.go                 command wiring: flags, registration
 internal/cli/           the exit-status guard every command body is wrapped in
 internal/config/        folio.yml: formats, audiences, topics, the render matrix, selections
-internal/foliocore/        front matter, page scans, the chapters' ordering (and the old profiles, for migrate)
+internal/foliocore/        front matter, page scans, ordering
 internal/bookmaker/     folder tree → one flat document, headings demoted by depth
 internal/markdown/      the Markdown parser (goldmark plus divs, spans, attributes, callouts) and the conditional filter
 internal/shortcode/     include, var, pagebreak
@@ -442,8 +418,7 @@ internal/docrender/     PDF layout, covers, and the Markdown → PDF input
 internal/project/       the editable page tree behind the web UI
 internal/gitrepo/       the `git` command behind the web UI's Git pane
 web/                    the local web UI: server, settings (CUE), copyediting
-insert/ move/ remove/   the `folio chapters` subcommands
-lint/ flatten/ render/ migrate/ initialize/ web/ preview/   the leaf commands (initialize/ is `folio init`)
+lint/ render/ initialize/ web/ preview/   the leaf commands (initialize/ is `folio init`)
 spec.yaml, spec-*.yaml  the specification each package implements
 testdata/               a miniature project and the flattener's golden files
 ```

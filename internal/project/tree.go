@@ -139,17 +139,34 @@ func (p *Page) HasVisibleChildren() bool {
 	return false
 }
 
-// Tree is the page tree of a Quarto project.
+// Tree is the page tree of a folio project.
 type Tree struct {
 	Root  string // absolute path of the project
 	Pages []*Page
+}
+
+// SkipDir reports whether the directory at rel, a slash-separated path
+// relative to the project root, is left out of the page tree: the
+// top-level assets directory, which holds media, and any directory whose
+// name starts with "_" or ".", at any depth.
+func SkipDir(rel string) bool {
+	name := path.Base(rel)
+	return rel == "assets" || strings.HasPrefix(name, "_") || strings.HasPrefix(name, ".")
+}
+
+// SkipWalkedDir reports whether a walk of root skips the directory p, an
+// OS path below root, by the rule of SkipDir.
+func SkipWalkedDir(root, p string) bool {
+	rel, err := filepath.Rel(root, p)
+	return err == nil && rel != "." && SkipDir(filepath.ToSlash(rel))
 }
 
 // Load scans root for .qmd and .md files and builds the page tree.
 //
 // index.qmd or index.md inside a directory represents that directory's
 // section and is ordered among the pages one level up, as is a name.qmd or
-// name.md file next to a name/ directory. Directories starting with "_" or "." are ignored.
+// name.md file next to a name/ directory. Directories that SkipDir names
+// are ignored.
 func Load(root string) (*Tree, error) {
 	var files []string
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
@@ -158,7 +175,7 @@ func Load(root string) (*Tree, error) {
 		}
 		name := d.Name()
 		if d.IsDir() {
-			if p != root && (strings.HasPrefix(name, "_") || strings.HasPrefix(name, ".")) {
+			if SkipWalkedDir(root, p) {
 				return filepath.SkipDir
 			}
 			return nil
@@ -355,26 +372,4 @@ func find(pages []*Page, p string) *Page {
 		}
 	}
 	return nil
-}
-
-// Profiles returns the profile names of the _quarto-<name>.yml files in
-// root that configure a book (contain a top-level book key).
-func Profiles(root string) ([]string, error) {
-	matches, err := filepath.Glob(filepath.Join(root, "_quarto-*.yml"))
-	if err != nil {
-		return nil, err
-	}
-	var names []string
-	for _, m := range matches {
-		src, err := os.ReadFile(m)
-		if err != nil {
-			return nil, err
-		}
-		if !hasBook(src) {
-			continue
-		}
-		names = append(names, strings.TrimSuffix(strings.TrimPrefix(filepath.Base(m), "_quarto-"), ".yml"))
-	}
-	sort.Strings(names)
-	return names, nil
 }

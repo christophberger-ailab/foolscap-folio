@@ -38,9 +38,14 @@ func TestHelpIsTheSameWithAndWithoutFlag(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("folio exits %d", code)
 	}
-	for _, want := range []string{"chapters insert", "init", "render", "web", "Available global flags:", "--project"} {
+	for _, want := range []string{"init", "lint", "render", "web", "preview", "Available global flags:", "--project"} {
 		if !strings.Contains(plain, want) {
 			t.Errorf("folio's help lacks %q:\n%s", want, plain)
+		}
+	}
+	for _, gone := range []string{"chapters", "insert", "flatten", "migrate"} {
+		if strings.Contains(plain, gone) {
+			t.Errorf("folio's help still lists %q:\n%s", gone, plain)
 		}
 	}
 	if strings.Contains(plain, "--addr") {
@@ -66,7 +71,7 @@ func TestCommandHelpListsCommandFlags(t *testing.T) {
 }
 
 func TestWrongCommandLinesFail(t *testing.T) {
-	for _, args := range []string{"bogus", "chapters", "chapters bogus", "lint --addr x", "flatten nosuchtopic"} {
+	for _, args := range []string{"bogus", "chapters", "chapters insert x", "flatten x", "migrate", "lint --addr x"} {
 		if _, code := folio(t, args); code != 1 {
 			t.Errorf("folio %s exits %d, want 1", args, code)
 		}

@@ -46,17 +46,6 @@ func writeFixture(t *testing.T) string {
 			t.Fatal(err)
 		}
 	}
-	yml := map[string]string{
-		"_quarto.yml":              "project:\n  type: book\nbook:\n  title: Test Book # keep\n  chapters:\n    - index.qmd\n",
-		"_quarto-chapter2.yml":     "book:\n  chapters:\n    - index.qmd\n",
-		"_quarto-chapter3-pol.yml": "book:\n  chapters:\n    - index.qmd\n",
-		"_quarto-web.yml":          "format:\n  html: default\n",
-	}
-	for name, content := range yml {
-		if err := os.WriteFile(filepath.Join(root, name), []byte(content), 0o644); err != nil {
-			t.Fatal(err)
-		}
-	}
 	return root
 }
 
@@ -141,9 +130,12 @@ func TestLoadTitleFallback(t *testing.T) {
 	}
 }
 
-func TestLoadSkipsUnderscoreAndHiddenDirs(t *testing.T) {
+// The tree leaves out "_" and "." directories at any depth, and the
+// project's top-level assets directory; an assets directory further down
+// is an ordinary folder.
+func TestLoadSkipsUnderscoreHiddenAndAssetsDirs(t *testing.T) {
 	root := t.TempDir()
-	for _, d := range []string{"_book", ".quarto"} {
+	for _, d := range []string{"_book", ".quarto", "assets", "real/_entwurf", "real/.hidden"} {
 		os.MkdirAll(filepath.Join(root, d), 0o755)
 		os.WriteFile(filepath.Join(root, d, "x.qmd"), []byte("x\n"), 0o644)
 	}
@@ -155,18 +147,18 @@ func TestLoadSkipsUnderscoreAndHiddenDirs(t *testing.T) {
 	if got := paths(tree.Pages); !reflect.DeepEqual(got, []string{"real.qmd"}) {
 		t.Errorf("pages = %v, want [real.qmd]", got)
 	}
-}
+	if got := tree.Find("real.qmd"); got == nil || len(got.Children) != 0 {
+		t.Errorf("real.qmd = %+v, want no children", got)
+	}
 
-// Profiles lists only profiles that configure a book; _quarto-web.yml has
-// no book key and stays hidden.
-func TestProfiles(t *testing.T) {
-	root := writeFixture(t)
-	got, err := Profiles(root)
+	os.MkdirAll(filepath.Join(root, "real", "assets"), 0o755)
+	os.WriteFile(filepath.Join(root, "real", "assets", "x.qmd"), []byte("x\n"), 0o644)
+	tree, err = Load(root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := []string{"chapter2", "chapter3-pol"}; !reflect.DeepEqual(got, want) {
-		t.Errorf("Profiles() = %v, want %v", got, want)
+	if tree.Find("real/assets/x.qmd") == nil {
+		t.Error("a page in a nested assets folder is missing from the tree")
 	}
 }
 

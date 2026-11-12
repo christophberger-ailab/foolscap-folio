@@ -160,7 +160,7 @@ func shiftHeadingsBelow(abs string, delta int) error {
 	})
 }
 
-// CreatePage creates a new page as name/index.qmd under parent ("" for
+// CreatePage creates a new page as name/index.md under parent ("" for
 // root) with the given title, ordered after the last ordered sibling. It
 // returns the new page's path.
 func (t *Tree) CreatePage(parent, name, title string) (string, error) {
@@ -177,7 +177,7 @@ func (t *Tree) CreatePage(parent, name, title string) (string, error) {
 	return t.newPageFile(destDir, name, title, order+1)
 }
 
-// CreatePageAfter creates a new page as name/index.qmd in the sibling
+// CreatePageAfter creates a new page as name/index.md in the sibling
 // group of the page at after, immediately following it. Like Move, it
 // renumbers the whole group sequentially, so previously unordered
 // siblings become ordered. It returns the new page's path.
@@ -207,7 +207,7 @@ func (t *Tree) CreatePageAfter(after, name, title string) (string, error) {
 	return rel, nil
 }
 
-// newPageFile writes destDir/name/index.qmd with title and order
+// newPageFile writes destDir/name/index.md with title and order
 // frontmatter and returns its path.
 func (t *Tree) newPageFile(destDir, name, title string, order int) (string, error) {
 	name = stem(strings.ReplaceAll(strings.TrimSpace(name), " ", "-"))
@@ -220,7 +220,7 @@ func (t *Tree) newPageFile(destDir, name, title string, order int) (string, erro
 			return "", fmt.Errorf("%s already exists", taken)
 		}
 	}
-	rel := dir + "/index.qmd"
+	rel := dir + "/index.md"
 	content := fmt.Sprintf("---\ntitle: %s\norder: %d\n---\n\n", strconv.Quote(title), order)
 	if err := os.MkdirAll(filepath.Dir(t.abs(rel)), 0o755); err != nil {
 		return "", err
