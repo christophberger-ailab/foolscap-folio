@@ -970,17 +970,17 @@ func TestCreateAndDelete(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("create: status %d: %s", rec.Code, rec.Body)
 	}
-	// A new page is created as name/index.qmd.
-	if !strings.Contains(rec.Body.String(), `data-path="about/index.qmd"`) {
+	// A new page is created as name/index.md.
+	if !strings.Contains(rec.Body.String(), `data-path="about/index.md"`) {
 		t.Errorf("tree missing created page:\n%s", rec.Body)
 	}
 	assertConfigsUnchanged(t, root, before)
 
-	rec = post(t, srv, "/delete", url.Values{"path": {"about/index.qmd"}})
+	rec = post(t, srv, "/delete", url.Values{"path": {"about/index.md"}})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("delete: status %d: %s", rec.Code, rec.Body)
 	}
-	if strings.Contains(rec.Body.String(), `data-path="about/index.qmd"`) {
+	if strings.Contains(rec.Body.String(), `data-path="about/index.md"`) {
 		t.Errorf("tree still shows deleted page:\n%s", rec.Body)
 	}
 	if _, err := os.Stat(filepath.Join(root, "about")); !os.IsNotExist(err) {
@@ -1001,12 +1001,12 @@ func TestCreateAfter(t *testing.T) {
 		t.Fatalf("create: status %d: %s", rec.Code, rec.Body)
 	}
 	body := rec.Body.String()
-	if !strings.Contains(body, `data-path="chapter2/inserted/index.qmd"`) {
+	if !strings.Contains(body, `data-path="chapter2/inserted/index.md"`) {
 		t.Errorf("tree missing inserted page:\n%s", body)
 	}
 	// The new page sits after second and before third in the tree.
 	iSecond := strings.Index(body, `data-path="chapter2/second.qmd"`)
-	iNew := strings.Index(body, `data-path="chapter2/inserted/index.qmd"`)
+	iNew := strings.Index(body, `data-path="chapter2/inserted/index.md"`)
 	iThird := strings.Index(body, `data-path="chapter2/third.qmd"`)
 	if !(iSecond < iNew && iNew < iThird) {
 		t.Errorf("inserted page not between second and third:\n%s", body)
@@ -1100,7 +1100,7 @@ func TestMoveSectionRepointsOpenChild(t *testing.T) {
 	}
 	get(t, srv, "/content?path=chapter2/second.qmd")
 	rec := post(t, srv, "/move", url.Values{
-		"src": {"chapter2/index.qmd"}, "parent": {"dispatcher/index.qmd"}, "pos": {"0"},
+		"src": {"chapter2/index.qmd"}, "parent": {"dispatcher/index.md"}, "pos": {"0"},
 		"open": {"chapter2/second.qmd"},
 	})
 	if rec.Code != http.StatusOK {

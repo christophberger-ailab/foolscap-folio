@@ -1,6 +1,6 @@
 # Der Seitenbaum
 
-Die linke Seite des Fensters zeigt die `.qmd`-Seiten des Projekts als Baum, in der Reihenfolge der Website und nach Ordnern verschachtelt. Klicke auf einen Titel, um die Seite im [Editor](editor.md) zu öffnen.
+Die linke Seite des Fensters zeigt die `.md`-Seiten (und älteren `.qmd`-Seiten) des Projekts als Baum, in der Reihenfolge der Website und nach Ordnern verschachtelt. Klicke auf einen Titel, um die Seite im [Editor](editor.md) zu öffnen.
 
 ## Titel
 
@@ -59,7 +59,7 @@ Ziehe eine Seite am Griff `⠿`.
 
 ## Seiten anlegen
 
-- Tippe oben einen Dateinamen (ohne `.qmd`) und optional einen Titel und drücke dann `＋ Page`.
+- Tippe oben einen Dateinamen (ohne `.md`) und optional einen Titel und drücke dann `＋ Page`.
 - Die Schaltfläche `＋` in einer Zeile fügt unter dieser Seite eine Unterseite hinzu. Du wirst nach dem Namen gefragt.
 
 ## Seiten löschen

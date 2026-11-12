@@ -1,6 +1,6 @@
 # Opening files in other editors
 
-`folio web` edits your `.qmd` pages. For everything else, such as `folio.yml`, stylesheets, and images, you can hand files to another program.
+`folio web` edits your `.md` and `.qmd` pages. For everything else, such as `folio.yml`, stylesheets, and images, you can hand files to another program.
 
 ## The Editor button
 

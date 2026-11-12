@@ -14,13 +14,13 @@ Schlägt das Speichern fehl, erscheint der Grund als Fehler neben der Seitenübe
 
 ## Die Datei umbenennen
 
-Die Überschrift über dem Editor zeigt den Pfad der Seite. Die Schaltfläche `✎` dahinter macht den Dateinamen, und nur ihn, zu einem Eingabefeld: Die Seite bleibt in ihrem Ordner. Tippe den neuen Namen und drücke `Enter`; fehlt `.qmd`, wird es angehängt. `Esc` oder ein Klick daneben bricht ab.
+Die Überschrift über dem Editor zeigt den Pfad der Seite. Die Schaltfläche `✎` dahinter macht den Dateinamen, und nur ihn, zu einem Eingabefeld: Die Seite bleibt in ihrem Ordner. Tippe den neuen Namen und drücke `Enter`; fehlt die Endung, behält die Seite ihre bisherige, `.md` oder `.qmd`. `Esc` oder ein Klick daneben bricht ab.
 
 - Hat die Seite Unterseiten in einem gleichnamigen Ordner, wird dieser Ordner mit umbenannt, damit die Unterseiten bei ihr bleiben.
 - Ein schon vergebener Name wird abgelehnt, und das Feld bleibt offen, damit du ihn korrigieren kannst.
 - Der Editor folgt der Datei zu ihrem neuen Namen. Dein ungespeicherter Text bleibt unberührt, und Autosave schreibt weiter in die richtige Datei.
-- Eine Seite, die als `name/index.qmd` gespeichert ist, und so werden neue Seiten angelegt, heißt wie ihr Ordner. Bei ihr enthält das Feld den Ordnernamen, `/index.qmd` bleibt stehen, und der Ordner wird samt den Seiten darin umbenannt.
-- Die `index.qmd` auf oberster Ebene des Projekts lässt sich nicht umbenennen.
+- Eine Seite, die als `name/index.md` gespeichert ist, und so werden neue Seiten angelegt, oder als ältere `name/index.qmd`, heißt wie ihr Ordner. Bei ihr enthält das Feld den Ordnernamen, `/index.md` bzw. `/index.qmd` bleibt stehen, und der Ordner wird samt den Seiten darin umbenannt.
+- Die `index.md` oder `index.qmd` auf oberster Ebene des Projekts lässt sich nicht umbenennen.
 
 ## Verschiebungen während der Bearbeitung
 
@@ -75,7 +75,7 @@ Unter dem `↩` zeigt die Leiste ein `×`. Klicke darauf, um den Kommentar, in d
 
 Wenn du das Ziel eines Markdown-Links tippst, bietet ein Popup unter dem Cursor passende Einträge an.
 
-- `[text](` bietet `.qmd`-Seiten an, `![alt](` Bilddateien. In beiden Fällen werden Ordner angeboten, damit du Ebene für Ebene hinabsteigen kannst.
+- `[text](` bietet Seiten an, `![alt](` Bilddateien. In beiden Fällen werden Ordner angeboten, damit du Ebene für Ebene hinabsteigen kannst.
 - Ein Ziel, das mit `/` beginnt, wird ab dem Projektstamm vervollständigt. Jedes andere ab dem Ordner der Seite, die du bearbeitest.
 - Was du tippst, passt irgendwo in einem Namen; Namen, die am Anfang passen, stehen zuerst.
 - Hoch und Runter bewegen die Auswahl, Tab oder Enter fügt sie ein, Esc schließt das Popup.

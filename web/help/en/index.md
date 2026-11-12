@@ -2,7 +2,7 @@
 
 `folio web` is a local web page for working on a Markdown documentation project. You can sort its pages by drag and drop, edit them, preview them as Markdown, copyedit them with an LLM, search the whole project, commit changes with Git, and render the project, all without leaving the browser.
 
-Everything runs on your own machine. The page tree and the editor work on the `.qmd` files of your project directly.
+Everything runs on your own machine. The page tree and the editor work on the `.md` and `.qmd` files of your project directly.
 
 ## Contents
 
