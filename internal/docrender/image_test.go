@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/christophberger-ailab/foolscap-folio/internal/markdown"
 )
 
 // imageLines lays out runs as one paragraph and returns each line, with
@@ -199,5 +201,45 @@ func TestFitImageMissingShowsPlaceholder(t *testing.T) {
 	}
 	if len(warned) != 1 || !strings.Contains(warned[0], "nope.png") {
 		t.Errorf("warnings %q, want one naming the image", warned)
+	}
+}
+
+// An image alone in its paragraph has its alt text as a caption below it.
+func TestSoleImageCaption(t *testing.T) {
+	w := testWriter(t)
+	var lines []string
+	w.trace = func(line []piece) {
+		var s strings.Builder
+		for _, p := range line {
+			s.WriteString(p.Text)
+			if !p.Italic {
+				t.Errorf("caption piece %q not italic", p.Text)
+			}
+		}
+		lines = append(lines, strings.TrimSpace(s.String()))
+	}
+	start := w.y
+	if err := w.paragraph([]Run{{Image: coverPNG(t), ImageHeight: "50pt", Caption: "A fine view"}}, 11, margin, pageW-2*margin); err != nil {
+		t.Fatal(err)
+	}
+	if len(lines) != 1 || lines[0] != "A fine view" {
+		t.Fatalf("caption lines %q", lines)
+	}
+	if w.y-start <= 50+10+7 {
+		t.Errorf("height %v leaves no room for the caption", w.y-start)
+	}
+}
+
+func TestMarkdownImageCaption(t *testing.T) {
+	d := markdown.Parse([]byte("![A *fine* view](a.png)\n\nSee ![icon](i.png) here.\n"))
+	bb, err := FromMarkdown(d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := bb[0].Runs[0].Caption; got != "A fine view" {
+		t.Errorf("sole image caption %q", got)
+	}
+	if got := bb[1].Runs[1].Caption; got != "" {
+		t.Errorf("inline image caption %q", got)
 	}
 }

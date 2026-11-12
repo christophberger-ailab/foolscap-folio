@@ -547,13 +547,25 @@ func (w *pdfWriter) paragraph(runs []Run, size, left, width float64) error {
 			if err != nil {
 				return err
 			}
-			w.ensure(ih + 10)
+			// A caption's first line stays on the image's page.
+			capSize, need := size*0.9, ih+10
+			if r.Caption != "" {
+				need = ih + 4 + capSize*1.35
+			}
+			w.ensure(need)
 			if !w.dry {
 				if err = w.drawImage(path, left, w.y, iw, ih); err != nil {
 					return err
 				}
 			}
-			w.y += ih + 10
+			if r.Caption == "" {
+				w.y += ih + 10
+				continue
+			}
+			w.y += ih + 4
+			if err = w.paragraph([]Run{{Text: r.Caption, Italic: true}}, capSize, left, width); err != nil {
+				return err
+			}
 			continue
 		}
 		var text strings.Builder

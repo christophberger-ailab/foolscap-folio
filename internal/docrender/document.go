@@ -45,6 +45,7 @@ type Options struct {
 type Run struct {
 	Text, Link, Image           string
 	ImageWidth, ImageHeight     string
+	Caption                     string // below an image alone in its paragraph
 	Bold, Italic, Code, Heading bool
 }
 

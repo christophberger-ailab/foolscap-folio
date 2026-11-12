@@ -542,3 +542,27 @@ func TestMissingTemplate(t *testing.T) {
 		t.Error("expected an error")
 	}
 }
+
+// An image alone in its paragraph gets its alt text as a caption paragraph
+// below it, kept with the picture; an inline image gets none.
+func TestImageCaption(t *testing.T) {
+	root := t.TempDir()
+	writePNG(t, filepath.Join(root, "a.png"), 20, 10)
+	p := build(t, "![A fine view](a.png)\n\nSee ![icon](a.png) here.\n\n![](a.png)\n", Options{Root: root})
+	doc := p["word/document.xml"]
+	has(t, doc, `<w:keepNext/>`, `<w:t xml:space="preserve">A fine view</w:t>`)
+	caption := regexp.MustCompile(`<w:p><w:pPr><w:pStyle w:val="Caption"/><w:jc w:val="center"/></w:pPr><w:r><w:t xml:space="preserve">([^<]*)</w:t></w:r></w:p>`)
+	if got := caption.FindAllStringSubmatch(doc, -1); len(got) != 1 || got[0][1] != "A fine view" {
+		t.Errorf("captions %q, want one, \"A fine view\":\n%s", got, abbreviate(doc))
+	}
+	lacks(t, doc, `>icon<`)
+}
+
+// A template without a caption style gets one.
+func TestImageCaptionStyleAdded(t *testing.T) {
+	s := parseStyles([]byte(`<w:styles xmlns:w="w"><w:style w:type="paragraph" w:styleId="Normal"><w:name w:val="Normal"/></w:style></w:styles>`))
+	if id := s.imageCaption(); id != "ImageCaption" {
+		t.Errorf("style %q", id)
+	}
+	has(t, strings.Join(s.added, ""), `w:styleId="ImageCaption"`, `<w:name w:val="Image Caption"/>`, `<w:i/>`)
+}

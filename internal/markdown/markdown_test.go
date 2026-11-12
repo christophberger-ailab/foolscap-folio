@@ -117,3 +117,29 @@ func TestRawAndCode(t *testing.T) {
 		t.Errorf("got %s", got)
 	}
 }
+
+// An image alone in its paragraph is a figure with its alt text as the
+// caption below it; an image among text, or without alt text, is not.
+func TestImageCaption(t *testing.T) {
+	got := render(t, "![A *fine* view](a.png){width=50%}\n\nSee ![icon](i.png) here.\n\n![](b.png)\n", Options{})
+	for _, want := range []string{
+		`<figure>`,
+		`<figcaption>A fine view</figcaption></figure>`,
+		`<p>See <img src="i.png" alt="icon" /> here.</p>`,
+		`<p><img src="b.png" alt="" /></p>`,
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("missing %q in\n%s", want, got)
+		}
+	}
+	if strings.Count(got, "<figure>") != 1 || strings.Contains(got, "<p><figure>") {
+		t.Errorf("got %s", got)
+	}
+}
+
+func TestImageCaptionEscaped(t *testing.T) {
+	got := render(t, "![a < b & c](a.png)\n", Options{})
+	if !strings.Contains(got, `<figcaption>a &lt; b &amp; c</figcaption>`) {
+		t.Errorf("got %s", got)
+	}
+}
