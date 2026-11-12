@@ -190,3 +190,21 @@ func TestRunUsesPlaceholderForMissingImages(t *testing.T) {
 		t.Errorf("the placeholder is not copied into the site: %v", err)
 	}
 }
+
+// A cover that is not there does not stop a render either: the placeholder
+// takes its place, with a warning.
+func TestRunUsesPlaceholderForMissingCover(t *testing.T) {
+	root := fixture(t)
+	cfg := filepath.Join(root, "folio.yml")
+	b, _ := os.ReadFile(cfg)
+	os.WriteFile(cfg, []byte(strings.Replace(string(b), "  chapter2:\n", "  chapter2: {cover: assets/templates/gone.png}\n", 1)), 0o644)
+
+	if err := Run(root, config.Request{Topics: []string{"chapter2"}, Formats: []string{"handout"}, Audiences: []string{"std"}}, false, false); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"chapter2-std.docx", "chapter2-std.pdf"} {
+		if fi, err := os.Stat(filepath.Join(root, "_output", "handout", name)); err != nil || fi.Size() == 0 {
+			t.Errorf("%s: %v", name, err)
+		}
+	}
+}

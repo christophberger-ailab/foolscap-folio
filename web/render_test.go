@@ -117,7 +117,9 @@ func TestRenderExpandsTheSelectedMatrix(t *testing.T) {
 
 func TestRenderReportsFailure(t *testing.T) {
 	srv, root := testServer(t)
-	writeConfig(t, root, "formats:\n  pdf: {type: pdf}\naudiences: [std]\ntopics:\n  chapter2: {cover: missing.png}\n")
+	// A cover that is not a PNG fails the render; a missing one would not.
+	os.WriteFile(filepath.Join(root, "notapng.png"), []byte("text"), 0o644)
+	writeConfig(t, root, "formats:\n  pdf: {type: pdf}\naudiences: [std]\ntopics:\n  chapter2: {cover: notapng.png}\n")
 
 	if rec := post(t, srv, "/render", renderForm()); rec.Code != http.StatusOK {
 		t.Fatalf("render: status %d", rec.Code)
@@ -126,7 +128,7 @@ func TestRenderReportsFailure(t *testing.T) {
 	if !st.Failed {
 		t.Errorf("failing render not reported as failed:\n%s", strings.Join(st.Lines, "\n"))
 	}
-	if out := strings.Join(st.Lines, "\n"); !strings.Contains(out, "missing.png") {
+	if out := strings.Join(st.Lines, "\n"); !strings.Contains(out, "notapng.png") {
 		t.Errorf("the cause is missing from the log:\n%s", out)
 	}
 }
