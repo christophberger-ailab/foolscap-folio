@@ -75,6 +75,28 @@ func TestShortcodes(t *testing.T) {
 	}
 }
 
+func TestIncludeDropsFrontMatter(t *testing.T) {
+	root := t.TempDir()
+	write := func(name, body string) {
+		os.WriteFile(filepath.Join(root, name), []byte(body), 0o644)
+	}
+	write("with.md", "---\norder: 9999\n---\n\nText.\n")
+	write("open.md", "---\nno closing fence\n")
+	sc := New(root, nil, nil)
+	for in, want := range map[string]string{
+		"{{< include /with.md >}}": "Text.",
+		"{{< include /open.md >}}": "---\nno closing fence",
+	} {
+		out, err := sc.Expand(in)
+		if err != nil {
+			t.Fatalf("%s: %v", in, err)
+		}
+		if strings.TrimSpace(out) != want {
+			t.Errorf("%s: got %q, want %q", in, out, want)
+		}
+	}
+}
+
 func TestRelativeIncludes(t *testing.T) {
 	root := t.TempDir()
 	write := func(name, body string) {

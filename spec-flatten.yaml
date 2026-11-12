@@ -17,6 +17,7 @@ constraints:
   PROCESS:
     requirements:
       1: 'Use the same flattening behavior as a document render (internal/build): pages in folder order, headings demoted by folder depth, in-book links turned into anchors, shortcodes resolved'
+      1-1: A page that declares no title and has no heading of its own gets no generated title heading when a file it includes (recursively, front matter dropped, includes in code blocks ignored) brings one
       2: Write `_build/<topic>.md`, the text a document render parses
       3: The content folder is the topic's `folder` in folio.yml, or the topic name
       4: A topic that folio.yml (or, without it, the content folders) does not define is an error, and nothing is written

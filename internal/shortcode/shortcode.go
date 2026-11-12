@@ -37,8 +37,8 @@ import (
 // that every writer turns into its own page break.
 const pagebreakDiv = "\n\n::: {.folio-pagebreak}\n:::\n\n"
 
-// maxIncludeDepth stops an include that includes itself, however indirectly.
-const maxIncludeDepth = 8
+// MaxIncludeDepth stops an include that includes itself, however indirectly.
+const MaxIncludeDepth = 8
 
 var (
 	// shortcodeLine matches a line that holds one shortcode and nothing else.
@@ -133,15 +133,17 @@ func (s *Expander) include(arg, dir string, depth int, stack []string) (string, 
 			return "", fmt.Errorf("{{< include %s >}} includes itself", path)
 		}
 	}
-	if depth >= maxIncludeDepth {
-		return "", fmt.Errorf("{{< include %s >}}: includes are nested more than %d deep", path, maxIncludeDepth)
+	if depth >= MaxIncludeDepth {
+		return "", fmt.Errorf("{{< include %s >}}: includes are nested more than %d deep", path, MaxIncludeDepth)
 	}
 	data, err := os.ReadFile(abs)
 	if err != nil {
 		return "", fmt.Errorf("{{< include %s >}}: %w", path, err)
 	}
 	s.includes++
-	text, err := s.expand(strings.TrimRight(string(data), "\n"), pathpkg.Dir(rel), depth+1, append(stack, abs))
+	// Like Quarto, drop the included file's own front matter.
+	_, body, _ := foliocore.SplitFrontMatter(string(data))
+	text, err := s.expand(strings.TrimRight(body, "\n"), pathpkg.Dir(rel), depth+1, append(stack, abs))
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", path, err)
 	}
