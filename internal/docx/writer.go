@@ -230,7 +230,15 @@ func (w *writer) paragraph(n ast.Node, c ctx) {
 	if onlyImage(n, w.src) {
 		pp.jc = "center"
 	}
+	caption, figure := markdown.FigureCaption(n, w.src)
+	figure = figure && !c.cell && !c.note
+	pp.keepNext = pp.keepNext || figure
 	w.para(pp, content.String())
+	if figure {
+		cp := w.paraProps(c)
+		cp.style, cp.jc = w.styles.imageCaption(), "center"
+		w.para(cp, w.run(runProps{}, caption))
+	}
 }
 
 // onlyImage reports whether a paragraph holds nothing but images.

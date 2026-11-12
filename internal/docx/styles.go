@@ -108,6 +108,16 @@ func (s *styleSet) code() string {
 		"Source Code")
 }
 
+// imageCaption is the style of a figure's caption, Pandoc's "Image
+// Caption", or the template's "Caption"; the one added is small and
+// italic.
+func (s *styleSet) imageCaption() string {
+	return s.need("paragraph", "ImageCaption", `<w:basedOn w:val="`+s.normal()+`"/><w:qFormat/>`+
+		`<w:pPr><w:spacing w:before="0" w:after="240"/></w:pPr>`+
+		`<w:rPr><w:i/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr>`,
+		"Image Caption", "Caption")
+}
+
 func (s *styleSet) verbatim() string {
 	return s.need("character", "VerbatimChar",
 		`<w:rPr><w:rFonts w:ascii="Consolas" w:hAnsi="Consolas" w:eastAsia="Consolas" w:cs="Courier New"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr>`,

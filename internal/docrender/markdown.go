@@ -66,6 +66,13 @@ func (c *mdConverter) block(n ast.Node, indent int) ([]Block, error) {
 		if err != nil || len(rr) == 0 {
 			return nil, err
 		}
+		if caption, ok := markdown.FigureCaption(n, c.src); ok {
+			for i := range rr {
+				if rr[i].Image != "" {
+					rr[i].Caption = caption
+				}
+			}
+		}
 		b.Runs = rr
 	case *ast.Heading:
 		rr, err := c.inlines(n, Run{})

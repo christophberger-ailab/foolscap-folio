@@ -16,6 +16,7 @@ func htmlRenderers() renderer.Option {
 type htmlRenderer struct{}
 
 func (htmlRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
+	r.Register(ast.KindParagraph, renderParagraph)
 	r.Register(KindDiv, renderDiv)
 	r.Register(KindSpan, renderSpan)
 	r.Register(ast.KindFencedCodeBlock, renderFencedCode)
