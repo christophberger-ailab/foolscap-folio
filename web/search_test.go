@@ -139,12 +139,11 @@ func TestSearchIgnoresShortAndEmptyQueries(t *testing.T) {
 func TestSearchSkipsWhatTheTreeSkips(t *testing.T) {
 	srv, root := testServer(t)
 	files := map[string]string{
-		"_include.qmd":         "zebracrossing\n",
-		"_drafts/notyet.qmd":   "zebracrossing\n",
-		".hidden/secret.qmd":   "zebracrossing\n",
-		"assets/snippet.md":    "zebracrossing\n",
-		"chapter2/assets/a.md": "zebracrossing\n",
-		"chapter2/listed.qmd":  "---\ntitle: Listed\n---\nzebracrossing\n",
+		"_include.qmd":        "zebracrossing\n",
+		"_drafts/notyet.qmd":  "zebracrossing\n",
+		".hidden/secret.qmd":  "zebracrossing\n",
+		"assets/snippet.md":   "zebracrossing\n",
+		"chapter2/listed.qmd": "---\ntitle: Listed\n---\nzebracrossing\n",
 	}
 	for name, content := range files {
 		p := filepath.Join(root, name)
@@ -158,6 +157,14 @@ func TestSearchSkipsWhatTheTreeSkips(t *testing.T) {
 	found := hits(t, searchFor(t, srv, "zebracrossing"))
 	if len(found) != 1 || found["chapter2/listed.qmd"] == "" {
 		t.Errorf("search found %v, want only chapter2/listed.qmd", found)
+	}
+	// Only the top-level assets folder is skipped.
+	nested := filepath.Join(root, "chapter2", "assets", "a.md")
+	os.MkdirAll(filepath.Dir(nested), 0o755)
+	os.WriteFile(nested, []byte("---\ntitle: Nested\n---\nzebracrossing\n"), 0o644)
+	get(t, srv, "/")
+	if found := hits(t, searchFor(t, srv, "zebracrossing")); found["chapter2/assets/a.md"] == "" {
+		t.Errorf("search found %v, want chapter2/assets/a.md among them", found)
 	}
 }
 

@@ -317,8 +317,8 @@ func isProjectPage(rel string) bool {
 		return false
 	}
 	parts := strings.Split(rel, "/")
-	for _, dir := range parts[:len(parts)-1] {
-		if project.SkipDir(dir) {
+	for i := 1; i < len(parts); i++ {
+		if project.SkipDir(strings.Join(parts[:i], "/")) {
 			return false
 		}
 	}

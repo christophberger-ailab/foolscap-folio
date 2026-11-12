@@ -130,11 +130,12 @@ func TestLoadTitleFallback(t *testing.T) {
 	}
 }
 
-// The tree leaves out "_" and "." directories and every assets directory,
-// at the root or further down.
+// The tree leaves out "_" and "." directories at any depth, and the
+// project's top-level assets directory; an assets directory further down
+// is an ordinary folder.
 func TestLoadSkipsUnderscoreHiddenAndAssetsDirs(t *testing.T) {
 	root := t.TempDir()
-	for _, d := range []string{"_book", ".quarto", "assets", "real/assets", "real/_entwurf", "real/.hidden"} {
+	for _, d := range []string{"_book", ".quarto", "assets", "real/_entwurf", "real/.hidden"} {
 		os.MkdirAll(filepath.Join(root, d), 0o755)
 		os.WriteFile(filepath.Join(root, d, "x.qmd"), []byte("x\n"), 0o644)
 	}
@@ -148,6 +149,16 @@ func TestLoadSkipsUnderscoreHiddenAndAssetsDirs(t *testing.T) {
 	}
 	if got := tree.Find("real.qmd"); got == nil || len(got.Children) != 0 {
 		t.Errorf("real.qmd = %+v, want no children", got)
+	}
+
+	os.MkdirAll(filepath.Join(root, "real", "assets"), 0o755)
+	os.WriteFile(filepath.Join(root, "real", "assets", "x.qmd"), []byte("x\n"), 0o644)
+	tree, err = Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tree.Find("real/assets/x.qmd") == nil {
+		t.Error("a page in a nested assets folder is missing from the tree")
 	}
 }
 

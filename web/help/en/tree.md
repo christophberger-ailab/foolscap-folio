@@ -1,6 +1,6 @@
 # The page tree
 
-The left side of the window shows the project's `.md` (and older `.qmd`) pages as a tree, in the order of the website, nested by folder. Folders named `assets`, and folders whose names start with `_` or `.`, are left out, along with everything inside them. Click a title to open the page in the [editor](editor.md).
+The left side of the window shows the project's `.md` (and older `.qmd`) pages as a tree, in the order of the website, nested by folder. The `assets` folder at the top of the project, and folders whose names start with `_` or `.`, are left out, along with everything inside them. Click a title to open the page in the [editor](editor.md).
 
 ## Titles
 

@@ -157,7 +157,7 @@ func indexPages(root string) wordIndex {
 		}
 		name := d.Name()
 		if d.IsDir() {
-			if p != root && project.SkipDir(name) {
+			if project.SkipWalkedDir(root, p) {
 				return filepath.SkipDir
 			}
 			return nil

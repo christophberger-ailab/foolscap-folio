@@ -166,8 +166,11 @@ func TestChatReadsOnlyThePages(t *testing.T) {
 	if got := d.readPage("chapter2/second.qmd"); !strings.Contains(got, "# Second") {
 		t.Errorf("a page was not read: %q", got)
 	}
-	if isProjectPage("assets/snippet.md") || isProjectPage("chapter2/assets/a.md") {
-		t.Error("a page in an assets folder counts as a page of the project")
+	if isProjectPage("assets/snippet.md") {
+		t.Error("a page in the top-level assets folder counts as a page of the project")
+	}
+	if !isProjectPage("chapter2/assets/a.md") {
+		t.Error("a page in a nested assets folder does not count as a page of the project")
 	}
 	for _, p := range []string{"../outside.qmd", "/etc/passwd", "chapter2/missing.qmd", "assets/snippet.md"} {
 		if got := d.readPage(p); !strings.HasPrefix(got, "Error:") {

@@ -145,11 +145,20 @@ type Tree struct {
 	Pages []*Page
 }
 
-// SkipDir reports whether a directory of this name is left out of the page
-// tree: an assets directory, which holds media, and any directory whose
+// SkipDir reports whether the directory at rel, a slash-separated path
+// relative to the project root, is left out of the page tree: the
+// top-level assets directory, which holds media, and any directory whose
 // name starts with "_" or ".", at any depth.
-func SkipDir(name string) bool {
-	return name == "assets" || strings.HasPrefix(name, "_") || strings.HasPrefix(name, ".")
+func SkipDir(rel string) bool {
+	name := path.Base(rel)
+	return rel == "assets" || strings.HasPrefix(name, "_") || strings.HasPrefix(name, ".")
+}
+
+// SkipWalkedDir reports whether a walk of root skips the directory p, an
+// OS path below root, by the rule of SkipDir.
+func SkipWalkedDir(root, p string) bool {
+	rel, err := filepath.Rel(root, p)
+	return err == nil && rel != "." && SkipDir(filepath.ToSlash(rel))
 }
 
 // Load scans root for .qmd and .md files and builds the page tree.
@@ -166,7 +175,7 @@ func Load(root string) (*Tree, error) {
 		}
 		name := d.Name()
 		if d.IsDir() {
-			if p != root && SkipDir(name) {
+			if SkipWalkedDir(root, p) {
 				return filepath.SkipDir
 			}
 			return nil
