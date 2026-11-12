@@ -14,7 +14,9 @@ package build
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -27,6 +29,7 @@ import (
 	"github.com/christophberger-ailab/foolscap-folio/internal/markdown"
 	"github.com/christophberger-ailab/foolscap-folio/internal/shortcode"
 	"github.com/christophberger-ailab/foolscap-folio/internal/site"
+	"github.com/christophberger-ailab/foolscap-folio/internal/svgimage"
 )
 
 // Logf receives the render's progress, one line per call, in the format of
@@ -96,7 +99,16 @@ func Render(sel config.Selection, dryRun bool, log Logf) error {
 	if err != nil {
 		return err
 	}
-	if cover != "" {
+	if _, statErr := os.Stat(cover); cover != "" && errors.Is(statErr, fs.ErrNotExist) {
+		log("warning: topic %s: cover %s not found; the placeholder stands in for it",
+			sel.Topic.Name, rel(sel.Config.Root, cover))
+		if !dryRun {
+			if cover, err = placeholderCover(sel.Config.Root); err != nil {
+				return fmt.Errorf("topic %s: cover: %w", sel.Topic.Name, err)
+			}
+			defer os.Remove(cover)
+		}
+	} else if cover != "" {
 		if err := docrender.ValidateCover(cover); err != nil {
 			return fmt.Errorf("topic %s: cover: %w", sel.Topic.Name, err)
 		}
@@ -156,6 +168,29 @@ func Render(sel config.Selection, dryRun bool, log Logf) error {
 		log("wrote %s", rel(sel.Config.Root, out))
 	}
 	return nil
+}
+
+// placeholderCover writes the project's placeholder as a PNG to a
+// temporary file, for a cover that is not there. The caller removes it.
+func placeholderCover(root string) (string, error) {
+	b, err := svgimage.PNG(svgimage.Placeholder(root), 4)
+	if err != nil {
+		return "", err
+	}
+	f, err := os.CreateTemp("", "folio-cover-*.png")
+	if err != nil {
+		return "", err
+	}
+	if _, err = f.Write(b); err == nil {
+		err = f.Close()
+	} else {
+		f.Close()
+	}
+	if err != nil {
+		os.Remove(f.Name())
+		return "", err
+	}
+	return f.Name(), nil
 }
 
 // warn turns log into a writer's warning hook.
