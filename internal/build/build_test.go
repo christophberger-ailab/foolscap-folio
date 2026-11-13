@@ -34,7 +34,7 @@ func TestDocumentTranslatesCalloutTitles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	doc, _, err := Document(sels[0], nil)
+	doc, _, _, err := Document(sels[0], nil)
 	if err != nil {
 		t.Fatal(err)
 	}

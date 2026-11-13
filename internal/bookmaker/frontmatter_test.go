@@ -111,3 +111,31 @@ func TestParseFrontMatterInvalidYAML(t *testing.T) {
 		t.Fatal("expected an error for malformed YAML")
 	}
 }
+
+// A page's title and subtitle take {name} placeholders. One without a
+// variable is reported, and leaves the text as it is written.
+func TestExpandTitle(t *testing.T) {
+	fm, _, err := parseFrontMatter("---\ntitle: \"{product} Handbook\"\nsubtitle: For {audience-label}\n---\nbody\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	n := &Node{Name: "book", Page: &Page{FrontMatter: fm}}
+	if n.Subtitle() != "For {audience-label}" {
+		t.Fatalf("subtitle = %q", n.Subtitle())
+	}
+	if err := n.ExpandTitle(map[string]string{"product": "Folio"}); err == nil || !strings.Contains(err.Error(), "audience-label") {
+		t.Errorf("err = %v, want one naming audience-label", err)
+	}
+	if n.Title() != "Folio Handbook" || n.Subtitle() != "For {audience-label}" {
+		t.Errorf("title, subtitle = %q, %q", n.Title(), n.Subtitle())
+	}
+	if err := n.ExpandTitle(map[string]string{"audience-label": "developers"}); err != nil {
+		t.Fatal(err)
+	}
+	if n.Subtitle() != "For developers" {
+		t.Errorf("subtitle = %q", n.Subtitle())
+	}
+	if (&Node{Name: "x"}).Subtitle() != "" || (&Node{Name: "x"}).ExpandTitle(nil) != nil {
+		t.Error("a node without a page has a subtitle or fails to expand")
+	}
+}

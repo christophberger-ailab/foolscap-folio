@@ -3,6 +3,7 @@ package build
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -191,10 +192,11 @@ func TestBrandCSS(t *testing.T) {
 	}
 
 	// The documents take the colors and the names of the fonts.
-	st := b.style()
+	st, _ := b.style()
 	want := brandLook{Font: "Corporate Sans", HeadingFont: "Fancy Display", MonoFont: "Bunny Mono",
-		Color: "222222", HeadingColor: "003366", LinkColor: "0055AA"}
-	if st != want {
+		Color: "222222", HeadingColor: "003366", LinkColor: "0055AA",
+		Fonts: map[string]string{}, Sizes: map[string]float64{}}
+	if !reflect.DeepEqual(st, want) {
 		t.Errorf("style %+v, want %+v", st, want)
 	}
 
@@ -215,7 +217,7 @@ func TestBrandCSS(t *testing.T) {
 	if css, files, notes = none.css(); css != "" || files != nil || notes != nil {
 		t.Errorf("no brand: %q %v %v", css, files, notes)
 	}
-	if none.style() != (brandLook{}) {
+	if st, notes := none.style(); !reflect.DeepEqual(st, brandLook{}) || notes != nil {
 		t.Error("no brand: a style")
 	}
 }

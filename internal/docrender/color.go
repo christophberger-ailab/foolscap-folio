@@ -11,15 +11,17 @@ type rgb [3]uint8
 // palette holds the colors text is drawn in.
 type palette struct{ text, heading, link rgb }
 
-func newPalette(c Colors) palette {
-	parse := func(s string, def rgb) rgb {
-		if b, err := hex.DecodeString(s); err == nil && len(b) == 3 {
-			return rgb(b)
-		}
-		return def
+// parseRGB reads RRGGBB; anything else is def.
+func parseRGB(s string, def rgb) rgb {
+	if b, err := hex.DecodeString(s); err == nil && len(b) == 3 {
+		return rgb(b)
 	}
-	text := parse(c.Text, rgb{30, 35, 42})
-	return palette{text, parse(c.Heading, text), parse(c.Link, rgb{24, 84, 139})}
+	return def
+}
+
+func newPalette(c Colors) palette {
+	text := parseRGB(c.Text, rgb{30, 35, 42})
+	return palette{text, parseRGB(c.Heading, text), parseRGB(c.Link, rgb{24, 84, 139})}
 }
 
 // of is the color of a run: a link's wins over a heading's.

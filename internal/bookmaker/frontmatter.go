@@ -16,6 +16,9 @@ type FrontMatter struct {
 	// Title is the `title:` field. Empty when absent; in that case the page
 	// heading is taken from the first ATX heading in the body.
 	Title string
+	// Subtitle is the `subtitle:` field, which a document's cover page
+	// shows below the title.
+	Subtitle string
 	// Order is the `order:` field, used for sorting siblings.
 	Order int
 	// HasOrder reports whether `order:` was present. Pages without an order
@@ -44,14 +47,15 @@ func parseFrontMatter(src string) (FrontMatter, string, error) {
 	}
 
 	var raw struct {
-		Title *string `yaml:"title"`
-		Order *int    `yaml:"order"`
+		Title    *string `yaml:"title"`
+		Subtitle string  `yaml:"subtitle"`
+		Order    *int    `yaml:"order"`
 	}
 	if err := yaml.Unmarshal([]byte(yamlText), &raw); err != nil {
 		return FrontMatter{}, body, fmt.Errorf("parsing front matter: %w", err)
 	}
 
-	fm := FrontMatter{}
+	fm := FrontMatter{Subtitle: strings.TrimSpace(raw.Subtitle)}
 	if raw.Title != nil {
 		fm.Title = strings.TrimSpace(*raw.Title)
 	}

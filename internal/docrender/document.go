@@ -28,7 +28,10 @@ type Document struct {
 	Meta   map[string]Node `json:"meta"`
 }
 type Options struct {
+	// Cover is a PNG that fills the first page; CoverText is set on that
+	// page. Either makes the document's first page its cover.
 	Root, Cover, Title string
+	CoverText          []CoverText
 	TOC                bool
 	// Lang is the document language; it picks the contents heading.
 	Lang string
@@ -38,13 +41,39 @@ type Options struct {
 	// Fonts maps roles in FontRoles to TrueType files that replace the Go
 	// fonts there.
 	Fonts map[string]string
+	// Sizes are the font sizes of the heading levels in points, by their
+	// roles h1 to h6; a level without one keeps its own.
+	Sizes map[string]float64
 	// Colors are the brand's colors for text, headings and links.
 	Colors Colors
 	// Warn, if set, receives the problems that do not stop the render,
 	// such as an image that is not there.
 	Warn func(format string, args ...any)
 }
+
+// CoverText is the title or the subtitle on a cover page.
+type CoverText struct {
+	// Role is "title" or "subtitle", the font role the PDF sets the text
+	// in; Font names the font in a DOCX, "" for the document's own.
+	Role, Font string
+	Text       string
+	// Size is the font size in points.
+	Size float64
+	// Color is RRGGBB; "" is the color of headings.
+	Color string
+	// Box places the text. Without one it follows the text before it, the
+	// first a third down the page.
+	Box *Box
+}
+
+// Box is where a text goes on a cover image, in fractions of the image:
+// its top left corner and the width its lines wrap at.
+type Box struct{ X, Y, W float64 }
+
 type Run struct {
+	// Role, if set, is the font role of the run in place of the one its
+	// other fields give it.
+	Role                        string
 	Text, Link, Image           string
 	ImageWidth, ImageHeight     string
 	Caption                     string // below an image alone in its paragraph

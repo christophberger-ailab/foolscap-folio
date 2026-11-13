@@ -28,8 +28,28 @@ var notoEmoji []byte
 
 // FontRoles are the faces the PDF sets text in. Options.Fonts may replace
 // any of them with a TrueType file; the others stay Go fonts. Headings
-// without a font of their own use the bold face.
-var FontRoles = []string{"regular", "bold", "italic", "bolditalic", "heading", "mono"}
+// without a font of their own use the bold face; the cover's title and
+// each heading level use the headings' face, the subtitle the regular one.
+var FontRoles = []string{"regular", "bold", "italic", "bolditalic", "heading", "mono",
+	"title", "subtitle", "h1", "h2", "h3", "h4", "h5", "h6"}
+
+// derive gives every role without a face of its own, as paths tells, the
+// face it falls back to.
+func (fs fontSet) derive(paths map[string]string) {
+	for _, role := range FontRoles[4:] {
+		if paths[role] != "" || role == "mono" {
+			continue
+		}
+		switch role {
+		case "heading":
+			fs[role] = fs["bold"]
+		case "subtitle":
+			fs[role] = fs["regular"]
+		default:
+			fs[role] = fs["heading"]
+		}
+	}
+}
 
 // goFonts are the default faces, by role, and the emoji font that runes a
 // text face lacks fall back to.
@@ -45,7 +65,7 @@ var goFonts = sync.OnceValues(func() (fontSet, error) {
 		}
 		fs[name] = f
 	}
-	fs["heading"] = fs["bold"]
+	fs.derive(nil)
 	return fs, nil
 })
 
@@ -124,9 +144,7 @@ func loadFonts(paths map[string]string) (fontSet, error) {
 		}
 		fs[role] = f
 	}
-	if paths["heading"] == "" {
-		fs["heading"] = fs["bold"]
-	}
+	fs.derive(paths)
 	return fs, nil
 }
 

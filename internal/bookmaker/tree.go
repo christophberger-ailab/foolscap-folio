@@ -1,6 +1,7 @@
 package bookmaker
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -88,6 +89,33 @@ func (n *Node) Title() string {
 		}
 	}
 	return humanise(n.Name)
+}
+
+// Subtitle returns the `subtitle:` front-matter field of the node's page.
+func (n *Node) Subtitle() string {
+	if n.Page == nil {
+		return ""
+	}
+	return n.Page.Subtitle
+}
+
+// ExpandTitle replaces the {name} placeholders in the title and subtitle of
+// the node's page by vars. A text with a placeholder that has no variable
+// stays as it is written, and the error names it.
+func (n *Node) ExpandTitle(vars map[string]string) error {
+	if n.Page == nil {
+		return nil
+	}
+	var errs []error
+	for _, s := range []*string{&n.Page.Title, &n.Page.Subtitle} {
+		v, err := config.Interpolate(*s, vars)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		*s = v
+	}
+	return errors.Join(errs...)
 }
 
 // firstHeading returns the text of a page's first heading of any level,

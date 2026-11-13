@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"encoding/xml"
 	"fmt"
+	"math"
 	"regexp"
 	"strings"
 )
@@ -25,6 +26,10 @@ type styleSet struct {
 type Look struct {
 	Font, HeadingFont, MonoFont    string
 	Color, HeadingColor, LinkColor string
+	// Fonts and Sizes (in points) are those of single heading levels, by
+	// h1 to h6; a level without one has the headings' font and its own size.
+	Fonts map[string]string
+	Sizes map[string]float64
 }
 
 // rFonts sets a run's font in every script, or nothing for "".
@@ -43,6 +48,9 @@ func rColor(rgb string) string {
 	}
 	return `<w:color w:val="` + esc(rgb) + `"/>`
 }
+
+// halfPoints is a font size in points as Word counts it, in half-points.
+func halfPoints(pt float64) int { return int(math.Round(2 * pt)) }
 
 // mono is the font of code.
 func (s *styleSet) mono() string {
@@ -115,12 +123,13 @@ func (s *styleSet) normal() string {
 }
 
 func (s *styleSet) heading(level int) string {
-	sizes := []int{32, 28, 26, 24, 22, 22}
+	id := fmt.Sprintf("Heading%d", level)
+	role := fmt.Sprintf("h%d", level)
+	size := cmp.Or(halfPoints(s.look.Sizes[role]), []int{32, 28, 26, 24, 22, 22}[level-1])
 	body := fmt.Sprintf(`<w:basedOn w:val="%s"/><w:next w:val="%s"/><w:qFormat/>`+
 		`<w:pPr><w:keepNext/><w:keepLines/><w:spacing w:before="240" w:after="120"/><w:outlineLvl w:val="%d"/></w:pPr>`+
-		`<w:rPr><w:b/><w:sz w:val="%d"/><w:szCs w:val="%d"/></w:rPr>`,
-		s.normal(), s.normal(), level-1, sizes[level-1], sizes[level-1])
-	id := fmt.Sprintf("Heading%d", level)
+		`<w:rPr>%s<w:b/><w:sz w:val="%d"/><w:szCs w:val="%d"/></w:rPr>`,
+		s.normal(), s.normal(), level-1, rFonts(s.look.Fonts[role]), size, size)
 	return s.need("paragraph", id, body, fmt.Sprintf("heading %d", level), fmt.Sprintf("Heading %d", level))
 }
 
@@ -206,6 +215,7 @@ var (
 	reStyle     = regexp.MustCompile(`(?s)<w:style\b[^>]*w:styleId="(Heading\d|Title|Hyperlink)".*?</w:style>`)
 	reStyleFont = regexp.MustCompile(`<w:rFonts\b[^>]*?(?:/>|>\s*</w:rFonts>)`)
 	reStyleCol  = regexp.MustCompile(`<w:color\b[^>]*?(?:/>|>\s*</w:color>)`)
+	reStyleSize = regexp.MustCompile(`<w:(sz|szCs)\b[^>]*?(?:/>|>\s*</w:(?:sz|szCs)>)`)
 )
 
 // tuneBase gives the docxgo base document, whose Normal style carries no
@@ -220,9 +230,14 @@ func tuneBase(styles string, l Look) string {
 			"<w:docDefaults><w:rPrDefault><w:rPr>"+brand+"</w:rPr></w:rPrDefault>", 1)
 	}
 	styles = reStyle.ReplaceAllStringFunc(styles, func(st string) string {
-		font, col := rFonts(cmp.Or(l.HeadingFont, l.Font)), rColor(l.HeadingColor)
+		// A heading level is the role h1 to h6; the other styles are none.
+		role := strings.Replace(reStyle.FindStringSubmatch(st)[1], "Heading", "h", 1)
+		font, col := rFonts(cmp.Or(l.Fonts[role], l.HeadingFont, l.Font)), rColor(l.HeadingColor)
 		if strings.Contains(st, `w:styleId="Hyperlink"`) {
 			font, col = "", rColor(l.LinkColor)
+		}
+		if size := halfPoints(l.Sizes[role]); size > 0 {
+			st = reStyleSize.ReplaceAllString(st, fmt.Sprintf(`<w:$1 w:val="%d"/>`, size))
 		}
 		if font != "" {
 			st = reStyleFont.ReplaceAllLiteralString(st, font)

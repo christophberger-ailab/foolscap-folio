@@ -63,9 +63,18 @@ constraints:
       4-10: An image alone in its paragraph with alt text has that text as its caption below it, in the DOCX (the template's `Image Caption` or `Caption` style, centred, kept with the picture) and the PDF (italic, smaller); an image among text, in a table cell or footnote, or without alt text has none
       5: A topic may declare `cover:` as a project-relative PNG path supporting placeholders; a missing or invalid cover fails before rendering
       5-1: The cover is put in front of both the DOCX and the PDF with preserved aspect ratio, full-page for the PDF; the DOCX cover uses its own zero-margin section and page-relative image, and the original body section properties, styles, headers and footers are preserved
+      5-2: A topic's own cover is a finished page; nothing is written on it, and the title stays the document's first heading
       6: Unsupported PDF constructs produce actionable errors rather than silently discarding content
       7: Mermaid diagrams stay code blocks, with a warning; math is not typeset
       8: 'PPTX slide decks are not supported; `::: slide` blocks and `.notes` are dropped'
+      9: 'A document whose topic declares no `cover:` opens with a cover page of its own, without header, footer or page number, that carries the book''s title and subtitle: the `title` and the optional `subtitle` of the front matter of the topic''s top page'
+      9-1: 'Title and subtitle take `{name}` placeholders, which resolve against the selection''s variables; a placeholder without a variable leaves the text as written, with a warning. A website shows the title of a topic''s top page resolved alike'
+      9-2: The title is on the cover page only; the heading that carries it is taken out of the document's body and its contents
+      9-3: 'Without a cover image the title stands a third down the page, the subtitle below it. The title is set in the brand''s `meta.fonts.title` font and size, else in the headings'' font at 36pt, bold; the subtitle in `meta.fonts.subtitle`, else in the base font at 20pt'
+      9-4: 'The brand''s `meta.coverpage` names an SVG image relative to the project root that fills the cover page, drawn as DOCUMENT 4-8 says. Of the files beside it, the first that exists is taken: `<name>_<topic><audience-template>.svg`, `<name>_<topic>.svg`, `<name><audience-template>.svg`, `<name>.svg`, with the selection''s topic and its variable `audience-template`; the two with the variable are skipped where it is not set'
+      9-4-1: A path that is no .svg file or leaves the project fails the render; a cover image that is not there is warned about, and the cover is the plain one of 9-3
+      9-5: 'On a cover image the title goes where the image''s `path` or `rect` element with the id `title` is, the subtitle where the one with the id `subtitle` is, ids compared without case: from the top left corner of the element''s bounding box, wrapping at its width, in the element''s fill color, else in the color of headings. The element is not drawn'
+      9-5-1: A text whose element the image lacks is not written on the cover, and a warning names it
 
   BRAND:
     description: A Quarto brand file, `_brand.yml`, styles the rendered output.
@@ -80,6 +89,9 @@ constraints:
       3: The PDF draws text in `color.foreground`, headings in `typography.headings.color` and links in the link color, where these are given as `#rgb` or `#rrggbb`, and takes its fonts as DOCUMENT 4-4 says
       4: A DOCX without a `template` names the base, headings and monospace families in its styles and takes the same three colors; a DOCX with a template keeps the template's styles
       5: '`folio preview` and the renders of `folio web` apply the brand as `folio render` does'
+      6: '`meta.fonts` gives the cover''s `title` and `subtitle` and the heading levels `h1` to `h6` a `font` and a `size` each, every entry optional. A size is a number in pt (the default unit) or px; one that is not, a font name that is none, and a key that is none of the eight are reported in the render log and left out'
+      6-1: The PDF sets a level's headings in that font where `typography.fonts` has TrueType files for it, in the closest face to bold (the subtitle's, to regular), and reports a font it cannot embed; a level without a font or a size keeps the headings' font and its own size
+      6-2: A DOCX without a `template` names the font and sets the size in the style of that heading level; the cover's title and subtitle carry their font and size themselves, with a template too
 
   SITE:
     description: A website format writes a static site of all selected topics, with a layout like Quarto's.

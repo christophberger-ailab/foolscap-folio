@@ -2,6 +2,7 @@ package site
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -339,5 +340,28 @@ func TestBrandStylesheet(t *testing.T) {
 	hasNot(t, "plain", read(t, out, "index.html"), "brand.css")
 	if _, err := os.Stat(filepath.Join(out, "_site", "brand.css")); err == nil {
 		t.Error("brand.css written without a brand")
+	}
+}
+
+// The title of a topic's top page takes the topic's variables, wherever
+// the site shows it; one that is not defined is warned about.
+func TestTopicTitleVariables(t *testing.T) {
+	root, out := t.TempDir(), filepath.Join(t.TempDir(), "out")
+	write(t, root, "a/index.md", "---\ntitle: \"Guide for {audience-label}\"\n---\n\nText.\n")
+	write(t, root, "b/index.md", "---\ntitle: \"{missing} Guide\"\n---\n\nText.\n")
+	var logs []string
+	err := Build(Options{Root: root, OutDir: out, Title: "Site",
+		Topics: []Topic{{Name: "a", Folder: "a", Vars: map[string]string{"audience-label": "developers"}}, {Name: "b", Folder: "b"}},
+		Log:    func(f string, a ...any) { logs = append(logs, fmt.Sprintf(f, a...)) },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	page := read(t, out, "a/index.html")
+	has(t, "a", page, "Guide for developers</h1>", "<title>Guide for developers")
+	hasNot(t, "a", page, "{audience-label}")
+	has(t, "b", read(t, out, "b/index.html"), "{missing} Guide")
+	if all := strings.Join(logs, "\n"); !strings.Contains(all, "warning: b: title: undefined variable missing") {
+		t.Errorf("logs = %q", logs)
 	}
 }

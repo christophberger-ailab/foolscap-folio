@@ -403,6 +403,8 @@ Documents are written to `<output>/<dir>/<file>.docx` and `.pdf`, which by defau
 | `typography.monospace` | family, weight, size | embedded TrueType font | font name |
 | `typography.monospace-inline`, `-block` | color, background | – | – |
 | `typography.link` | color, background, weight, decoration | color | color |
+| `meta.fonts` (`title`, `subtitle`, `h1`–`h6`) | – | embedded TrueType font, size | font name, size |
+| `meta.coverpage` | – | cover image | cover image |
 
 On the website, fonts with `files` are copied into the site, and fonts with `source: google` or `source: bunny` are loaded from that service by the reader's browser. The brand's colors apply to the light color scheme; the dark scheme keeps folio's own colors. The site's stylesheets come in this order: folio's, the brand's, then the format's `css`. A DOCX only names its fonts, so they must be installed where it is opened, and a DOCX with a `template` keeps the template's styles. A value the output cannot use is left out, with a note in the render log.
 
@@ -425,7 +427,24 @@ typography:
 
 **Images.** A local SVG image goes into the DOCX and the PDF as a PNG drawn from it. An image that is not there does not stop the render: the project's placeholder, `/assets/static/_placeholder.svg`, stands in for it in every format, and the render log names the missing image. A project without that file gets folio's own placeholder. `folio web` shows the same placeholder in its preview.
 
-**Covers.** A topic's `cover:` is a project-relative PNG, and may use placeholders. It is put in front of the DOCX and the PDF. Both covers keep the image's aspect ratio and are anchored at the bottom-right corner of the page, where the brand graphic ends. The PDF cover (A4) fills the page and crops any overflow at the top or left. The DOCX cover uses the document's page size, shrinks to fit, and never crops. It sits in a dedicated zero-margin section, and the body's original section properties, styles, headers and footers are preserved. No header or footer is added to either cover. A missing or invalid cover fails the render before anything is written.
+**Cover page.** A DOCX and a PDF open with a cover page that carries the book's title and subtitle: the `title` and the optional `subtitle` in the front matter of the topic's top page (`<topic>/index.md`). Both take `{name}` placeholders that resolve against the variables, so `subtitle: "For {audience-label}"` reads "For developers" for an audience whose `vars` set `audience-label: developers`; the website shows the title the same way. A placeholder without a variable is left as written, with a warning. The title stands on the cover only; it is no longer the first heading of the document.
+
+The brand file's `meta` field sets the fonts and the picture of the cover, and the fonts of the headings:
+
+```yaml
+meta:
+  fonts:
+    title:    {font: "Aptos Display", size: 36pt}
+    subtitle: {font: "Aptos", size: 20pt}
+    h1:       {font: "Aptos Display", size: 24pt}   # and so on, down to h6
+  coverpage: /assets/templates/cover.svg
+```
+
+Every entry is optional. Without one, the title is set in the headings' font at 36pt, the subtitle in the base font at 20pt, and the headings as before. A size is given in `pt` or `px`. In the PDF a font needs TrueType files in `typography.fonts`, as the other fonts do; a DOCX names it. A DOCX with a `template` keeps the template's heading styles, and takes only the cover's fonts.
+
+`coverpage` is an SVG image, relative to the project root, that fills the cover page. For a topic and an audience, folio first looks beside it for `<name>_<topic><audience-template>.svg` (`cover_databases_DEV.svg` for the topic `databases` and an audience whose `vars` set `audience-template: _DEV`), then for `<name>_<topic>.svg`, then `<name><audience-template>.svg`, and takes `<name>.svg` last. In the image, a `path` or `rect` with the id `title` marks where the title goes, and one with the id `subtitle` where the subtitle goes (in any case, `Title` or `TITLE`). The text starts at the element's top left corner, wraps at its width, and takes its fill as its color; the element itself is not drawn. An image without such an element gets no title, or no subtitle, and the render log says so. The image is drawn as other SVG images are (shapes in the subset oksvg supports, text in the Go fonts), so a cover of plain shapes works best. Without `coverpage`, or when the file is not there, the cover is a plain page with the title and the subtitle a third of the way down.
+
+**A topic's own cover.** A topic's `cover:` is a project-relative PNG, and may use placeholders. It is a finished cover page that takes the place of the one above: nothing is written on it, and the title stays the document's first heading. It is put in front of the DOCX and the PDF. Both covers keep the image's aspect ratio and are anchored at the bottom-right corner of the page, where the brand graphic ends. The PDF cover (A4) fills the page and crops any overflow at the top or left. The DOCX cover uses the document's page size, shrinks to fit, and never crops. It sits in a dedicated zero-margin section, and the body's original section properties, styles, headers and footers are preserved. No header or footer is added to either cover. A missing or invalid cover fails the render before anything is written.
 
 The PDF has its own layout; it does not reproduce the Word template. Library research and rationale: [docs/native-rendering.md](docs/native-rendering.md).
 

@@ -620,3 +620,22 @@ func TestBrandLook(t *testing.T) {
 	styles = build(t, md, Options{Look: look, Template: tpl})["word/styles.xml"]
 	lacks(t, styles, "Corporate Sans", "Fancy Display", "003366")
 }
+
+// A heading level takes the font and the size the brand gives that level,
+// before the font of all headings; the other levels keep theirs.
+func TestBrandHeadingLevels(t *testing.T) {
+	look := Look{HeadingFont: "Fancy Display",
+		Fonts: map[string]string{"h2": "Second Face"}, Sizes: map[string]float64{"h2": 21, "h3": 10.5}}
+	styles := build(t, "# One\n\n## Two\n\n### Three\n", Options{Look: look})["word/styles.xml"]
+	style := func(id string) string {
+		m := regexp.MustCompile(`(?s)<w:style\b[^>]*w:styleId="` + id + `".*?</w:style>`).FindString(styles)
+		if m == "" {
+			t.Fatalf("no style %s", id)
+		}
+		return m
+	}
+	has(t, style("Heading1"), `w:ascii="Fancy Display"`, `<w:sz w:val="32">`)
+	has(t, style("Heading2"), `w:ascii="Second Face"`, `<w:sz w:val="42"/>`, `<w:szCs w:val="42"/>`)
+	lacks(t, style("Heading2"), "Fancy Display", `w:val="26"`)
+	has(t, style("Heading3"), `w:ascii="Fancy Display"`, `<w:sz w:val="21"/>`)
+}

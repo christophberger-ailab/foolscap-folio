@@ -27,6 +27,9 @@ type Topic struct {
 	Folder string
 	// Title is the menu text; "" uses the title of the folder's index page.
 	Title string
+	// Vars are the variables the {name} placeholders in the title of the
+	// folder's index page stand for.
+	Vars map[string]string
 }
 
 // Options configure Build.
@@ -179,6 +182,9 @@ func (b *builder) load() error {
 		tree, err := bookmaker.LoadTree(dir, b.root)
 		if err != nil {
 			return fmt.Errorf("site: topic %q: %w", t.Name, err)
+		}
+		if err := tree.ExpandTitle(t.Vars); err != nil {
+			b.logf("warning: %s: title: %v", t.Folder, err)
 		}
 		bookmaker.Pages(tree, t.Title)
 		ti := &topicInfo{Topic: t, root: tree, title: tree.Title(), byNod: map[*bookmaker.Node]*pageInfo{}}

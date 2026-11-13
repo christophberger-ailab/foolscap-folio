@@ -43,6 +43,38 @@ type brand struct {
 		MonospaceBlock  brandStyle  `yaml:"monospace-block"`
 		Link            brandStyle  `yaml:"link"`
 	} `yaml:"typography"`
+	// Meta is the brand file's field for what brand.yml itself does not
+	// define. folio reads the fonts of a document's cover and headings and
+	// its cover image from it.
+	Meta struct {
+		// Fonts are a font and a size by metaRoles.
+		Fonts map[string]struct {
+			Font string `yaml:"font"`
+			Size string `yaml:"size"`
+		} `yaml:"fonts"`
+		// Coverpage is the SVG image behind a document's cover page, relative
+		// to the project root.
+		Coverpage string `yaml:"coverpage"`
+	} `yaml:"meta"`
+}
+
+// metaRoles are the texts meta.fonts sets: the cover's title and subtitle
+// and the six heading levels. They are font roles of the PDF as well.
+var metaRoles = []string{"title", "subtitle", "h1", "h2", "h3", "h4", "h5", "h6"}
+
+// points reads a font size as points: a number, with pt or without a
+// unit, or in px. Anything else is 0.
+func points(s string) float64 {
+	s = strings.TrimSpace(strings.ToLower(s))
+	factor := 1.0
+	if v, ok := strings.CutSuffix(s, "px"); ok {
+		s, factor = v, 0.75
+	}
+	v, err := strconv.ParseFloat(strings.TrimSpace(strings.TrimSuffix(s, "pt")), 64)
+	if err != nil || v <= 0 || v > 1000 {
+		return 0
+	}
+	return v * factor
 }
 
 // loadBrand reads the project's brand file, or else the user's, whose path
@@ -200,7 +232,7 @@ func (b *brand) fonts() (map[string]string, []string, error) {
 				if src := sources[strings.ToLower(family)]; src != "" {
 					why = "comes from " + src + ", which the PDF cannot embed"
 				}
-				notes = append(notes, fmt.Sprintf("%s: typography: %s: font %s %s, so the PDF does not use it",
+				notes = append(notes, fmt.Sprintf("%s: %s: font %s %s, so the PDF does not use it",
 					BrandFile, element, family, why))
 			}
 			return nil
@@ -208,7 +240,7 @@ func (b *brand) fonts() (map[string]string, []string, error) {
 		if s.Weight != "" {
 			var err error
 			if weight, _, err = parseWeight(s.Weight, 0); err != nil {
-				return fmt.Errorf("%s: typography: %s: %w", BrandFile, element, err)
+				return fmt.Errorf("%s: %s: %w", BrandFile, element, err)
 			}
 		}
 		if s.Style != "" {
@@ -241,14 +273,25 @@ func (b *brand) fonts() (map[string]string, []string, error) {
 		weight          int
 		italic          bool
 	}{
-		{"base", base, t.Base, "regular", 400, false},
-		{"base", base, bold, "bold", 700, false},
-		{"base", base, brandStyle{Weight: t.Base.Weight}, "italic", 400, true},
-		{"base", base, brandStyle{}, "bolditalic", 700, true},
-		{"headings", heading, t.Headings, "heading", 700, false},
-		{"monospace", t.Monospace.Family, t.Monospace, "mono", 400, false},
+		{"typography: base", base, t.Base, "regular", 400, false},
+		{"typography: base", base, bold, "bold", 700, false},
+		{"typography: base", base, brandStyle{Weight: t.Base.Weight}, "italic", 400, true},
+		{"typography: base", base, brandStyle{}, "bolditalic", 700, true},
+		{"typography: headings", heading, t.Headings, "heading", 700, false},
+		{"typography: monospace", t.Monospace.Family, t.Monospace, "mono", 400, false},
 	} {
 		if err := pick(p.element, p.family, p.style, p.role, p.weight, p.italic); err != nil {
+			return nil, nil, err
+		}
+	}
+	// The title and the headings are bold, as they are without a font of
+	// their own; the subtitle is not.
+	for _, role := range metaRoles {
+		weight := 700
+		if role == "subtitle" {
+			weight = 400
+		}
+		if err := pick("meta: fonts: "+role, b.Meta.Fonts[role].Font, brandStyle{}, role, weight, false); err != nil {
 			return nil, nil, err
 		}
 	}
@@ -256,22 +299,42 @@ func (b *brand) fonts() (map[string]string, []string, error) {
 }
 
 // brandLook is what the brand gives a document: the names of its fonts and
-// its colors as RRGGBB, each "" where the brand has none.
+// its colors as RRGGBB, each "" where the brand has none, and the fonts and
+// the sizes in points that meta.fonts gives the metaRoles.
 type brandLook struct {
 	Font, HeadingFont, MonoFont    string
 	Color, HeadingColor, LinkColor string
+	Fonts                          map[string]string
+	Sizes                          map[string]float64
 }
 
-func (b *brand) style() brandLook {
+// style is the brand's look, and notes on what of meta.fonts it leaves out.
+func (b *brand) style() (brandLook, []string) {
 	if b == nil {
-		return brandLook{}
+		return brandLook{}, nil
 	}
 	t := b.Typography
-	return brandLook{
+	look := brandLook{
 		Font: fontName(t.Base.Family), HeadingFont: fontName(t.Headings.Family), MonoFont: fontName(t.Monospace.Family),
 		Color: b.hex(b.Color.Foreground), HeadingColor: b.hex(t.Headings.Color),
 		LinkColor: b.hex(cmp.Or(t.Link.Color, b.Color.Primary)),
+		Fonts:     map[string]string{}, Sizes: map[string]float64{},
 	}
+	var notes []string
+	for _, role := range slices.Sorted(maps.Keys(b.Meta.Fonts)) {
+		f := b.Meta.Fonts[role]
+		if !slices.Contains(metaRoles, role) {
+			notes = append(notes, fmt.Sprintf("%s: meta: fonts: %s is none of %s", BrandFile, role, strings.Join(metaRoles, ", ")))
+			continue
+		}
+		if look.Fonts[role] = fontName(f.Font); f.Font != "" && look.Fonts[role] == "" {
+			notes = append(notes, fmt.Sprintf("%s: meta: fonts: %s: %q is not a font name", BrandFile, role, f.Font))
+		}
+		if look.Sizes[role] = points(f.Size); f.Size != "" && look.Sizes[role] == 0 {
+			notes = append(notes, fmt.Sprintf("%s: meta: fonts: %s: %q is not a size in pt or px", BrandFile, role, f.Size))
+		}
+	}
+	return look, notes
 }
 
 // color resolves a color given by its name in the palette or as a theme

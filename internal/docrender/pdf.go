@@ -1,6 +1,7 @@
 package docrender
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -29,6 +30,9 @@ type pdfWriter struct {
 	ctx      context.Context
 	fonts    fontSet
 	colors   palette
+	// sizes are the font sizes of the heading levels that have one of
+	// their own, by role.
+	sizes map[string]float64
 	// trace, if set, receives each paragraph line as it is drawn (tests).
 	trace func([]piece)
 	// left and right bound the text column; inset keeps text clear of the
@@ -92,22 +96,29 @@ func layoutPDF(ctx context.Context, path string, bb []Block, o Options) error {
 	if err = fonts.register(p); err != nil {
 		return err
 	}
-	w := &pdfWriter{p: p, root: o.Root, ctx: ctx, fonts: fonts, colors: newPalette(o.Colors), left: margin, right: pageW - margin, warn: o.Warn}
-	if o.Cover != "" {
-		if err = ValidateCover(o.Cover); err != nil {
-			return err
+	w := &pdfWriter{p: p, root: o.Root, ctx: ctx, fonts: fonts, colors: newPalette(o.Colors), sizes: o.Sizes, left: margin, right: pageW - margin, warn: o.Warn}
+	hasCover := o.Cover != "" || len(o.CoverText) > 0
+	if hasCover {
+		w.newPage()
+		x, y, iw, ih := 0.0, 0.0, pageW, pageH
+		if o.Cover != "" {
+			if err = ValidateCover(o.Cover); err != nil {
+				return err
+			}
+			c, err := imageSize(o.Cover)
+			if err != nil {
+				return err
+			}
+			scale := math.Max(pageW/float64(c.Width), pageH/float64(c.Height))
+			iw, ih = float64(c.Width)*scale, float64(c.Height)*scale
+			// Anchor bottom-right: the brand graphic ends at those edges, so any
+			// overflow from cover-scaling is cropped at the top/left instead.
+			x, y = pageW-iw, pageH-ih
+			if err = p.Image(o.Cover, x, y, &gopdf.Rect{W: iw, H: ih}); err != nil {
+				return err
+			}
 		}
-		p.AddPage()
-		w.page++
-		c, err := imageSize(o.Cover)
-		if err != nil {
-			return err
-		}
-		scale := math.Max(pageW/float64(c.Width), pageH/float64(c.Height))
-		iw, ih := float64(c.Width)*scale, float64(c.Height)*scale
-		// Anchor bottom-right: the brand graphic ends at those edges, so any
-		// overflow from cover-scaling is cropped at the top/left instead.
-		if err = p.Image(o.Cover, pageW-iw, pageH-ih, &gopdf.Rect{W: iw, H: ih}); err != nil {
+		if err = w.coverText(o.CoverText, x, y, iw, ih); err != nil {
 			return err
 		}
 	}
@@ -145,7 +156,7 @@ func layoutPDF(ctx context.Context, path string, bb []Block, o Options) error {
 		tocPages = w.page - tocStart + 1
 	}
 	w.newPage()
-	if o.Title != "" && o.Cover == "" {
+	if o.Title != "" && !hasCover {
 		if err = w.paragraph([]Run{{Text: o.Title, Heading: true}}, 24, margin, pageW-2*margin); err != nil {
 			return err
 		}
@@ -181,7 +192,7 @@ func layoutPDF(ctx context.Context, path string, bb []Block, o Options) error {
 	}
 	// Cover has neither header nor page number.
 	first := 1
-	if o.Cover != "" {
+	if hasCover {
 		first = 2
 	}
 	for page := first; page <= last; page++ {
@@ -196,6 +207,34 @@ func layoutPDF(ctx context.Context, path string, bb []Block, o Options) error {
 	}
 	return p.WritePdf(path)
 }
+
+// coverMargin is left free beside a cover's text that has no box.
+const coverMargin = 72.0
+
+// coverText sets the texts on the cover page, whose image covers the
+// rectangle given: each in its box on the image, or else below the one
+// before it, from a third down the page.
+func (w *pdfWriter) coverText(texts []CoverText, x, y, iw, ih float64) error {
+	heading, inset := w.colors.heading, w.inset
+	defer func() { w.colors.heading, w.inset = heading, inset }()
+	w.inset = -margin // the cover's text may go where the image goes
+	w.y = pageH / 3
+	for _, t := range texts {
+		if w.fonts[t.Role] == nil {
+			return fmt.Errorf("cover: unknown font role %q", t.Role)
+		}
+		left, width := coverMargin, pageW-2*coverMargin
+		if t.Box != nil {
+			left, width, w.y = x+t.Box.X*iw, t.Box.W*iw, y+t.Box.Y*ih
+		}
+		w.colors.heading = parseRGB(t.Color, heading)
+		if err := w.paragraph([]Run{{Text: t.Text, Heading: true, Role: t.Role}}, cmp.Or(t.Size, 24), left, width); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (w *pdfWriter) newPage() {
 	w.p.AddPage()
 	// gopdf creates a page's content only when something is drawn, and
@@ -247,7 +286,8 @@ func (w *pdfWriter) body(bb []Block) error {
 		size := 11.0
 		left := w.left + float64(b.Indent)*15
 		if b.Level > 0 {
-			size = math.Max(12, 23-float64(b.Level)*2)
+			role := "h" + strconv.Itoa(min(b.Level, 6))
+			size = cmp.Or(w.sizes[role], math.Max(12, 23-float64(b.Level)*2))
 			w.y += 12
 			w.ensure(size * 2.8)
 			p.SetXY(left, w.y)
@@ -257,7 +297,7 @@ func (w *pdfWriter) body(bb []Block) error {
 			p.AddOutline(text(b.Runs))
 			w.headings = append(w.headings, tocEntry{title: text(b.Runs), id: b.ID, level: b.Level, page: w.page})
 			for i := range b.Runs {
-				b.Runs[i].Heading = true
+				b.Runs[i].Heading, b.Runs[i].Role = true, role
 			}
 		}
 		if b.Code {
@@ -362,6 +402,8 @@ func fontRole(r Run) string {
 	}
 	if r.Code {
 		f = "mono"
+	} else if r.Role != "" {
+		f = r.Role
 	}
 	return f
 }

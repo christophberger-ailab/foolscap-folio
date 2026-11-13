@@ -22,6 +22,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/yuin/goldmark/ast"
+
 	"github.com/christophberger-ailab/foolscap-folio/internal/bookmaker"
 	"github.com/christophberger-ailab/foolscap-folio/internal/config"
 	"github.com/christophberger-ailab/foolscap-folio/internal/docrender"
@@ -129,7 +131,7 @@ func Render(sel config.Selection, dryRun bool, log Logf) error {
 		return nil
 	}
 
-	doc, title, err := Document(sel, log)
+	doc, title, subtitle, err := Document(sel, log)
 	if err != nil {
 		return err
 	}
@@ -141,7 +143,21 @@ func Render(sel config.Selection, dryRun bool, log Logf) error {
 	if err != nil {
 		return err
 	}
-	look := brand.style()
+	look, notes := brand.style()
+	for _, n := range notes {
+		log("note: %s", n)
+	}
+	// A topic's own cover is a finished page. Without one the cover is made
+	// here, and holds the title and the subtitle.
+	var coverText []docrender.CoverText
+	if cover == "" {
+		if cover, coverText, err = coverPage(sel, brand, look, title, subtitle, log); err != nil {
+			return err
+		}
+		if cover != "" {
+			defer os.Remove(cover)
+		}
+	}
 	for _, t := range sel.Format.Type {
 		out := filepath.Join(dir, stem+"."+t)
 		switch t {
@@ -150,19 +166,19 @@ func Render(sel config.Selection, dryRun bool, log Logf) error {
 				Root: sel.Config.Root, Template: template, Title: title, Lang: lang, TOC: sel.Format.TOC,
 				Look: docx.Look(look), Warn: warn(log),
 			})
-			if err == nil && cover != "" {
-				err = docrender.CoverDOCX(out, cover)
+			if err == nil {
+				err = docrender.CoverDOCX(out, cover, coverText...)
 			}
 		case config.TypePDF:
 			var fonts map[string]string
-			var notes []string
 			fonts, notes, err = brand.fonts()
 			for _, n := range notes {
 				log("note: %s", n)
 			}
 			if err == nil {
 				err = docrender.RunPDF(context.Background(), pdfTimeout, out, nil, docrender.Options{
-					Root: sel.Config.Root, Cover: cover, Title: title, TOC: sel.Format.TOC, Lang: lang, Fonts: fonts,
+					Root: sel.Config.Root, Cover: cover, CoverText: coverText, Title: title, TOC: sel.Format.TOC, Lang: lang,
+					Fonts: fonts, Sizes: look.Sizes,
 					Colors:   docrender.Colors{Text: look.Color, Heading: look.HeadingColor, Link: look.LinkColor},
 					Markdown: doc, Warn: warn(log),
 				})
@@ -183,20 +199,7 @@ func placeholderCover(root string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	f, err := os.CreateTemp("", "folio-cover-*.png")
-	if err != nil {
-		return "", err
-	}
-	if _, err = f.Write(b); err == nil {
-		err = f.Close()
-	} else {
-		f.Close()
-	}
-	if err != nil {
-		os.Remove(f.Name())
-		return "", err
-	}
-	return f.Name(), nil
+	return tempPNG(b)
 }
 
 // warn turns log into a writer's warning hook.
@@ -205,26 +208,45 @@ func warn(log Logf) func(string, ...any) {
 }
 
 // Document builds the parsed, filtered document of a document selection,
-// and its title.
-func Document(sel config.Selection, log Logf) (*markdown.Document, string, error) {
+// and its title and subtitle. The title is the document's first heading
+// only where the topic brings a cover of its own; else it is left to the
+// cover page (see coverPage).
+func Document(sel config.Selection, log Logf) (doc *markdown.Document, title, subtitle string, err error) {
 	log = log.or()
-	text, title, err := Flatten(sel, log)
+	text, tree, err := Flatten(sel, log)
 	if err != nil {
-		return nil, "", err
+		return nil, "", "", err
 	}
-	doc := markdown.Parse([]byte(text))
+	doc = markdown.Parse([]byte(text))
+	if sel.Topic.Cover == "" {
+		var titles []ast.Node
+		_ = ast.Walk(doc.Root, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+			if h, ok := n.(*ast.Heading); ok && entering && h.Level == 1 && markdown.HeadingID(h) == tree.Anchor {
+				titles = append(titles, n)
+			}
+			return ast.WalkContinue, nil
+		})
+		for _, n := range titles {
+			n.Parent().RemoveChild(n.Parent(), n)
+		}
+	}
 	doc.Prepare(markdown.Options{Keep: sel.Keep, Formats: sel.Types(), Lang: sel.Config.Lang, CalloutTitles: sel.Config.CalloutTitles})
-	return doc, title, nil
+	return doc, tree.Title(), tree.Subtitle(), nil
 }
 
 // Flatten returns a document selection's Markdown — the topic folder
-// flattened, shortcodes resolved — and the document's title.
-func Flatten(sel config.Selection, log Logf) (string, string, error) {
+// flattened, shortcodes resolved — and the topic's tree, whose root names
+// the document. The {name} placeholders in the root page's title and
+// subtitle are the selection's variables.
+func Flatten(sel config.Selection, log Logf) (string, *bookmaker.Node, error) {
 	log = log.or()
 	root := sel.Config.Root
 	tree, err := loadTopic(root, sel.Topic)
 	if err != nil {
-		return "", "", err
+		return "", nil, err
+	}
+	if err := tree.ExpandTitle(sel.Vars()); err != nil {
+		log("%s: warning: title: %v", sel.Topic.Folder, err)
 	}
 	res, err := bookmaker.Flatten(tree, bookmaker.Options{
 		ProjectRoot:   root,
@@ -234,7 +256,7 @@ func Flatten(sel config.Selection, log Logf) (string, string, error) {
 		ExtractSlides: true,
 	})
 	if err != nil {
-		return "", "", err
+		return "", nil, err
 	}
 	for _, w := range res.Warnings {
 		log("%s: warning: %s", sel.Topic.Folder, w)
@@ -242,9 +264,9 @@ func Flatten(sel config.Selection, log Logf) (string, string, error) {
 	log("%s: %d pages, %d links rewritten", sel.Topic.Folder, res.Pages, res.Links)
 	text, err := Expander(sel, log).Expand(res.Content)
 	if err != nil {
-		return "", "", err
+		return "", nil, err
 	}
-	return text, tree.Title(), nil
+	return text, tree, nil
 }
 
 // Expander returns the shortcode expander of a selection.
@@ -291,7 +313,9 @@ func renderSite(sel config.Selection, dir string, dryRun bool, log Logf) error {
 	}
 	topics := make([]site.Topic, len(sel.Topics))
 	for i, t := range sel.Topics {
-		topics[i] = site.Topic{Name: t.Name, Folder: t.Folder, Title: t.Title}
+		of := sel
+		of.Topic = t
+		topics[i] = site.Topic{Name: t.Name, Folder: t.Folder, Title: t.Title, Vars: of.Vars()}
 	}
 	brand, err := loadBrand(sel.Config.Root, sel.Config.UserBrand)
 	if err != nil {
