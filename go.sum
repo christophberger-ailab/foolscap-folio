@@ -76,8 +76,6 @@ github.com/cenkalti/backoff/v5 v5.0.3 h1:ZN+IMa753KfX5hd8vVaMixjnqRZ3y8CuJKRKj1x
 github.com/cenkalti/backoff/v5 v5.0.3/go.mod h1:rkhZdG3JZukswDf7f0cwqPNk4K0sa+F97BxZthm/crw=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
-github.com/christophberger/start v0.6.3-0.20261111064401-400e59e0b565 h1:gEAfNYkGYt6JTvPGoVx0RYfyqY2cyzUTROTw4wRDXJg=
-github.com/christophberger/start v0.6.3-0.20261111064401-400e59e0b565/go.mod h1:VnmuMaO3DPju+LnN/8gdyaLBtqw6WuYao30tPNa9w2Q=
 github.com/christophberger/start v0.7.0 h1:3PUQjoxnJpevIPP+/tgs7sUjtlVDZ8hwiefWpJgH/Ko=
 github.com/christophberger/start v0.7.0/go.mod h1:VnmuMaO3DPju+LnN/8gdyaLBtqw6WuYao30tPNa9w2Q=
 github.com/cloudflare/circl v1.6.3 h1:9GPOhQGF9MCYUeXyMYlqTR6a5gTrgR/fBLXvUgtVcg8=
