@@ -68,19 +68,22 @@ type Options struct {
 }
 
 // Run looks for a release newer than o.Current and installs it if asked to.
+// A development build cannot be compared with a release, so it is offered
+// the newest release, whatever that is.
 func Run(ctx context.Context, o Options) error {
-	if !selfupdate.IsRelease(o.Current) {
-		return fmt.Errorf("this is a development build (%s), which cannot be compared with a release; install a release to use upgrade", o.Current)
-	}
 	rel, err := selfupdate.Latest(ctx, o.Client, o.Source)
 	if err != nil {
 		return err
 	}
-	if !selfupdate.Newer(o.Current, rel.Version) {
+	switch {
+	case !selfupdate.IsRelease(o.Current):
+		fmt.Fprintf(o.Out, "This is a development build (%s); folio %s is the newest release.\n", o.Current, rel.Version)
+	case !selfupdate.Newer(o.Current, rel.Version):
 		fmt.Fprintf(o.Out, "folio %s is the newest release.\n", o.Current)
 		return nil
+	default:
+		fmt.Fprintf(o.Out, "folio %s is available (you have %s).\n", rel.Version, o.Current)
 	}
-	fmt.Fprintf(o.Out, "folio %s is available (you have %s).\n", rel.Version, o.Current)
 	if rel.URL != "" {
 		fmt.Fprintf(o.Out, "Release notes: %s\n", rel.URL)
 	}
