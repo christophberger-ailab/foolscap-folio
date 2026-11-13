@@ -995,7 +995,7 @@ func TestCreateAndDelete(t *testing.T) {
 	srv, root := testServer(t)
 	before := configs(t, root)
 	rec := post(t, srv, "/create", url.Values{
-		"parent": {""}, "name": {"about"}, "title": {"About"},
+		"parent": {""}, "name": {"about"},
 	})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("create: status %d: %s", rec.Code, rec.Body)
@@ -1003,6 +1003,19 @@ func TestCreateAndDelete(t *testing.T) {
 	// A new page is created as name/index.md.
 	if !strings.Contains(rec.Body.String(), `data-path="about/index.md"`) {
 		t.Errorf("tree missing created page:\n%s", rec.Body)
+	}
+	// It carries no `title:`, which would override the page's level-1
+	// heading (issue #58), and the create form asks for none.
+	page, err := os.ReadFile(filepath.Join(root, "about", "index.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(page), "title:") {
+		t.Errorf("new page has a title:\n%s", page)
+	}
+	form := get(t, srv, "/").Body.String()
+	if i := strings.Index(form, `class="new-file-form"`); i < 0 || strings.Contains(form[i:i+strings.Index(form[i:], "</form>")], `name="title"`) {
+		t.Errorf("create form missing or still asks for a title")
 	}
 	assertConfigsUnchanged(t, root, before)
 
@@ -1025,7 +1038,7 @@ func TestCreateAfter(t *testing.T) {
 	srv, _ := testServer(t)
 	rec := post(t, srv, "/create", url.Values{
 		"parent": {""}, "after": {"chapter2/second.qmd"},
-		"name": {"inserted"}, "title": {"Inserted"},
+		"name": {"inserted"},
 	})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("create: status %d: %s", rec.Code, rec.Body)

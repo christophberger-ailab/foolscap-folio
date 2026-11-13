@@ -457,7 +457,6 @@
     <input type="hidden" name="parent" value="">
     <input type="hidden" name="after" value="">
     <input name="name" placeholder="new-page" required>
-    <input name="title" placeholder="Title">
     <button type="submit">＋ Page</button>
   </form>
   <div id="tree" hx-get="/watch" hx-trigger="every 2s" hx-swap="innerHTML">{{template "tree" .Tree}}</div>

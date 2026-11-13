@@ -88,6 +88,7 @@ constraints:
       2-3-4: A section page (name/index.md, the shape new pages are created in, or the older name/index.qmd) is named by its directory: the field holds the directory's name with /index.md or /index.qmd staying text after it, and the rename renames the directory with the pages in it; only the project's own top-level index.md or index.qmd is not offered for renaming
       2-3-5: The editor is re-pointed at the new path as a move re-points it (2-1, 2-2), and the copyedit suggestions kept for the page follow it
       3: Pages can be created, deleted, and edited in place
+      3-0-0: A new page's frontmatter holds its `order:` alone and no `title:`, which would override the page's first heading as its title (1-1); until it has a heading the tree names it by its file name
       3-0: A failed save is shown as an error next to the heading, naming why it failed, and leaving the page -- opening another one, reloading, closing the tab -- asks for confirmation while an edit is unsaved
       3-0-1: A save is replayed onto the writes the tree made to the same file since the editor opened it -- the `order:` a move or a create renumbered, and the heading levels a move to another depth shifted -- so an autosave after a move keeps both the user's text and the move
       3-0-2: An `order:` the user typed into the frontmatter themselves is kept over the one the tree wrote; a hand-made edit is never silently dropped
