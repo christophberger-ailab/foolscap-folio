@@ -691,16 +691,10 @@ function addComment(instance) {
 
 // focusComment puts the cursor at the start of the text of the nth comment
 // on the page -- counted the way the preview counts its highlights (see
-// markComments) -- and brings it into view. It is what a click on a
-// highlight in the preview does.
-function focusComment(index) {
-  if (!cm) {
-    return;
-  }
-  var starts = findCommentMarkers(cm.getValue()).filter(function (marker) {
-    return marker.kind === 'start';
-  });
-  var marker = starts[index];
+// markComments) -- or of one of its replies, and brings it into view. It
+// is what a click on a highlight in the preview does.
+function focusComment(index, reply) {
+  var marker = cm && commentMarkerAt(index, reply === undefined ? -1 : reply);
   if (!marker) {
     return;
   }
@@ -708,6 +702,52 @@ function focusComment(index) {
   cm.focus();
   cm.setCursor(at);
   cm.scrollIntoView(at, 80);
+}
+
+// commentMarkerAt is the starting marker of the nth comment on the page,
+// or, with reply at 0 or above, the marker of that reply to it. It is how
+// the comments pane, which lists the comments in this order, names one.
+function commentMarkerAt(index, reply) {
+  var start = findCommentMarkers(cm.getValue()).filter(function (marker) {
+    return marker.kind === 'start';
+  })[index];
+  return start && (reply < 0 ? start : start.replies[reply]);
+}
+
+// commentLine is a comment's text as a marker holds it: on one line, since
+// a line break would end the heading or list item the marker may stand in,
+// and never closing the HTML comment it is written into.
+function commentLine(text) {
+  return text.replace(/\s+/g, ' ').trim().replace(/-->/g, '-- >');
+}
+
+// editComment replaces the text of a comment, or of a reply to it, by
+// text, leaving the marker and its attributes as they are. was is the text
+// the edit started from: when the marker holds another by now, the page
+// has changed under the edit, and nothing is written. It reports whether
+// it wrote. Like every edit through CodeMirror it is autosaved, and one
+// step for Ctrl-Z.
+function editComment(index, reply, was, text) {
+  var marker = cm && commentMarkerAt(index, reply);
+  if (!marker || marker.text !== was) {
+    return false;
+  }
+  cm.replaceRange(commentLine(text) + ' ', cm.posFromIndex(marker.textFrom), cm.posFromIndex(marker.to - 3));
+  return true;
+}
+
+// writeReply writes a reply holding text, signed with the user's name and
+// today's date, after the last reply to the nth comment on the page. was
+// is the comment's text, checked as editComment checks it.
+function writeReply(index, was, text) {
+  var thread = cm && commentMarkerAt(index, -1);
+  if (!thread || thread.text !== was) {
+    return false;
+  }
+  var last = thread.replies.length ? thread.replies[thread.replies.length - 1] : thread;
+  var reply = commentReply({ author: commentUser(), date: today() });
+  cm.replaceRange(reply.before + commentLine(text) + reply.after, cm.posFromIndex(last.to));
+  return true;
 }
 
 // refreshEditor makes CodeMirror remeasure, which it needs whenever the

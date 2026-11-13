@@ -23,3 +23,28 @@ func TestCommentsInEditorAndPreview(t *testing.T) {
 		}
 	}
 }
+
+// Comments are edited and replied to in the Comments pane (spec-web.yaml
+// 14-8-2 to 14-8-5). As above, a Go test can only check that the pieces
+// are there.
+func TestCommentsEditableInPane(t *testing.T) {
+	for file, wants := range map[string][]string{
+		"assets/static/editor.js": {"function commentMarkerAt(", "function commentLine(", "function editComment(", "function writeReply(", "marker.text !== was"},
+		"assets/static/app.js":    {"function startCommentEdit(", "function saveCommentEdit(", "author === commentUser()", "comments-edit", "editComment(", "writeReply(", "evt.key === 'Escape'"},
+		"assets/static/app.css":   {".comments-form", ".comments-edit"},
+		"help/en/panes.md":        {"`Edit`", "`Save`"},
+	} {
+		src, err := assets.ReadFile(file)
+		if err != nil {
+			src, err = helpFS.ReadFile(file)
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, want := range wants {
+			if !assetContains(file, string(src), want) {
+				t.Errorf("%s does not edit comments in the pane, missing %q", file, want)
+			}
+		}
+	}
+}
