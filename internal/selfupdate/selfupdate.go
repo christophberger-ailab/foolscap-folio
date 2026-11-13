@@ -64,6 +64,11 @@ type Release struct {
 	Version string  `json:"tag_name"`
 	URL     string  `json:"html_url"`
 	Assets  []Asset `json:"assets"`
+	// Notes are the release notes, in Markdown.
+	Notes string `json:"body"`
+	// Draft and Prerelease releases are never offered.
+	Draft      bool `json:"draft"`
+	Prerelease bool `json:"prerelease"`
 }
 
 // Asset is one downloadable file of a release.

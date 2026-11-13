@@ -159,6 +159,8 @@ folio upgrade --yes     # install without asking
 
 Before anything is installed, `SHA256SUMS.txt` is checked against its [Sigstore](https://www.sigstore.dev) signature, which must come from folio's release workflow on `main`, and the archive for your platform is then checked against the SHA-256 the signed list gives for it. Every download goes over HTTPS, and the new binary is renamed over the old one, so a failed update leaves the old one in place. `folio web` looks for a new release once a day and shows an **Update** button at the right end of the top bar when it finds one; after the update `folio web` restarts itself on the new binary, at the same address with the same project open, and the page reloads.
 
+An update shows what it brings: `folio upgrade` prints the release notes of every release between the running one and the new one, newest first, before it asks, and the Config page lists them under the Update button. After `folio web` has restarted with an update, a **What's new** button in the top bar leads to the notes of everything the update brought.
+
 To check a release you downloaded by hand, verify the checksums with [cosign](https://docs.sigstore.dev/cosign/system_config/installation/) and the archive against them:
 
 ```sh

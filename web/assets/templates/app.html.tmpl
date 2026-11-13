@@ -94,7 +94,15 @@
 {{- else if .Installed}}<span class="update-done" title="The new binary is in place; it is used from the next start.">Restart folio web to use {{.Installed}}</span>
 {{- else if .Latest}}<button type="button" class="update-button" hx-post="/update" hx-target="#update-slot" hx-confirm="Update folio from {{.Current}} to {{.Latest}}? folio web restarts with it." hx-disabled-elt="this"
         title="Update to {{.Latest}}. Your current release is {{.Current}}.">Update</button>
-{{- with .Error}}<span class="update-error" title="{{.}}">Update failed: {{.}}</span>{{end}}{{end}}{{end}}
+{{- with .Error}}<span class="update-error" title="{{.}}">Update failed: {{.}}</span>{{end}}
+{{- else if .News}}<a class="button update-news" href="/config#whats-new" title="See the release notes of everything the update brought">What's new in {{.News}}</a>{{end}}{{end}}
+
+{{/* Release notes, newest first: one article per release. The HTML is
+     goldmark's safe rendering of the notes (see update.go). */}}
+{{define "release-notes"}}{{range .}}<article class="release-note">
+  <h4>{{if .URL}}<a href="{{.URL}}" target="_blank" rel="noopener">{{.Version}}</a>{{else}}{{.Version}}{{end}}</h4>
+  {{.HTML}}
+</article>{{end}}{{end}}
 
 {{/* The open folio's title, the Open button, and Reload. Open fetches the
      folder dialog into #open-dialog (app.js shows it). Reload reads the page
@@ -297,7 +305,7 @@
   </header>
   <main class="config-main">
     <h2>Config</h2>
-    {{with .Release}}<section class="release-info" aria-label="Release">
+    {{with .Release}}{{$r := .}}<section class="release-info" aria-label="Release">
       <h3>Release</h3>
       <p>{{if .Current}}You are running folio <strong>{{.Current}}</strong>{{if .Dev}}, a development build{{end}}.{{else}}You are running a development build of folio.{{end}}</p>
       {{if and .Installed .Restarting}}<p class="notice" data-restart-to="{{.Installed}}">folio {{.Installed}} is installed. Restarting folio web with it…</p>
@@ -305,7 +313,15 @@
       {{else if .Latest}}<p class="notice">folio {{.Latest}} is available{{with .LatestURL}} (<a href="{{.}}" target="_blank" rel="noopener">release notes</a>){{end}}.</p>
       <form method="post" action="/config/install-update">
         <button type="submit" class="update-button" data-confirm="Update folio from {{.Current}} to {{.Latest}}? folio web restarts with it.">Update to {{.Latest}}</button>
-      </form>{{end}}
+      </form>
+      {{with .Notes}}<details class="release-notes" open>
+        <summary>What's new since {{$r.Current}}</summary>
+        {{template "release-notes" .}}
+      </details>{{end}}{{end}}
+      {{if .UpdatedFrom}}<div class="release-notes" id="whats-new">
+        <p class="notice">Updated from {{.UpdatedFrom}} to {{.Current}}.{{if .WhatsNew}} What's new:{{end}}</p>
+        {{template "release-notes" .WhatsNew}}
+      </div>{{end}}
       {{with .Message}}<p class="notice">{{.}}</p>{{end}}
       {{with .Error}}<div class="error">{{.}}</div>{{end}}
       <p class="config-intro">folio web checks for new releases {{if eq .Check "never"}}only when you ask{{else}}{{.Check}}{{end}} (the <code>update</code> settings in <code>config.cue</code>).{{if .Dev}} A development build cannot be compared with a release, so it is offered the newest release.{{end}}{{with .Checked}} Last checked {{.}}.{{end}}</p>

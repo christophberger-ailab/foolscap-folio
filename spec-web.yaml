@@ -35,7 +35,7 @@ constraints:
       5-2: What the app is about to write is read back before it replaces the file, so a save that the next start could not read is refused rather than made
       6: The app writes a settings file with the defaults when there is none
       6-1: The settings the older JSON files held -- render.json, recent.json, copyedit.json, and the custom-css/.active marker -- are carried over into it the first time the app runs without one
-      6-2: Those files are then kept beside the new one under a `.migrated` name: they are no longer read, and a mistake in carrying them over is recoverable
+      6-2: 'Those files are then kept beside the new one under a `.migrated` name: they are no longer read, and a mistake in carrying them over is recoverable'
       7: Hand-edited values are read back as they stand; comments written among the settings are not kept, the app replacing them whenever a setting changes in the UI
       8: 'The `update` section names where releases are looked for (`source`, an https URL; default folio''s GitHub releases) and how often folio web looks (`check`: daily, weekly or never; default daily). `folio upgrade` reads the same source (see spec-upgrade.yaml)'
 
@@ -51,6 +51,8 @@ constraints:
       3-1: Once installed, folio web restarts itself on the new binary -- in the same process on Linux and macOS, as a new process in the same console on Windows -- listening at the same address and with the same project open; the button gives way to "Restarting folio web with <release>…" and the page reloads as soon as the new release answers at /version
       3-2: A failed install leaves the binary as it was, shows the reason beside the button, and keeps the button for another try
       4: The Config page's Release box offers the same update with a button of its own, "Update to <release>", which asks for confirmation and installs it like the top bar's; once installed, folio web restarts as in 3-1 and the Config page reloads
+      6: 'The Config page''s Release box shows the release notes of every release a waiting update brings (as spec-upgrade.yaml PROCESS 5), newest first, rendered from Markdown with raw HTML dropped'
+      6-1: 'After an update has restarted folio web, the top bar shows "What''s new in <release>", linking to the Config page, which says "Updated from <old> to <new>" with the notes of every release in between; the top bar link goes once the Config page has been shown'
       5: When the restart does not happen -- the new binary cannot be run, or does not answer within a minute -- the page says to restart folio web by hand; a server not started by `folio web` (a test) does not restart and says so at once
 
   ORIGIN:

@@ -15,6 +15,7 @@
 package web
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -122,6 +123,7 @@ func Serve(flagAddr string, root string) error {
 		}
 	}
 	srv.startUpdateChecks(version)
+	go srv.showChangesSince(context.Background(), takeUpdatedFrom())
 	listenAddr, searchPort, err := listenTarget(flagAddr, root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "folio web: %v; listening on the default address\n", err)
@@ -156,8 +158,9 @@ func restart(srv *server, ln net.Listener, addr string) error {
 	root := srv.root
 	srv.mu.Unlock()
 	srv.update.mu.Lock()
-	exe, next := srv.update.exe, srv.update.installed
+	exe, next, from := srv.update.exe, srv.update.installed, srv.update.current
 	srv.update.mu.Unlock()
+	os.Setenv(restartFromEnv, from)
 	os.Setenv(restartAddrEnv, addr)
 	os.Setenv(restartRootEnv, root)
 	fmt.Fprintf(os.Stderr, "folio web: restarting with %s\n", next)
