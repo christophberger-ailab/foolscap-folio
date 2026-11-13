@@ -2341,7 +2341,7 @@ mark.folio-todo-hidden {
 }
 
 /* Pandoc fenced divs (::: blocks) and bracketed spans ([text]{.class}). */
-.markdown-preview .quarto {
+.markdown-preview .folio {
   margin: 0.8em 0;
   padding: 0.1rem 0.7rem;
 }

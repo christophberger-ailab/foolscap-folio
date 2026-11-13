@@ -20,7 +20,7 @@ Here you write CSS that overrides the preview's built-in styles. It is loaded do
 - Press `Save` to store it. Drag the corner of the editor to make it taller or shorter; the height is remembered.
 - To add another stylesheet, type a name such as `dark.css` under `Add an alternate stylesheet` and press `Add stylesheet`. With more than one stylesheet, an `Editing:` dropdown switches between them.
 - The active stylesheet is chosen with the dropdown below the preview.
-- Rules like `.quarto.pol:before { content: "..." }` also supply the symbols the [page tree](tree.md) shows for spans.
+- Rules like `.folio.pol:before { content: "..." }` also supply the symbols the [page tree](tree.md) shows for spans.
 
 Stylesheets are files named `<user config dir>/folio/custom-css/*.css`. A default `custom.css` is created the first time `folio web` runs.
 

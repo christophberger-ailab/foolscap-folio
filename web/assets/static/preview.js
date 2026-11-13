@@ -43,11 +43,15 @@ var headingAttrs = /(^|[^\]])\{[^{}]*\}[ \t]*$/;
 
 // unsafeTags are dropped from the rendered preview: a page may contain raw
 // HTML, and the preview must display it, not run it.
-var unsafeTags = 'script,style,iframe,frame,frameset,object,embed,link,meta,base,form';
+var unsafeTags =
+  "script,style,iframe,frame,frameset,object,embed,link,meta,base,form";
 
 function escapeHTML(text) {
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 // splitFrontmatter separates a leading YAML block from the page body. A page
@@ -55,21 +59,21 @@ function escapeHTML(text) {
 // in front of the body, which is what turns a line of the body back into a
 // line of the page.
 function splitFrontmatter(text) {
-  var lines = text.split('\n');
-  if (lines[0].trim() !== '---') {
-    return { front: '', body: text, offset: 0 };
+  var lines = text.split("\n");
+  if (lines[0].trim() !== "---") {
+    return { front: "", body: text, offset: 0 };
   }
   for (var i = 1; i < lines.length; i++) {
     var line = lines[i].trim();
-    if (line === '---' || line === '...') {
+    if (line === "---" || line === "...") {
       return {
-        front: lines.slice(1, i).join('\n'),
-        body: lines.slice(i + 1).join('\n'),
-        offset: i + 1
+        front: lines.slice(1, i).join("\n"),
+        body: lines.slice(i + 1).join("\n"),
+        offset: i + 1,
       };
     }
   }
-  return { front: '', body: text, offset: 0 }; // unterminated: treat it all as body
+  return { front: "", body: text, offset: 0 }; // unterminated: treat it all as body
 }
 
 // Target groups
@@ -79,7 +83,7 @@ function splitFrontmatter(text) {
 // does -- `betriebszustaende_FW/seite.qmd`. The flattener wraps such a
 // page's content in the group's own Quarto div (`::: pol`, `::: fw`), so
 // the preview shows the page inside the very same div: whatever the custom
-// stylesheet does to `.quarto.pol` -- the tint, the symbol in front of it
+// stylesheet does to `.folio.pol` -- the tint, the symbol in front of it
 // -- it does to the whole page, exactly as it does to a block the page
 // carries itself.
 //
@@ -92,11 +96,11 @@ var groupSuffix = /_(fw|pol)$/i;
 // deepest name decides, as it does for the audience filter: a `_POL` page
 // inside an `_FW` folder is a POL page.
 function targetGroupOf(pagePath) {
-  var segments = (pagePath || '').split('/');
-  var group = '';
+  var segments = (pagePath || "").split("/");
+  var group = "";
   segments.forEach(function (segment, i) {
     if (i === segments.length - 1) {
-      segment = segment.replace(/\.[^.\/]*$/, ''); // the extension is not part of the name
+      segment = segment.replace(/\.[^.\/]*$/, ""); // the extension is not part of the name
     }
     var match = groupSuffix.exec(segment);
     if (match) {
@@ -117,10 +121,10 @@ function targetGroupOf(pagePath) {
 var attrToken = /([^\s=]+)=(?:"([^"]*)"|'([^']*)'|(\S*))|(\S+)/g;
 
 function parseAttrs(attrs) {
-  var classes = ['quarto'];
-  var id = '';
+  var classes = ["quarto"];
+  var id = "";
   var keys = {};
-  var text = attrs.replace(/^\{|\}$/g, '');
+  var text = attrs.replace(/^\{|\}$/g, "");
   var m;
   attrToken.lastIndex = 0;
   while ((m = attrToken.exec(text)) !== null) {
@@ -129,9 +133,9 @@ function parseAttrs(attrs) {
       continue;
     }
     var token = m[5];
-    if (token.charAt(0) === '#') {
+    if (token.charAt(0) === "#") {
       id = token.slice(1);
-    } else if (token.charAt(0) === '.') {
+    } else if (token.charAt(0) === ".") {
       classes.push(token.slice(1));
     } else {
       classes.push(token); // shorthand: the bare word is the class
@@ -144,8 +148,8 @@ function parseAttrs(attrs) {
 // as the class (and, if present, id) attributes of an HTML tag.
 function attrsToHTML(attrs) {
   var parsed = parseAttrs(attrs);
-  var out = ' class="' + escapeHTML(parsed.classes.join(' ')) + '"';
-  if (parsed.id !== '') {
+  var out = ' class="' + escapeHTML(parsed.classes.join(" ")) + '"';
+  if (parsed.id !== "") {
     out += ' id="' + escapeHTML(parsed.id) + '"';
   }
   return out;
@@ -159,7 +163,7 @@ function divAttrs(attrs) {
   var keys = parseAttrs(attrs).keys;
   calloutKeys.forEach(function (key) {
     if (keys[key] !== undefined) {
-      out += ' data-callout-' + key + '="' + escapeHTML(keys[key]) + '"';
+      out += " data-callout-" + key + '="' + escapeHTML(keys[key]) + '"';
     }
   });
   return out;
@@ -174,29 +178,36 @@ function divAttrs(attrs) {
 function stripHeadingAttrs(body) {
   var fence = null; // the open code fence's delimiter, if any
 
-  return body.split('\n').map(function (line) {
-    var code = line.match(codeFence);
-    if (fence !== null) {
-      if (code && code[1].charAt(0) === fence.charAt(0) &&
-        code[1].length >= fence.length && code[2].trim() === '') {
-        fence = null;
+  return body
+    .split("\n")
+    .map(function (line) {
+      var code = line.match(codeFence);
+      if (fence !== null) {
+        if (
+          code &&
+          code[1].charAt(0) === fence.charAt(0) &&
+          code[1].length >= fence.length &&
+          code[2].trim() === ""
+        ) {
+          fence = null;
+        }
+        return line;
       }
-      return line;
-    }
-    if (code) {
-      fence = code[1];
-      return line;
-    }
-    var head = line.match(atxHeading);
-    if (!head) {
-      return line;
-    }
-    // The closing "#" run goes first: an attribute block sits inside it
-    // (`## Title {.foo} ##`), so it has to be out of the way before the
-    // block can be recognized as trailing.
-    var text = head[2].replace(/[ \t]+#+[ \t]*$/, '');
-    return head[1] + text.replace(headingAttrs, '$1').replace(/[ \t]+$/, '');
-  }).join('\n');
+      if (code) {
+        fence = code[1];
+        return line;
+      }
+      var head = line.match(atxHeading);
+      if (!head) {
+        return line;
+      }
+      // The closing "#" run goes first: an attribute block sits inside it
+      // (`## Title {.foo} ##`), so it has to be out of the way before the
+      // block can be recognized as trailing.
+      var text = head[2].replace(/[ \t]+#+[ \t]*$/, "");
+      return head[1] + text.replace(headingAttrs, "$1").replace(/[ \t]+$/, "");
+    })
+    .join("\n");
 }
 
 // convertDivs rewrites fenced divs into HTML block tags, surrounded by blank
@@ -210,7 +221,7 @@ function stripHeadingAttrs(body) {
 function convertDivs(body, lineMap) {
   var out = [];
   var fence = null; // the open code fence's delimiter, if any
-  var depth = 0;    // number of open divs
+  var depth = 0; // number of open divs
 
   // emit adds lines to the result, each noted as coming from body line n.
   function emit(n, lines) {
@@ -222,13 +233,17 @@ function convertDivs(body, lineMap) {
     });
   }
 
-  var lines = body.split('\n');
+  var lines = body.split("\n");
   lines.forEach(function (line, n) {
     var code = line.match(codeFence);
     if (fence !== null) {
       emit(n, [line]);
-      if (code && code[1].charAt(0) === fence.charAt(0) &&
-        code[1].length >= fence.length && code[2].trim() === '') {
+      if (
+        code &&
+        code[1].charAt(0) === fence.charAt(0) &&
+        code[1].length >= fence.length &&
+        code[2].trim() === ""
+      ) {
         fence = null;
       }
       return;
@@ -243,11 +258,11 @@ function convertDivs(body, lineMap) {
       emit(n, [line]);
       return;
     }
-    if (div[2].trim() !== '') {
-      emit(n, ['', '<div' + divAttrs(div[2].trim()) + '>', '']);
+    if (div[2].trim() !== "") {
+      emit(n, ["", "<div" + divAttrs(div[2].trim()) + ">", ""]);
       depth++;
     } else if (depth > 0) {
-      emit(n, ['', '</div>', '']);
+      emit(n, ["", "</div>", ""]);
       depth--;
     } else {
       emit(n, [line]); // stray closing fence: show it as written
@@ -255,9 +270,9 @@ function convertDivs(body, lineMap) {
   });
 
   while (depth-- > 0) {
-    emit(lines.length - 1, ['', '</div>', '']);
+    emit(lines.length - 1, ["", "</div>", ""]);
   }
-  return out.join('\n');
+  return out.join("\n");
 }
 
 // sanitize strips the parts of the rendered HTML that would execute rather
@@ -266,13 +281,19 @@ function sanitize(root) {
   root.querySelectorAll(unsafeTags).forEach(function (el) {
     el.remove();
   });
-  root.querySelectorAll('*').forEach(function (el) {
+  root.querySelectorAll("*").forEach(function (el) {
     Array.prototype.slice.call(el.attributes).forEach(function (attr) {
       var name = attr.name.toLowerCase();
-      var url = attr.value.replace(/[\s\u0000-\u001f]/g, '').toLowerCase();
-      var isURL = name === 'href' || name === 'src' || name === 'srcset' ||
-        name === 'xlink:href';
-      if (name.indexOf('on') === 0 || (isURL && url.indexOf('javascript:') === 0)) {
+      var url = attr.value.replace(/[\s\u0000-\u001f]/g, "").toLowerCase();
+      var isURL =
+        name === "href" ||
+        name === "src" ||
+        name === "srcset" ||
+        name === "xlink:href";
+      if (
+        name.indexOf("on") === 0 ||
+        (isURL && url.indexOf("javascript:") === 0)
+      ) {
         el.removeAttribute(attr.name);
       }
     });
@@ -284,17 +305,17 @@ function sanitize(root) {
 // as leaving the project.
 function normalizePath(p) {
   var out = [];
-  p.split('/').forEach(function (seg) {
-    if (seg === '' || seg === '.') {
+  p.split("/").forEach(function (seg) {
+    if (seg === "" || seg === ".") {
       return;
     }
-    if (seg === '..' && out.length > 0 && out[out.length - 1] !== '..') {
+    if (seg === ".." && out.length > 0 && out[out.length - 1] !== "..") {
       out.pop();
       return;
     }
     out.push(seg);
   });
-  return out.join('/');
+  return out.join("/");
 }
 
 // Image freshness
@@ -306,7 +327,7 @@ function normalizePath(p) {
 // for, which is what makes the browser fetch the file again. app.js sets
 // it: once when the page loads, and again on every ↻ Reload, so that
 // reloading a page reloads its images along with its text.
-var mediaVersion = '';
+var mediaVersion = "";
 
 function setMediaVersion(version) {
   mediaVersion = version;
@@ -316,17 +337,19 @@ function setMediaVersion(version) {
 // parameter and ahead of the fragment: the fragment is not part of what is
 // fetched, so a stamp behind it would be no stamp at all.
 function stampVersion(url, suffix) {
-  if (mediaVersion === '') {
+  if (mediaVersion === "") {
     return url + suffix;
   }
-  var fragment = '';
-  var mark = suffix.indexOf('#');
+  var fragment = "";
+  var mark = suffix.indexOf("#");
   if (mark >= 0) {
     fragment = suffix.slice(mark);
     suffix = suffix.slice(0, mark);
   }
-  var sep = suffix === '' ? '?' : '&';
-  return url + suffix + sep + 'v=' + encodeURIComponent(mediaVersion) + fragment;
+  var sep = suffix === "" ? "?" : "&";
+  return (
+    url + suffix + sep + "v=" + encodeURIComponent(mediaVersion) + fragment
+  );
 }
 
 // mediaURL turns the source of an image on a page into a URL the server
@@ -338,15 +361,18 @@ function stampVersion(url, suffix) {
 // climbs out of the project: the server would refuse it anyway.
 function mediaURL(src, baseDir) {
   var rel = mediaPath(src, baseDir);
-  if (rel === '') {
+  if (rel === "") {
     return src;
   }
-  var suffix = '';
+  var suffix = "";
   var mark = src.search(/[?#]/);
   if (mark >= 0) {
     suffix = src.slice(mark);
   }
-  return stampVersion('/media/' + rel.split('/').map(encodeURIComponent).join('/'), suffix);
+  return stampVersion(
+    "/media/" + rel.split("/").map(encodeURIComponent).join("/"),
+    suffix,
+  );
 }
 
 // mediaPath is the path, relative to the project root, of the file an
@@ -355,10 +381,14 @@ function mediaURL(src, baseDir) {
 // names no file of the project: an external or inline one, or one that
 // climbs out of it.
 function mediaPath(src, baseDir) {
-  if (src === '' || /^[a-z][a-z0-9+.-]*:/i.test(src) || src.slice(0, 2) === '//') {
-    return '';
+  if (
+    src === "" ||
+    /^[a-z][a-z0-9+.-]*:/i.test(src) ||
+    src.slice(0, 2) === "//"
+  ) {
+    return "";
   }
-  var rel = src.charAt(0) === '/' ? src.slice(1) : baseDir + '/' + src;
+  var rel = src.charAt(0) === "/" ? src.slice(1) : baseDir + "/" + src;
 
   // A query or fragment is not part of the path.
   var mark = rel.search(/[?#]/);
@@ -367,8 +397,8 @@ function mediaPath(src, baseDir) {
   }
 
   rel = normalizePath(rel);
-  if (rel === '' || rel === '..' || rel.slice(0, 3) === '../') {
-    return '';
+  if (rel === "" || rel === ".." || rel.slice(0, 3) === "../") {
+    return "";
   }
   return rel;
 }
@@ -384,28 +414,28 @@ function mediaPath(src, baseDir) {
 // its project path in data-media-path, which is what a double-click opens
 // in the image editor (see app.js), and says so in its tooltip.
 function resolveMedia(root, pagePath) {
-  var cut = (pagePath || '').lastIndexOf('/');
-  var baseDir = cut < 0 ? '' : pagePath.slice(0, cut);
-  root.querySelectorAll('img[src]').forEach(function (img) {
-    var src = img.getAttribute('src');
-    var title = img.getAttribute('title');
+  var cut = (pagePath || "").lastIndexOf("/");
+  var baseDir = cut < 0 ? "" : pagePath.slice(0, cut);
+  root.querySelectorAll("img[src]").forEach(function (img) {
+    var src = img.getAttribute("src");
+    var title = img.getAttribute("title");
     var rel = mediaPath(src, baseDir);
-    var tip = title ? title + '\n' + src : src;
-    if (rel !== '') {
-      img.setAttribute('data-media-path', rel);
-      tip += '\nDouble-click to open it in the image editor';
+    var tip = title ? title + "\n" + src : src;
+    if (rel !== "") {
+      img.setAttribute("data-media-path", rel);
+      tip += "\nDouble-click to open it in the image editor";
     } else {
-      img.removeAttribute('data-media-path');
+      img.removeAttribute("data-media-path");
     }
-    img.setAttribute('title', tip);
-    img.addEventListener('error', showPlaceholder);
-    img.setAttribute('src', mediaURL(src, baseDir));
+    img.setAttribute("title", tip);
+    img.addEventListener("error", showPlaceholder);
+    img.setAttribute("src", mediaURL(src, baseDir));
   });
 }
 
 // placeholderURL is the app's own stand-in for an image that cannot be
 // shown.
-var placeholderURL = '/static/placeholder.svg';
+var placeholderURL = "/static/placeholder.svg";
 
 // showPlaceholder stands in for an image the browser could not load. An
 // image of the project that is missing never gets here: /media answers it
@@ -416,9 +446,9 @@ var placeholderURL = '/static/placeholder.svg';
 // once, so a placeholder that fails too is not tried again and again.
 function showPlaceholder(evt) {
   var img = evt.target;
-  img.removeEventListener('error', showPlaceholder);
-  if (img.getAttribute('src') !== placeholderURL) {
-    img.setAttribute('src', placeholderURL);
+  img.removeEventListener("error", showPlaceholder);
+  if (img.getAttribute("src") !== placeholderURL) {
+    img.setAttribute("src", placeholderURL);
   }
 }
 
@@ -432,17 +462,17 @@ function showPlaceholder(evt) {
 // is part of the running text there, and Pandoc gives it no caption
 // either. So is an image without alt text, which has no caption to show.
 function captionFigures(root) {
-  root.querySelectorAll('p > img:only-child').forEach(function (img) {
+  root.querySelectorAll("p > img:only-child").forEach(function (img) {
     var para = img.parentNode;
-    if (para.textContent.trim() !== '') {
+    if (para.textContent.trim() !== "") {
       return; // text alongside the image: not a figure
     }
-    var caption = (img.getAttribute('alt') || '').trim();
-    if (caption === '') {
+    var caption = (img.getAttribute("alt") || "").trim();
+    if (caption === "") {
       return;
     }
-    var figure = document.createElement('figure');
-    var legend = document.createElement('figcaption');
+    var figure = document.createElement("figure");
+    var legend = document.createElement("figcaption");
     // textContent, not innerHTML: the alt text is the page's, and the
     // preview displays it rather than letting it become markup.
     legend.textContent = caption;
@@ -495,19 +525,19 @@ function parseCommentMarker(data) {
     return null;
   }
   var at = m[0].length;
-  var parsed = { id: '', keys: {} };
+  var parsed = { id: "", keys: {} };
   var attrs = /^[ \t]*\{([^{}]*)\}[ \t]?/.exec(data.slice(at));
   if (attrs) {
     parsed = parseAttrs(attrs[1]);
     at += attrs[0].length;
   }
   return {
-    kind: { '<<': 'start', '<<+': 'reply', '>>': 'end' }[m[1]],
+    kind: { "<<": "start", "<<+": "reply", ">>": "end" }[m[1]],
     id: parsed.id,
-    author: parsed.keys.author || '',
-    date: parsed.keys.date || '',
+    author: parsed.keys.author || "",
+    date: parsed.keys.date || "",
     text: data.slice(at).trim(),
-    textAt: at
+    textAt: at,
   };
 }
 
@@ -520,26 +550,31 @@ function parseCommentMarker(data) {
 function commentAttrs(meta) {
   var attrs = [];
   if (meta && meta.id) {
-    attrs.push('#' + meta.id);
+    attrs.push("#" + meta.id);
   }
-  ['author', 'date'].forEach(function (key) {
+  ["author", "date"].forEach(function (key) {
     if (meta && meta[key]) {
       attrs.push(key + '="' + String(meta[key]).replace(/"/g, "'") + '"');
     }
   });
-  return attrs.length ? '{' + attrs.join(' ') + '} ' : '';
+  return attrs.length ? "{" + attrs.join(" ") + "} " : "";
 }
 
 function commentStart(meta) {
-  return { before: '<!-- << ' + commentAttrs(meta), after: ' -->' };
+  return { before: "<!-- << " + commentAttrs(meta), after: " -->" };
 }
 
 function commentReply(meta) {
-  return { before: '<!-- <<+ ' + commentAttrs({ author: meta && meta.author, date: meta && meta.date }), after: ' -->' };
+  return {
+    before:
+      "<!-- <<+ " +
+      commentAttrs({ author: meta && meta.author, date: meta && meta.date }),
+    after: " -->",
+  };
 }
 
 function commentEnd(meta) {
-  return '<!-- >> ' + commentAttrs({ id: meta && meta.id }) + '-->';
+  return "<!-- >> " + commentAttrs({ id: meta && meta.id }) + "-->";
 }
 
 // maskCode blanks out what Markdown reads as code -- fenced code blocks and
@@ -549,26 +584,33 @@ function commentEnd(meta) {
 function maskCode(text, frontLines) {
   var fence = null;
   function blank(s) {
-    return s.replace(/[^\n]/g, ' ');
+    return s.replace(/[^\n]/g, " ");
   }
-  return text.split('\n').map(function (line, n) {
-    if (n < frontLines) {
-      return blank(line);
-    }
-    var code = line.match(codeFence);
-    if (fence !== null) {
-      if (code && code[1].charAt(0) === fence.charAt(0) &&
-        code[1].length >= fence.length && code[2].trim() === '') {
-        fence = null;
+  return text
+    .split("\n")
+    .map(function (line, n) {
+      if (n < frontLines) {
+        return blank(line);
       }
-      return blank(line);
-    }
-    if (code) {
-      fence = code[1];
-      return blank(line);
-    }
-    return line.replace(/(`+)[\s\S]*?\1/g, blank);
-  }).join('\n');
+      var code = line.match(codeFence);
+      if (fence !== null) {
+        if (
+          code &&
+          code[1].charAt(0) === fence.charAt(0) &&
+          code[1].length >= fence.length &&
+          code[2].trim() === ""
+        ) {
+          fence = null;
+        }
+        return blank(line);
+      }
+      if (code) {
+        fence = code[1];
+        return blank(line);
+      }
+      return line.replace(/(`+)[\s\S]*?\1/g, blank);
+    })
+    .join("\n");
 }
 
 // findCommentMarkers lists the comment markers of a page in the order they
@@ -583,7 +625,9 @@ function findCommentMarkers(text) {
   var re = /<!--([\s\S]*?)-->/g;
   var m;
   while ((m = re.exec(masked)) !== null) {
-    var marker = parseCommentMarker(text.slice(m.index + 4, m.index + m[0].length - 3));
+    var marker = parseCommentMarker(
+      text.slice(m.index + 4, m.index + m[0].length - 3),
+    );
     if (marker) {
       marker.from = m.index;
       marker.to = m.index + m[0].length;
@@ -601,14 +645,14 @@ function findCommentMarkers(text) {
 // standing right before it, if any: a start opens a thread of its own, and
 // a reply joins the thread of the start or the reply before it.
 function threadReply(marker, before) {
-  if (marker.kind === 'start') {
+  if (marker.kind === "start") {
     marker.replies = [];
     return;
   }
-  if (marker.kind !== 'reply') {
+  if (marker.kind !== "reply") {
     return;
   }
-  var thread = before && (before.kind === 'start' ? before : before.thread);
+  var thread = before && (before.kind === "start" ? before : before.thread);
   if (thread) {
     marker.thread = thread;
     thread.replies.push(marker);
@@ -622,11 +666,11 @@ function threadReply(marker, before) {
 function pairCommentMarkers(markers) {
   var open = [];
   markers.forEach(function (marker) {
-    if (marker.kind === 'start') {
+    if (marker.kind === "start") {
       open.push(marker);
       return;
     }
-    if (marker.kind !== 'end') {
+    if (marker.kind !== "end") {
       return;
     }
     for (var i = open.length - 1; i >= 0; i--) {
@@ -646,7 +690,9 @@ function pairCommentMarkers(markers) {
 // them stays. start is a start marker as findCommentMarkers and
 // pairCommentMarkers leave it.
 function commentRemoval(start) {
-  var last = start.replies.length ? start.replies[start.replies.length - 1] : start;
+  var last = start.replies.length
+    ? start.replies[start.replies.length - 1]
+    : start;
   var ranges = [{ from: start.from, to: last.to }];
   if (start.end) {
     ranges.unshift({ from: start.end.from, to: start.end.to });
@@ -664,7 +710,7 @@ function commentRemoval(start) {
 function unblockComments(src) {
   var masked = maskCode(src, 0);
   var re = /(^|\n) {0,3}<!--([\s\S]*?)-->(?=[ \t]*\S)/g;
-  var out = '';
+  var out = "";
   var last = 0;
   var m;
   while ((m = re.exec(masked)) !== null) {
@@ -672,7 +718,7 @@ function unblockComments(src) {
       continue;
     }
     var at = m.index + m[1].length;
-    out += src.slice(last, at) + '​';
+    out += src.slice(last, at) + "​";
     last = at;
   }
   return out + src.slice(last);
@@ -685,15 +731,15 @@ function commentTooltip(marker) {
   function entry(m, empty) {
     var text = m.text || empty;
     if (m.author || m.date) {
-      text += '\n— ' + [m.author, m.date].filter(Boolean).join(', ');
+      text += "\n— " + [m.author, m.date].filter(Boolean).join(", ");
     }
     return text;
   }
-  var tip = entry(marker, '(empty comment)');
+  var tip = entry(marker, "(empty comment)");
   (marker.replies || []).forEach(function (reply) {
-    tip += '\n\n↳ ' + entry(reply, '(empty reply)');
+    tip += "\n\n↳ " + entry(reply, "(empty reply)");
   });
-  return tip + '\n\nClick to edit or reply to the comment in the editor';
+  return tip + "\n\nClick to edit or reply to the comment in the editor";
 }
 
 // markComments highlights every commented passage in root. The markers
@@ -705,7 +751,10 @@ function commentTooltip(marker) {
 // Nested passages get nested spans, the inner one answering a hover. The
 // comment nodes are left in place.
 function markComments(root) {
-  var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_COMMENT);
+  var walker = document.createTreeWalker(
+    root,
+    NodeFilter.SHOW_TEXT | NodeFilter.SHOW_COMMENT,
+  );
   var nodes = [];
   var markers = [];
   var starts = 0;
@@ -716,8 +765,8 @@ function markComments(root) {
       var marker = parseCommentMarker(node.data);
       threadReply(marker || {}, last);
       last = marker;
-      if (marker && marker.kind !== 'reply') {
-        if (marker.kind === 'start') {
+      if (marker && marker.kind !== "reply") {
+        if (marker.kind === "start") {
           marker.index = starts++;
         }
         markers.push(marker);
@@ -725,7 +774,7 @@ function markComments(root) {
       }
     } else if (!/^[ \t]*$/.test(node.data)) {
       last = null;
-      if (node.data.trim() !== '') {
+      if (node.data.trim() !== "") {
         nodes.push(node);
       }
     }
@@ -737,13 +786,13 @@ function markComments(root) {
 
   var active = [];
   nodes.forEach(function (item) {
-    if (item.kind === 'start') {
+    if (item.kind === "start") {
       if (item.end) {
         active.push(item);
       }
       return;
     }
-    if (item.kind === 'end') {
+    if (item.kind === "end") {
       var i = active.indexOf(item.start);
       if (i >= 0) {
         active.splice(i, 1);
@@ -754,15 +803,18 @@ function markComments(root) {
       return;
     }
     var inner = item;
-    active.slice().reverse().forEach(function (marker) {
-      var span = document.createElement('span');
-      span.className = 'folio-comment';
-      span.setAttribute('data-comment', String(marker.index));
-      span.title = commentTooltip(marker);
-      inner.parentNode.replaceChild(span, inner);
-      span.appendChild(inner);
-      inner = span;
-    });
+    active
+      .slice()
+      .reverse()
+      .forEach(function (marker) {
+        var span = document.createElement("span");
+        span.className = "folio-comment";
+        span.setAttribute("data-comment", String(marker.index));
+        span.title = commentTooltip(marker);
+        inner.parentNode.replaceChild(span, inner);
+        span.appendChild(inner);
+        inner = span;
+      });
   });
 }
 
@@ -772,23 +824,23 @@ function markComments(root) {
 // `[![alt](img.png)]{.pol}` -- are still recognized. Returns null when src
 // does not start with a complete `[...]{...}`.
 function matchSpan(src) {
-  if (src.charAt(0) !== '[') {
+  if (src.charAt(0) !== "[") {
     return null;
   }
   var depth = 0;
   var i = 0;
   for (; i < src.length; i++) {
     var ch = src.charAt(i);
-    if (ch === '\\') {
+    if (ch === "\\") {
       i++; // an escaped character never opens/closes a bracket
       continue;
     }
-    if (ch === '\n') {
+    if (ch === "\n") {
       return null; // spans do not cross line breaks
     }
-    if (ch === '[') {
+    if (ch === "[") {
       depth++;
-    } else if (ch === ']') {
+    } else if (ch === "]") {
       depth--;
       if (depth === 0) {
         break;
@@ -805,7 +857,7 @@ function matchSpan(src) {
   return {
     text: src.slice(1, i),
     attrs: attrs[1],
-    raw: src.slice(0, i + 1 + attrs[0].length)
+    raw: src.slice(0, i + 1 + attrs[0].length),
   };
 }
 
@@ -815,35 +867,42 @@ var spanExtensionRegistered = false;
 // the first time marked is available, since marked.use() adds the
 // extension for good.
 function registerSpanExtension() {
-  if (spanExtensionRegistered || typeof marked === 'undefined') {
+  if (spanExtensionRegistered || typeof marked === "undefined") {
     return;
   }
   spanExtensionRegistered = true;
   marked.use({
-    extensions: [{
-      name: 'quartoSpan',
-      level: 'inline',
-      start: function (src) {
-        var match = src.match(/\[/);
-        return match ? match.index : -1;
+    extensions: [
+      {
+        name: "quartoSpan",
+        level: "inline",
+        start: function (src) {
+          var match = src.match(/\[/);
+          return match ? match.index : -1;
+        },
+        tokenizer: function (src) {
+          var span = matchSpan(src);
+          if (!span) {
+            return undefined;
+          }
+          return {
+            type: "quartoSpan",
+            raw: span.raw,
+            attrs: span.attrs,
+            tokens: this.lexer.inlineTokens(span.text),
+          };
+        },
+        renderer: function (token) {
+          return (
+            "<span" +
+            attrsToHTML(token.attrs) +
+            ">" +
+            this.parser.parseInline(token.tokens) +
+            "</span>"
+          );
+        },
       },
-      tokenizer: function (src) {
-        var span = matchSpan(src);
-        if (!span) {
-          return undefined;
-        }
-        return {
-          type: 'quartoSpan',
-          raw: span.raw,
-          attrs: span.attrs,
-          tokens: this.lexer.inlineTokens(span.text)
-        };
-      },
-      renderer: function (token) {
-        return '<span' + attrsToHTML(token.attrs) + '>' +
-          this.parser.parseInline(token.tokens) + '</span>';
-      }
-    }]
+    ],
   });
 }
 
@@ -852,7 +911,8 @@ function registerSpanExtension() {
 // Only the attributed form is of interest here -- a plain `![alt](src)` is
 // left to marked's own image tokenizer -- so callers get null both when src
 // does not start with an image and when it does but no attributes follow.
-var imageRE = /^!\[((?:\\.|[^\[\]\\])*)\]\(\s*(<(?:\\.|[^<>\\])*>|(?:\\.|[^()\s\\])*)(?:\s+"((?:\\.|[^"\\])*)"|\s+'((?:\\.|[^'\\])*)')?\s*\)/;
+var imageRE =
+  /^!\[((?:\\.|[^\[\]\\])*)\]\(\s*(<(?:\\.|[^<>\\])*>|(?:\\.|[^()\s\\])*)(?:\s+"((?:\\.|[^"\\])*)"|\s+'((?:\\.|[^'\\])*)')?\s*\)/;
 
 function matchImage(src) {
   var m = imageRE.exec(src);
@@ -864,7 +924,7 @@ function matchImage(src) {
     return null; // not immediately followed by an attribute block
   }
   var href = m[2];
-  if (href.charAt(0) === '<' && href.charAt(href.length - 1) === '>') {
+  if (href.charAt(0) === "<" && href.charAt(href.length - 1) === ">") {
     href = href.slice(1, -1);
   }
   return {
@@ -872,7 +932,7 @@ function matchImage(src) {
     alt: m[1],
     href: href,
     title: m[3] !== undefined ? m[3] : m[4],
-    attrs: attrs[1]
+    attrs: attrs[1],
   };
 }
 
@@ -884,36 +944,41 @@ function matchImage(src) {
 // is folded in the same way.
 function imageAttrsToHTML(attrs) {
   var classes = [];
-  var id = '';
+  var id = "";
   var styles = [];
-  attrs.trim().split(/\s+/).forEach(function (token) {
-    if (token === '') {
-      return;
-    }
-    var eq = token.indexOf('=');
-    if (eq >= 0) {
-      var key = token.slice(0, eq);
-      var value = token.slice(eq + 1).replace(/^["']|["']$/g, '');
-      styles.push(key === 'style' ? value.replace(/;\s*$/, '') : key + ': ' + value);
-      return;
-    }
-    if (token.charAt(0) === '#') {
-      id = token.slice(1);
-    } else if (token.charAt(0) === '.') {
-      classes.push(token.slice(1));
-    } else {
-      classes.push(token);
-    }
-  });
-  var out = '';
+  attrs
+    .trim()
+    .split(/\s+/)
+    .forEach(function (token) {
+      if (token === "") {
+        return;
+      }
+      var eq = token.indexOf("=");
+      if (eq >= 0) {
+        var key = token.slice(0, eq);
+        var value = token.slice(eq + 1).replace(/^["']|["']$/g, "");
+        styles.push(
+          key === "style" ? value.replace(/;\s*$/, "") : key + ": " + value,
+        );
+        return;
+      }
+      if (token.charAt(0) === "#") {
+        id = token.slice(1);
+      } else if (token.charAt(0) === ".") {
+        classes.push(token.slice(1));
+      } else {
+        classes.push(token);
+      }
+    });
+  var out = "";
   if (classes.length > 0) {
-    out += ' class="' + escapeHTML(classes.join(' ')) + '"';
+    out += ' class="' + escapeHTML(classes.join(" ")) + '"';
   }
-  if (id !== '') {
+  if (id !== "") {
     out += ' id="' + escapeHTML(id) + '"';
   }
   if (styles.length > 0) {
-    out += ' style="' + escapeHTML(styles.join('; ')) + '"';
+    out += ' style="' + escapeHTML(styles.join("; ")) + '"';
   }
   return out;
 }
@@ -924,40 +989,47 @@ var imageExtensionRegistered = false;
 // follow an image. It runs once, the first time marked is available, since
 // marked.use() adds the extension for good.
 function registerImageExtension() {
-  if (imageExtensionRegistered || typeof marked === 'undefined') {
+  if (imageExtensionRegistered || typeof marked === "undefined") {
     return;
   }
   imageExtensionRegistered = true;
   marked.use({
-    extensions: [{
-      name: 'quartoImage',
-      level: 'inline',
-      start: function (src) {
-        var match = src.match(/!\[/);
-        return match ? match.index : -1;
+    extensions: [
+      {
+        name: "quartoImage",
+        level: "inline",
+        start: function (src) {
+          var match = src.match(/!\[/);
+          return match ? match.index : -1;
+        },
+        tokenizer: function (src) {
+          var img = matchImage(src);
+          if (!img) {
+            return undefined; // no attributes: let marked's own tokenizer render it
+          }
+          return {
+            type: "quartoImage",
+            raw: img.raw,
+            href: img.href,
+            title: img.title,
+            alt: img.alt,
+            attrs: img.attrs,
+          };
+        },
+        renderer: function (token) {
+          var out =
+            '<img src="' +
+            escapeHTML(token.href) +
+            '" alt="' +
+            escapeHTML(token.alt) +
+            '"';
+          if (token.title) {
+            out += ' title="' + escapeHTML(token.title) + '"';
+          }
+          return out + imageAttrsToHTML(token.attrs) + ">";
+        },
       },
-      tokenizer: function (src) {
-        var img = matchImage(src);
-        if (!img) {
-          return undefined; // no attributes: let marked's own tokenizer render it
-        }
-        return {
-          type: 'quartoImage',
-          raw: img.raw,
-          href: img.href,
-          title: img.title,
-          alt: img.alt,
-          attrs: img.attrs
-        };
-      },
-      renderer: function (token) {
-        var out = '<img src="' + escapeHTML(token.href) + '" alt="' + escapeHTML(token.alt) + '"';
-        if (token.title) {
-          out += ' title="' + escapeHTML(token.title) + '"';
-        }
-        return out + imageAttrsToHTML(token.attrs) + '>';
-      }
-    }]
+    ],
   });
 }
 
@@ -981,79 +1053,83 @@ function registerImageExtension() {
 //   - icon="false", which leaves the icon out,
 //   - collapse: "true" or "false" make the callout fold up under its header
 //     at a click, folded or open to begin with.
-var calloutKeys = ['title', 'appearance', 'icon', 'collapse'];
+var calloutKeys = ["title", "appearance", "icon", "collapse"];
 
 var calloutTypes = {
-  note: 'Note',
-  tip: 'Tip',
-  warning: 'Warning',
-  important: 'Important',
-  caution: 'Caution'
+  note: "Note",
+  tip: "Tip",
+  warning: "Warning",
+  important: "Important",
+  caution: "Caution",
 };
 
 // calloutType returns the type of the callout el, or "" when el is no
 // callout.
 function calloutType(el) {
   for (var type in calloutTypes) {
-    if (el.classList.contains('callout-' + type)) {
+    if (el.classList.contains("callout-" + type)) {
       return type;
     }
   }
-  return '';
+  return "";
 }
 
 // buildCallouts lays out every callout in root as Quarto does: the div
 // gets a header and a body, and the classes the stylesheet draws it by.
 // The innermost callouts go first, so an outer one moves finished boxes.
 function buildCallouts(root) {
-  var divs = Array.prototype.slice.call(root.querySelectorAll('div.quarto')).reverse();
+  var divs = Array.prototype.slice
+    .call(root.querySelectorAll("div.folio"))
+    .reverse();
   divs.forEach(function (div) {
     var type = calloutType(div);
-    if (type === '') {
+    if (type === "") {
       return;
     }
-    var appearance = div.getAttribute('data-callout-appearance') || 'default';
-    if (appearance !== 'simple' && appearance !== 'minimal') {
-      appearance = 'default';
+    var appearance = div.getAttribute("data-callout-appearance") || "default";
+    if (appearance !== "simple" && appearance !== "minimal") {
+      appearance = "default";
     }
-    var icon = appearance !== 'minimal' && div.getAttribute('data-callout-icon') !== 'false';
-    var collapse = div.getAttribute('data-callout-collapse');
-    var foldable = collapse === 'true' || collapse === 'false';
+    var icon =
+      appearance !== "minimal" &&
+      div.getAttribute("data-callout-icon") !== "false";
+    var collapse = div.getAttribute("data-callout-collapse");
+    var foldable = collapse === "true" || collapse === "false";
 
     // The title: the fence's, else an opening heading's, else the type's
     // name -- the last only for the default appearance, which always has
     // a header.
-    var title = document.createElement('div');
-    title.className = 'callout-title';
-    var given = div.getAttribute('data-callout-title');
+    var title = document.createElement("div");
+    title.className = "callout-title";
+    var given = div.getAttribute("data-callout-title");
     var first = div.firstElementChild;
     if (given !== null) {
       // textContent, not innerHTML: the title is the page's text.
       title.textContent = given;
     } else if (first && /^H[1-6]$/.test(first.tagName)) {
-      if (first.hasAttribute('data-line')) {
-        title.setAttribute('data-line', first.getAttribute('data-line'));
+      if (first.hasAttribute("data-line")) {
+        title.setAttribute("data-line", first.getAttribute("data-line"));
       }
       while (first.firstChild) {
         title.appendChild(first.firstChild);
       }
       first.remove();
-    } else if (appearance === 'default' || foldable) {
+    } else if (appearance === "default" || foldable) {
       title.textContent = calloutTypes[type];
     } else {
       title = null;
     }
 
-    var body = document.createElement('div');
-    body.className = 'callout-body';
+    var body = document.createElement("div");
+    body.className = "callout-body";
     while (div.firstChild) {
       body.appendChild(div.firstChild);
     }
 
     var header = null;
     if (title !== null) {
-      header = document.createElement(foldable ? 'summary' : 'div');
-      header.className = 'callout-header';
+      header = document.createElement(foldable ? "summary" : "div");
+      header.className = "callout-header";
       if (icon) {
         header.appendChild(calloutIcon());
       }
@@ -1063,9 +1139,9 @@ function buildCallouts(root) {
     }
 
     if (foldable) {
-      var fold = document.createElement('details');
-      fold.className = 'callout-fold';
-      fold.open = collapse !== 'true';
+      var fold = document.createElement("details");
+      fold.className = "callout-fold";
+      fold.open = collapse !== "true";
       fold.appendChild(header);
       fold.appendChild(body);
       div.appendChild(fold);
@@ -1076,14 +1152,14 @@ function buildCallouts(root) {
       div.appendChild(body);
     }
 
-    div.classList.add('callout', 'callout-style-' + appearance);
-    div.classList.toggle('callout-titled', title !== null);
+    div.classList.add("callout", "callout-style-" + appearance);
+    div.classList.toggle("callout-titled", title !== null);
   });
 }
 
 function calloutIcon() {
-  var icon = document.createElement('span');
-  icon.className = 'callout-icon';
+  var icon = document.createElement("span");
+  icon.className = "callout-icon";
   return icon;
 }
 
@@ -1093,13 +1169,16 @@ function calloutIcon() {
 // not be kept open while its text is edited. Callouts are told apart by
 // their order on the page.
 function foldStates(root) {
-  return Array.prototype.map.call(root.querySelectorAll('details.callout-fold'), function (fold) {
-    return fold.open;
-  });
+  return Array.prototype.map.call(
+    root.querySelectorAll("details.callout-fold"),
+    function (fold) {
+      return fold.open;
+    },
+  );
 }
 
 function restoreFolds(root, states) {
-  root.querySelectorAll('details.callout-fold').forEach(function (fold, i) {
+  root.querySelectorAll("details.callout-fold").forEach(function (fold, i) {
     if (i < states.length) {
       fold.open = states[i];
     }
@@ -1116,19 +1195,19 @@ function restoreFolds(root, states) {
 // blocks inside a fenced div are top-level blocks too -- convertDivs turns
 // the fences into HTML blocks of their own -- so a callout's paragraphs are
 // marked like any other.
-var lineMark = 'folio-line:';
+var lineMark = "folio-line:";
 
 // renderBlocks renders src, the converted body, block by block. lineMap
 // takes a line of src back to a line of the body (see convertDivs), and
 // offset a line of the body to a line of the page.
 function renderBlocks(src, lineMap, offset) {
   var tokens = marked.lexer(unblockComments(src)); // keeps the lines where they are
-  var html = '';
+  var html = "";
   var line = 0;
   tokens.forEach(function (token) {
-    if (token.type !== 'space') {
+    if (token.type !== "space") {
       var at = line < lineMap.length ? lineMap[line] : lineMap.length;
-      html += '<!--' + lineMark + (offset + at) + '-->';
+      html += "<!--" + lineMark + (offset + at) + "-->";
     }
     var block = [token];
     block.links = tokens.links; // reference links resolve against the whole page
@@ -1154,8 +1233,8 @@ function markSourceLines(root) {
     while (next && next.nodeType !== Node.ELEMENT_NODE) {
       next = next.nextSibling;
     }
-    if (next && !next.hasAttribute('data-line')) {
-      next.setAttribute('data-line', mark.data.slice(lineMark.length));
+    if (next && !next.hasAttribute("data-line")) {
+      next.setAttribute("data-line", mark.data.slice(lineMark.length));
     }
     mark.remove();
   });
@@ -1171,12 +1250,12 @@ function markSourceLines(root) {
 // then, with the comment's text as its tooltip. The DOM is searched rather
 // than the source, since marked passes the text through unchanged and the
 // comments survive in the rendered HTML as comment nodes.
-var todoText = '==TODO==';
+var todoText = "==TODO==";
 
 function todoMarker(hidden, tip) {
-  var mark = document.createElement('mark');
-  mark.className = hidden ? 'folio-todo folio-todo-hidden' : 'folio-todo';
-  mark.textContent = 'TODO';
+  var mark = document.createElement("mark");
+  mark.className = hidden ? "folio-todo folio-todo-hidden" : "folio-todo";
+  mark.textContent = "TODO";
   if (tip) {
     mark.title = tip;
   }
@@ -1188,7 +1267,10 @@ function todoMarker(hidden, tip) {
 // TODO. It must run once the line comments are gone (see markSourceLines),
 // which would otherwise be taken for the page's own.
 function markTodos(root) {
-  var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_COMMENT);
+  var walker = document.createTreeWalker(
+    root,
+    NodeFilter.SHOW_TEXT | NodeFilter.SHOW_COMMENT,
+  );
   var found = [];
   while (walker.nextNode()) {
     if (walker.currentNode.data.indexOf(todoText) >= 0) {
@@ -1207,9 +1289,9 @@ function markTodos(root) {
     var frag = document.createDocumentFragment();
     parts.forEach(function (part, i) {
       if (i > 0) {
-        frag.appendChild(todoMarker(false, ''));
+        frag.appendChild(todoMarker(false, ""));
       }
-      if (part !== '') {
+      if (part !== "") {
         frag.appendChild(document.createTextNode(part));
       }
     });
@@ -1222,24 +1304,32 @@ function markTodos(root) {
 // what the image paths resolve against, and what says which target group
 // the page belongs to.
 function renderPreview(el, text, pagePath) {
-  if (typeof marked === 'undefined') { // asset missing: show the source
+  if (typeof marked === "undefined") {
+    // asset missing: show the source
     el.textContent = text;
     return;
   }
   registerSpanExtension();
   registerImageExtension();
   var page = splitFrontmatter(text);
-  var html = '';
-  if (page.front.trim() !== '') {
-    html += '<pre class="preview-frontmatter" data-line="0">' + escapeHTML(page.front) + '</pre>';
+  var html = "";
+  if (page.front.trim() !== "") {
+    html +=
+      '<pre class="preview-frontmatter" data-line="0">' +
+      escapeHTML(page.front) +
+      "</pre>";
   }
   var lineMap = [];
-  var body = renderBlocks(convertDivs(stripHeadingAttrs(page.body), lineMap), lineMap, page.offset);
+  var body = renderBlocks(
+    convertDivs(stripHeadingAttrs(page.body), lineMap),
+    lineMap,
+    page.offset,
+  );
   var group = targetGroupOf(pagePath);
-  if (group !== '') {
+  if (group !== "") {
     // The frontmatter stays outside the wrapper: it directs the render, it
     // is not content the group's div would hold.
-    body = '<div class="quarto ' + escapeHTML(group) + '">' + body + '</div>';
+    body = '<div class="quarto ' + escapeHTML(group) + '">' + body + "</div>";
   }
   var folds = foldStates(el);
   el.innerHTML = html + body;

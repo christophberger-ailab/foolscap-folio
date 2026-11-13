@@ -20,7 +20,7 @@ Hier schreibst du CSS, das die eingebauten Stile der Vorschau überschreibt. Es 
 - Drücke `Save`, um es zu speichern. Ziehe an der Ecke des Editors, um ihn höher oder niedriger zu machen; die Höhe wird gemerkt.
 - Um ein weiteres Stylesheet hinzuzufügen, tippe unter `Add an alternate stylesheet` einen Namen wie `dark.css` und drücke `Add stylesheet`. Bei mehr als einem Stylesheet wechselt ein Dropdown `Editing:` zwischen ihnen.
 - Das aktive Stylesheet wählst du mit dem Dropdown unter der Vorschau.
-- Regeln wie `.quarto.pol:before { content: "..." }` liefern auch die Symbole, die der [Seitenbaum](tree.md) für Spans zeigt.
+- Regeln wie `.folio.pol:before { content: "..." }` liefern auch die Symbole, die der [Seitenbaum](tree.md) für Spans zeigt.
 
 Stylesheets sind Dateien mit dem Namen `<user config dir>/folio/custom-css/*.css`. Eine Standarddatei `custom.css` wird beim ersten Start von `folio web` angelegt.
 

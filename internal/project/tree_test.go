@@ -135,7 +135,7 @@ func TestLoadTitleFallback(t *testing.T) {
 // is an ordinary folder.
 func TestLoadSkipsUnderscoreHiddenAndAssetsDirs(t *testing.T) {
 	root := t.TempDir()
-	for _, d := range []string{"_book", ".quarto", "assets", "real/_entwurf", "real/.hidden"} {
+	for _, d := range []string{"_book", ".folio", "assets", "real/_entwurf", "real/.hidden"} {
 		os.MkdirAll(filepath.Join(root, d), 0o755)
 		os.WriteFile(filepath.Join(root, d, "x.qmd"), []byte("x\n"), 0o644)
 	}

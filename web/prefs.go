@@ -149,46 +149,40 @@ const defaultCSSName = "custom.css"
 // content of custom.css. It ships the quarto (::: slide, ::: pol, ...)
 // preview styling that used to be a hand-written custom.css; a fresh
 // install now looks the same without any setup.
-const defaultCustomCSS = `.quarto.slide {
+const defaultCustomCSS = `.folio.slide {
     background: linear-gradient(135deg, #fefefe 0%, #f0f0f3 50%, #fefefe 100%);
 }
-.quarto.slide:before {
+.folio.slide:before {
     content: "🖥️ SLIDE"
 }
-.quarto.pol {
+.folio.pol {
     background: lightblue;
 }
-.quarto.pol:before {
+.folio.pol:before {
     content: "🚔"
 }
-.quarto.fw {
+.folio.fw {
     background: lightpink;
 }
-.quarto.fw:before {
+.folio.fw:before {
     content: "🚒"
 }
-.quarto.perle {
-    background: lightgreen;
-}
-.quarto.perle:before {
-    content: "[⛲PERLE]"
-}
-.quarto.tutorial {
+.folio.tutorial {
     background: blanchedalmond;
 }
-.quarto.tutorial:before {
+.folio.tutorial:before {
     content: "🎓 TUTORIAL"
 }
-.quarto.howto {
+.folio.howto {
     background: ghostwhite;
 }
-.quarto.howto:before {
+.folio.howto:before {
     content: "🔨 HOWTO"
 }
-.quarto.reference {
+.folio.reference {
     background: lemonchiffon;
 }
-.quarto.reference:before {
+.folio.reference:before {
     content: "📃 REFERENCE"
 }
 `

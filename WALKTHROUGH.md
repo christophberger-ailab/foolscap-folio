@@ -658,7 +658,7 @@ off it.
 ### 8.5.1 Tree titles — `web/spans.go`
 
 The preview marks a Quarto span by its class, with the symbol the stylesheet
-puts in front of it (`.quarto.pol:before { content: "🚔" }`). The tree has no
+puts in front of it (`.folio.pol:before { content: "🚔" }`). The tree has no
 stylesheet to lean on — its titles are text — so `spanSymbols` reads those very
 rules out of the *active* stylesheet and `flattenSpans` rewrites
 `[Polizei-]{.pol}[Feuerwehr-]{.fw}Spickzettel` into

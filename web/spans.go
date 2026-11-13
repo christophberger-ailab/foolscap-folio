@@ -10,7 +10,7 @@ import (
 // The page tree shows a page's title as text, so the Quarto spans a title
 // may be built from -- `# [Polizei-]{.pol}[Feuerwehr-]{.fw}Spickzettel` --
 // have to be flattened into it. The preview marks those spans with the
-// symbol its stylesheet gives their class (`.quarto.pol:before { content:
+// symbol its stylesheet gives their class (`.folio.pol:before { content:
 // "🚔" }`); the tree reads the very same rules out of the active
 // stylesheet, so both panes speak the same alphabet and a user who edits
 // custom.css changes the tree along with the preview.
@@ -20,11 +20,11 @@ var (
 	// read so that a commented-out rule contributes no symbol.
 	cssComment = regexp.MustCompile(`(?s)/\*.*?\*/`)
 
-	// cssSpanSymbol matches a `.quarto.<class>:before { ... content: "<symbol>" ... }`
+	// cssSpanSymbol matches a `.folio.<class>:before { ... content: "<symbol>" ... }`
 	// rule. Both the CSS2 `:before` and the CSS3 `::before` spelling are
 	// accepted, as is a single-quoted content string.
 	cssSpanSymbol = regexp.MustCompile(
-		`\.quarto\.([A-Za-z_-][A-Za-z0-9_-]*)\s*::?before\s*\{[^{}]*?content\s*:\s*` +
+		`\.folio\.([A-Za-z_-][A-Za-z0-9_-]*)\s*::?before\s*\{[^{}]*?content\s*:\s*` +
 			`(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')`)
 
 	// titleSpan matches a bracketed Quarto span with its attribute block,

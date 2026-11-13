@@ -26,32 +26,32 @@ func TestSpanSymbols(t *testing.T) {
 		},
 		{
 			name: "css3 spelling and single quotes",
-			css:  ".quarto.pol::before { content: '🚔'; }",
+			css:  ".folio.pol::before { content: '🚔'; }",
 			want: map[string]string{"pol": "🚔"},
 		},
 		{
 			name: "other declarations in the same rule",
-			css:  ".quarto.fw:before { font-weight: bold; content: \"🚒\"; margin: 0 }",
+			css:  ".folio.fw:before { font-weight: bold; content: \"🚒\"; margin: 0 }",
 			want: map[string]string{"fw": "🚒"},
 		},
 		{
 			name: "escaped quote in the content",
-			css:  `.quarto.q:before { content: "\"" }`,
+			css:  `.folio.q:before { content: "\"" }`,
 			want: map[string]string{"q": `"`},
 		},
 		{
 			name: "a commented-out rule contributes nothing",
-			css:  "/* .quarto.pol:before { content: \"🚔\" } */",
+			css:  "/* .folio.pol:before { content: \"🚔\" } */",
 			want: map[string]string{},
 		},
 		{
 			name: "a rule without content contributes nothing",
-			css:  ".quarto.pol { background: lightblue }",
+			css:  ".folio.pol { background: lightblue }",
 			want: map[string]string{},
 		},
 		{
 			name: "empty content contributes nothing",
-			css:  `.quarto.pol:before { content: "" }`,
+			css:  `.folio.pol:before { content: "" }`,
 			want: map[string]string{},
 		},
 		{
