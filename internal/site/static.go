@@ -24,6 +24,33 @@ func (b *builder) writeStatic() error {
 	if err := b.writeSearch(dir); err != nil {
 		return err
 	}
+	if b.o.BrandCSS != "" {
+		if err := os.WriteFile(filepath.Join(dir, "brand.css"), []byte(b.o.BrandCSS), 0o644); err != nil {
+			return err
+		}
+	}
+	if b.logo != "" {
+		data, err := os.ReadFile(b.o.Logo)
+		if err != nil {
+			return err
+		}
+		if err := os.WriteFile(filepath.Join(b.outAbs, filepath.FromSlash(b.logo)), data, 0o644); err != nil {
+			return err
+		}
+	}
+	for name, src := range b.o.BrandFonts {
+		data, err := os.ReadFile(src)
+		if err != nil {
+			return err
+		}
+		dst := filepath.Join(dir, "fonts", filepath.Base(name))
+		if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+			return err
+		}
+		if err := os.WriteFile(dst, data, 0o644); err != nil {
+			return err
+		}
+	}
 	for i, src := range b.o.CSS {
 		data, err := os.ReadFile(src)
 		if err != nil {

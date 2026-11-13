@@ -9,7 +9,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{.Title}}</title>
 <link rel="stylesheet" href="{{.Base}}_site/style.css">
+{{if .Brand}}<link rel="stylesheet" href="{{.Base}}_site/brand.css">
+{{end -}}
 {{range .CSS}}<link rel="stylesheet" href="{{$.Base}}{{.}}">
+{{end -}}
+{{if .Logo}}<link rel="icon" href="{{.Base}}{{.Logo}}">
 {{end -}}
 <script>document.documentElement.classList.add('js')</script>
 <script src="{{.Base}}_site/site.js" defer></script>
@@ -19,7 +23,7 @@
 <header class="navbar">
   <div class="navbar-inner">
     {{if .Sidebar}}<button class="icon-button sidebar-toggle" type="button" aria-controls="sidebar" aria-expanded="false" aria-label="{{.L.Sidebar}}"><span class="icon icon-sidebar" aria-hidden="true"></span><span class="btn-label">{{.L.Contents}}</span></button>{{end}}
-    <a class="site-title" href="{{.HomeURL}}">{{.SiteTitle}}</a>
+    <a class="site-title" href="{{.HomeURL}}">{{if .Logo}}<img class="site-logo" src="{{.Base}}{{.Logo}}" alt="{{.LogoAlt}}">{{end}}{{.SiteTitle}}</a>
     {{if .Nav}}<button class="icon-button menu-toggle" type="button" aria-controls="topics" aria-expanded="false" aria-label="{{.L.Menu}}"><span class="icon icon-menu" aria-hidden="true"></span></button>
     <nav id="topics" class="topics" aria-label="{{.L.Topics}}"><ul>
       {{range .Nav}}<li><a href="{{.URL}}"{{if .Active}} class="active" aria-current="true"{{end}}>{{.Title}}</a></li>

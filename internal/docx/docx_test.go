@@ -566,3 +566,57 @@ func TestImageCaptionStyleAdded(t *testing.T) {
 	}
 	has(t, strings.Join(s.added, ""), `w:styleId="ImageCaption"`, `<w:name w:val="Image Caption"/>`, `<w:i/>`)
 }
+
+// Word takes bookmark names of up to 40 characters. Longer identifiers
+// must not be cut to a shared beginning: every heading keeps a bookmark
+// of its own, and the contents and the links point to it.
+func TestLongBookmarks(t *testing.T) {
+	long := "bm-handbuch-leitstelle-betriebszustaende-und-sonderlagen-"
+	md := "# One {#" + long + "eins}\n\n# Two {#" + long + "zwei}\n\n# Short {#short}\n\n[go](#" + long + "zwei)\n"
+	doc := build(t, md, Options{TOC: true})["word/document.xml"]
+	names := regexp.MustCompile(`<w:bookmarkStart w:id="\d+" w:name="([^"]+)"`).FindAllStringSubmatch(doc, -1)
+	if len(names) != 3 {
+		t.Fatalf("%d bookmarks, want 3", len(names))
+	}
+	one, two := names[0][1], names[1][1]
+	if one == two {
+		t.Errorf("two headings share the bookmark %q", one)
+	}
+	for _, n := range []string{one, two} {
+		if len(n) > 40 || n[0] < 'A' || n[0] > 'z' {
+			t.Errorf("bookmark %q is not a name Word takes", n)
+		}
+		if c := strings.Count(doc, `w:anchor="`+n+`"`); c < 1 {
+			t.Errorf("nothing links to bookmark %q", n)
+		}
+	}
+	if c := strings.Count(doc, `w:anchor="`+two+`"`); c != 2 {
+		t.Errorf("%d links to the second heading, want the contents entry and the link", c)
+	}
+	has(t, doc, `w:name="short"`, `w:anchor="short"`)
+}
+
+// Without a template, the brand names the fonts and colors of the styles
+// folio defines; a template keeps its own.
+func TestBrandLook(t *testing.T) {
+	md := "# One\n\nText with `code` and a [link](https://example.org).\n\n```\nblock\n```\n"
+	look := Look{Font: "Corporate Sans", HeadingFont: "Fancy Display", MonoFont: "Corp Mono",
+		Color: "222222", HeadingColor: "003366", LinkColor: "0055AA"}
+	styles := build(t, md, Options{Look: look, TOC: true})["word/styles.xml"]
+	has(t, styles,
+		`<w:rPrDefault><w:rPr><w:rFonts w:ascii="Corporate Sans" w:hAnsi="Corporate Sans" w:eastAsia="Corporate Sans" w:cs="Corporate Sans"/><w:color w:val="222222"/>`,
+		`<w:rFonts w:ascii="Fancy Display" w:hAnsi="Fancy Display" w:eastAsia="Fancy Display" w:cs="Fancy Display"/>`, `<w:color w:val="003366"/><w:sz w:val="32">`,
+		`<w:color w:val="0055AA"/><w:u w:val="single">`,
+		`w:cs="Fancy Display"/><w:b/><w:color w:val="003366"/><w:sz w:val="32"/>`, // the contents heading
+		`<w:rFonts w:ascii="Corp Mono" w:hAnsi="Corp Mono" w:eastAsia="Corp Mono" w:cs="Corp Mono"/>`)
+	lacks(t, styles, "Consolas", "Calibri Light", "0000FF")
+
+	// No brand: the styles as they were.
+	plain := build(t, md, Options{})["word/styles.xml"]
+	has(t, plain, "Consolas", "Calibri Light", "0000FF")
+	lacks(t, plain, "Corporate Sans")
+
+	tpl := makeTemplate(t)
+	styles = build(t, md, Options{Look: look, Template: tpl})["word/styles.xml"]
+	lacks(t, styles, "Corporate Sans", "Fancy Display", "003366")
+}

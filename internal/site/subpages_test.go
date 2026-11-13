@@ -48,3 +48,24 @@ func TestSubpages(t *testing.T) {
 		`<tr><td><a href="dispatcher/index.html">Dispatcher</a></td></tr>`,
 		`<tr><td><a href="x/index.html">Custom X</a></td></tr>`)
 }
+
+// A subpage without a title in its front matter is listed under its first
+// heading, whatever its level, not under its file name.
+func TestSubpagesHeadingTitle(t *testing.T) {
+	root, out := project(t)
+	write(t, root, "dispatcher/index.qmd", "---\ntitle: Dispatcher\n---\n\n::: subpages\n:::\n")
+	write(t, root, "dispatcher/low-level.qmd", "Intro.\n\n## Second *level* `first` {#id .cls}\n\n# Later\n")
+	write(t, root, "dispatcher/with-slides.qmd", "::: slide\n# On the slide\n:::\n\n```\n# code\n```\n\n### After & slide\n")
+	write(t, root, "dispatcher/no-heading.qmd", "Just text.\n")
+	if err := Build(opts(root, out)); err != nil {
+		t.Fatal(err)
+	}
+	idx := read(t, out, "dispatcher/index.html")
+	has(t, "index", idx,
+		`<a href="low-level.html">Second level first</a>`,
+		`<a href="with-slides.html">After &amp; slide</a>`,
+		`<a href="no-heading.html">No heading</a>`)
+	// The sidebar names the pages as the table does.
+	has(t, "sidebar", idx, `>Second level first</a>`)
+	hasNot(t, "index", idx, "Low level", "With slides", "On the slide")
+}

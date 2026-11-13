@@ -46,7 +46,8 @@ type pageData struct {
 	Content                      template.HTML
 	Prev, Next                   *navLink
 	L                            labels
-	Home                         bool
+	Home, Brand                  bool
+	Logo, LogoAlt                string
 }
 
 func (b *builder) pageData(p *pageInfo, content template.HTML, toc []tocItem) *pageData {
@@ -54,7 +55,7 @@ func (b *builder) pageData(p *pageInfo, content template.HTML, toc []tocItem) *p
 	d := &pageData{
 		Lang: b.o.Lang, SiteTitle: b.title, Title: p.title + " – " + b.title,
 		Base: strings.Repeat("../", depth), Content: content, TOC: toc, L: b.labels,
-		HomeURL: relURL(p.out, "index.html"), Home: p.home, CSS: b.css,
+		HomeURL: relURL(p.out, "index.html"), Home: p.home, CSS: b.css, Brand: b.o.BrandCSS != "", Logo: b.logo, LogoAlt: b.o.LogoAlt,
 	}
 	if p.home {
 		d.Title = b.title

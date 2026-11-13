@@ -337,8 +337,10 @@ surviving headings are counted). `Demote` shifts heading levels.
 `Document` — `Flatten` (load the topic tree, `bookmaker.Flatten`, expand
 shortcodes) followed by `markdown.Parse` and `Prepare` — and writes one file per
 type of the format: `docx.Write` plus `docrender.CoverDOCX`, or
-`docrender.RunPDF` with the parsed document as input and the fonts that
-`brandFonts` (`brand.go`) found in `_brand.yml`. `Run` walks the selections,
+`docrender.RunPDF` with the parsed document as input. `loadBrand` (`brand.go`)
+reads the project's `_brand.yml`, or else the user's, and hands each writer its
+share: the site a stylesheet and font files, the PDF fonts and colors, the DOCX
+font names and colors. `Run` walks the selections,
 carries on after a failure so one broken combination does not hide the others,
 and after `--clean` empties each output directory once, refusing one that is not
 below the output directory.

@@ -44,6 +44,15 @@ type Options struct {
 	// CSS are stylesheets, absolute paths, that every page links after the
 	// site's own. They are copied verbatim into OutDir/_site/css.
 	CSS []string
+	// BrandCSS is the stylesheet of the project's brand, which every page
+	// links between the site's own and CSS; "" for none. BrandFonts are
+	// the font files it refers to: name below _site/fonts to source file.
+	BrandCSS   string
+	BrandFonts map[string]string
+	// Logo is the image file, absolute, shown in the navbar before the
+	// title and used as the site's icon; "" for none. LogoAlt is its
+	// alternative text.
+	Logo, LogoAlt string
 	// Expand expands shortcodes in a page's Markdown; may be nil.
 	Expand func(string) (string, error)
 	// Log receives warnings and progress; may be nil.
@@ -82,6 +91,7 @@ type builder struct {
 	copied  map[string]bool
 	tmpl    *template.Template
 	labels  labels
+	logo    string   // OutDir-relative path of the logo, "" for none
 	css     []string // OutDir-relative paths of the extra stylesheets
 	outAbs  string
 	rootAbs string
@@ -117,6 +127,9 @@ func Build(o Options) error {
 		b.o.Lang = "en"
 	}
 	b.labels = labelsFor(b.o.Lang)
+	if o.Logo != "" {
+		b.logo = "_site/logo" + strings.ToLower(filepath.Ext(o.Logo))
+	}
 	for i, c := range o.CSS {
 		name := strings.TrimSuffix(filepath.Base(c), filepath.Ext(c))
 		b.css = append(b.css, fmt.Sprintf("_site/css/%d-%s.css", i+1, name))

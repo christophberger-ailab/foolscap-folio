@@ -233,3 +233,37 @@ func TestBuildOptionsCarriesTheUsersCalloutTitles(t *testing.T) {
 		t.Errorf("a broken settings file was not reported: %v", err)
 	}
 }
+
+// Every selection knows the user's brand file, from the settings directory
+// the command was registered with.
+func TestBuildOptionsCarriesTheUsersBrand(t *testing.T) {
+	root := fixture(t)
+	defer func(f func() string) { userBrand = f }(userBrand)
+	userBrand = func() string { return "/home/me/.config/folio/_brand.yml" }
+	opts, err := BuildOptions(root, config.Request{}, false, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, sel := range opts.Selections {
+		if sel.Config.UserBrand != "/home/me/.config/folio/_brand.yml" {
+			t.Errorf("%s: user brand = %q", sel, sel.Config.UserBrand)
+		}
+	}
+}
+
+// --update-toc asks the render to fill in the page numbers of the contents.
+func TestBuildOptionsCarriesUpdateTOC(t *testing.T) {
+	root := fixture(t)
+	on := true
+	defer func(f *bool) { updateTOCFlag = f }(updateTOCFlag)
+	for _, flag := range []*bool{nil, &on} {
+		updateTOCFlag = flag
+		opts, err := BuildOptions(root, config.Request{}, false, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if opts.UpdateTOC != (flag != nil) {
+			t.Errorf("UpdateTOC = %v with flag %v", opts.UpdateTOC, flag)
+		}
+	}
+}

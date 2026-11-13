@@ -28,6 +28,7 @@ type pdfWriter struct {
 	headings []tocEntry
 	ctx      context.Context
 	fonts    fontSet
+	colors   palette
 	// trace, if set, receives each paragraph line as it is drawn (tests).
 	trace func([]piece)
 	// left and right bound the text column; inset keeps text clear of the
@@ -91,7 +92,7 @@ func layoutPDF(ctx context.Context, path string, bb []Block, o Options) error {
 	if err = fonts.register(p); err != nil {
 		return err
 	}
-	w := &pdfWriter{p: p, root: o.Root, ctx: ctx, fonts: fonts, left: margin, right: pageW - margin, warn: o.Warn}
+	w := &pdfWriter{p: p, root: o.Root, ctx: ctx, fonts: fonts, colors: newPalette(o.Colors), left: margin, right: pageW - margin, warn: o.Warn}
 	if o.Cover != "" {
 		if err = ValidateCover(o.Cover); err != nil {
 			return err
@@ -450,10 +451,8 @@ func (w *pdfWriter) paragraph(runs []Run, size, left, width float64) error {
 					return err
 				}
 			} else {
-				w.p.SetTextColor(30, 35, 42)
-				if s.Link != "" {
-					w.p.SetTextColor(24, 84, 139)
-				}
+				c := w.colors.of(s.Run)
+				w.p.SetTextColor(c[0], c[1], c[2])
 				if err := w.draw(s.Run, size, x, w.y+above); err != nil {
 					return err
 				}
@@ -782,8 +781,9 @@ func (w *pdfWriter) table(b Block) error {
 							return err
 						}
 					case it.text != "":
-						w.p.SetTextColor(30, 35, 42)
 						r := Run{Text: it.text, Bold: rowIndex == 0}
+						c := w.colors.of(r)
+						w.p.SetTextColor(c[0], c[1], c[2])
 						if err := w.draw(r, 9, x+5, y+w.ascent(r, 9)); err != nil {
 							return err
 						}
