@@ -5,8 +5,8 @@
 // tabbed groups. A group shows one of its panes at a time, the one whose
 // tab is active. Dragging a tab onto another group's tabs moves it there;
 // dropping it on a group's edge splits the group, putting the pane beside
-// or below it. A tab's ✕ closes its pane, and the Panes menu in the top
-// bar brings it back.
+// or below it. Tabs carry no close button: the Panes menu in the top bar
+// closes and opens panes, and a middle click on a tab closes it.
 //
 // The layout is a tree: a group is a leaf, and a split holds two or more
 // groups or splits side by side ('row') or stacked ('col'), each with its
@@ -448,14 +448,7 @@ function drawGroup(g) {
     var label = document.createElement('span');
     label.className = 'dock-tab-label';
     label.textContent = PANES[name].label;
-    var close = document.createElement('button');
-    close.type = 'button';
-    close.className = 'dock-tab-close';
-    close.title = 'Close ' + PANES[name].label;
-    close.setAttribute('aria-label', 'Close ' + PANES[name].label);
-    close.textContent = '×';
     tab.appendChild(label);
-    tab.appendChild(close);
     bar.appendChild(tab);
     var pane = paneElement(name);
     if (!pane) {
@@ -663,12 +656,6 @@ document.addEventListener('click', function (evt) {
   }
   if (!t.closest('#pane-menu')) {
     showPaneMenu(false);
-  }
-  var close = t.closest('.dock-tab-close');
-  if (close) {
-    closePane(close.closest('.dock-tab').dataset.pane);
-    refreshEditor(); // the editor may have gained the dock's room
-    return;
   }
   var tab = t.closest('.dock-tab');
   if (tab) {
