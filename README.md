@@ -390,7 +390,7 @@ Documents are written to `<output>/<dir>/<file>.docx` and `.pdf`, which by defau
 **DOCX** is written in Go. A `template:` names a reference DOCX; its styles, page setup, headers, footers and numbering are used, and its body is discarded. Without one, a blank document with Word's default styles is used. `toc: true` adds a Word contents field, which Word fills when fields are updated.
 
 **PDF** is laid out in Go (A4, embedded fonts, headings, lists, tables, images, links, bookmarks, page numbers, a linked contents list). It is fed from the same parsed document as the DOCX. The PDF sets its text in the Go fonts, unless the project root has a [`_brand.yml`](https://posit-dev.github.io/brand-yml/) whose `typography` names fonts with local files. Then body text uses `base` (regular, bold, italic and bold italic, each the closest weight and style the family offers), headings use `headings` (default weight bold), and code uses `monospace`. Only TrueType files (`.ttf`) can be embedded; `.otf`, WOFF files and fonts from Google, Bunny or the system are skipped with a note in the render log, and their text keeps the Go fonts. Font sizes, colors and line
-heights from the brand file do not apply to the PDF.
+heights from the brand file's `typography` do not apply to the PDF; heading and cover fonts and sizes can be set under `meta: fonts:` (see **Covers** below).
 
 ```yaml
 typography:
@@ -412,6 +412,19 @@ typography:
 **Images.** A local SVG image goes into the DOCX and the PDF as a PNG drawn from it. An image that is not there does not stop the render: the project's placeholder, `/assets/static/_placeholder.svg`, stands in for it in every format, and the render log names the missing image. A project without that file gets folio's own placeholder. `folio web` shows the same placeholder in its preview.
 
 **Covers.** A topic's `cover:` is a project-relative PNG, and may use placeholders. It is put in front of the DOCX and the PDF. Both covers keep the image's aspect ratio and are anchored at the bottom-right corner of the page, where the brand graphic ends. The PDF cover (A4) fills the page and crops any overflow at the top or left. The DOCX cover uses the document's page size, shrinks to fit, and never crops. It sits in a dedicated zero-margin section, and the body's original section properties, styles, headers and footers are preserved. No header or footer is added to either cover. A missing or invalid cover fails the render before anything is written.
+
+Without a `cover:`, a document gets a cover page with the book's title and subtitle: the `title:` and `subtitle:` of the topic's index page (or the topic's `title` in folio.yml). Both may use `{name}` placeholders from folio.yml, so `subtitle: "For {audience-label}"` reads "For developers" for an audience whose `vars` set `audience-label: developers`. The title is shown on the cover only, not again as the first heading. `_brand.yml` sets the cover's fonts and sizes and, optionally, a cover template under `meta`:
+
+```yaml
+meta:
+  fonts:
+    title:    {font: "Aptos Display", size: 36pt}
+    subtitle: {font: "Aptos", size: 20pt}
+    h1:       {size: 24pt}          # h1 to h6 set the headings likewise
+  coverpage: /assets/templates/cover.svg
+```
+
+Every entry is optional; sizes are in pt (default) or px. The DOCX names the font; the PDF uses it if `typography: fonts` lists TrueType files for the family, as for the other brand fonts. For a template, folio looks for `cover_{topic}{audience-template}.svg`, `cover_{topic}.svg`, `cover{audience-template}.svg` and then `cover.svg` in the template's folder (`audience-template` being a variable, such as `_DEV`). The elements with the id `title` and `subtitle` mark where the texts go: folio takes them out and sets the title and subtitle there, in their fill color, left-aligned or centred like them. A template without one of them shows no title or subtitle, and the render log says so. The rest of the template is drawn as an image, as SVG images are.
 
 The PDF has its own layout; it does not reproduce the Word template. Library research and rationale: [docs/native-rendering.md](docs/native-rendering.md).
 

@@ -49,7 +49,7 @@ func TestCoverDOCXPreservesBodyAndPackage(t *testing.T) {
 	zw.Close()
 	f.Close()
 	os.Chmod(path, 0o644)
-	if err = CoverDOCX(path, coverPNG(t)); err != nil {
+	if err = CoverDOCX(path, Cover{Image: coverPNG(t)}); err != nil {
 		t.Fatal(err)
 	}
 	if info, err := os.Stat(path); err != nil || info.Mode().Perm() != 0o644 {
@@ -114,7 +114,7 @@ func TestPDFPaginationUnicodeCoverAndLinks(t *testing.T) {
 	}
 	d := &Document{Blocks: []Node{header("Überblick"), para(strings.Repeat("Änderung über Größe und Straße. ", 400)), header("Ende"), para("Final paragraph")}}
 	path := filepath.Join(t.TempDir(), "book.pdf")
-	if err := PDF(path, d, Options{Cover: coverPNG(t), TOC: true, Title: "Test"}); err != nil {
+	if err := PDF(path, d, Options{Cover: Cover{Image: coverPNG(t)}, TOC: true, Title: "Test"}); err != nil {
 		t.Fatal(err)
 	}
 	b, err := os.ReadFile(path)

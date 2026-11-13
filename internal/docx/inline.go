@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"math"
 	"net/url"
 	"regexp"
 	"strings"
@@ -22,6 +23,8 @@ type runProps struct {
 	code                 bool // inline code
 	link                 bool // inside a hyperlink
 	sup                  bool
+	// font is a heading's font from _brand.yml, set over its style.
+	font Font
 }
 
 func (rp runProps) String(s *styleSet) string {
@@ -35,6 +38,9 @@ func (rp runProps) String(s *styleSet) string {
 	case rp.code:
 		fmt.Fprintf(&b, `<w:rStyle w:val="%s"/>`, esc(s.verbatim()))
 	}
+	if f := esc(rp.font.Name); f != "" && !rp.code {
+		fmt.Fprintf(&b, `<w:rFonts w:ascii="%s" w:hAnsi="%s" w:eastAsia="%s" w:cs="%s"/>`, f, f, f, f)
+	}
 	if rp.bold {
 		b.WriteString(`<w:b/>`)
 	}
@@ -43,6 +49,9 @@ func (rp runProps) String(s *styleSet) string {
 	}
 	if rp.strike {
 		b.WriteString(`<w:strike/>`)
+	}
+	if sz := int(math.Round(rp.font.Size * 2)); sz > 0 {
+		fmt.Fprintf(&b, `<w:sz w:val="%d"/><w:szCs w:val="%d"/>`, sz, sz)
 	}
 	if rp.sup {
 		b.WriteString(`<w:vertAlign w:val="superscript"/>`)
