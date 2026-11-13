@@ -62,7 +62,7 @@ func brandFonts(root string) (map[string]string, []string, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	return b.fonts()
+	return b.fonts(nil)
 }
 
 func TestBrandFonts(t *testing.T) {
@@ -229,7 +229,7 @@ func TestUserBrand(t *testing.T) {
 		t.Fatalf("user brand: %v, %v", b, err)
 	}
 	// Its font files are found beside it, not in the project.
-	paths, _, err := b.fonts()
+	paths, _, err := b.fonts(nil)
 	if err != nil || paths["regular"] != filepath.Join(user, "fonts", "Sans-Regular.ttf") {
 		t.Errorf("fonts %v, %v", paths, err)
 	}
@@ -293,6 +293,26 @@ func TestBrandNavbarText(t *testing.T) {
 		}
 		if css, _, _ := b.css(); !strings.Contains(css, want) || strings.Contains(css, "--nav-bg") {
 			t.Errorf("%s: want %s in\n%s", primary, want, css)
+		}
+	}
+}
+func TestMetaFonts(t *testing.T) {
+	yml := brandYML + "meta:\n  fonts:\n    title: {font: Corporate Sans}\n    subtitle: {font: Corporate Sans}\n    h1: {font: Corporate Mono, size: 20pt}\n"
+	paths, _, err := brandFonts(brandProject(t, yml))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasSuffix(paths["title"], "Sans-Bold.ttf") || !strings.HasSuffix(paths["subtitle"], "Sans-Regular.ttf") ||
+		!strings.HasSuffix(paths["h1"], "Mono.ttf") || paths["h2"] != "" {
+		t.Errorf("paths %v", paths)
+	}
+	for name, yml := range map[string]string{
+		"unknown entry": "meta:\n  fonts:\n    h7: {size: 10pt}\n",
+		"size":          "meta:\n  fonts:\n    h1: {size: large}\n",
+		"unit":          "meta:\n  fonts:\n    h1: {size: 2em}\n",
+	} {
+		if _, err := loadBrand(brandProject(t, yml), ""); err == nil {
+			t.Errorf("%s: accepted", name)
 		}
 	}
 }

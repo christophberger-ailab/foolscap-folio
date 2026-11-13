@@ -28,8 +28,10 @@ type Document struct {
 	Meta   map[string]Node `json:"meta"`
 }
 type Options struct {
-	Root, Cover, Title string
-	TOC                bool
+	Root, Title string
+	// Cover is the page put in front of the document, if any.
+	Cover Cover
+	TOC   bool
 	// Lang is the document language; it picks the contents heading.
 	Lang string
 	// Markdown is the document to lay out when no Pandoc document is
@@ -40,6 +42,9 @@ type Options struct {
 	Fonts map[string]string
 	// Colors are the brand's colors for text, headings and links.
 	Colors Colors
+	// Sizes maps roles in FontRoles to font sizes in pt; only the title,
+	// subtitle and heading roles (h1 to h6) take one.
+	Sizes map[string]float64
 	// Warn, if set, receives the problems that do not stop the render,
 	// such as an image that is not there.
 	Warn func(format string, args ...any)
@@ -49,6 +54,8 @@ type Run struct {
 	ImageWidth, ImageHeight     string
 	Caption                     string // below an image alone in its paragraph
 	Bold, Italic, Code, Heading bool
+	// Role, if set, is the font role in FontRoles the text is set in.
+	Role string
 }
 
 // Cell is a table cell's content in reading order: text runs (lines joined

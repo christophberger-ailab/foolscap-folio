@@ -428,6 +428,21 @@ typography:
 
 **Covers.** A topic's `cover:` is a project-relative PNG, and may use placeholders. It is put in front of the DOCX and the PDF. Both covers keep the image's aspect ratio and are anchored at the bottom-right corner of the page, where the brand graphic ends. The PDF cover (A4) fills the page and crops any overflow at the top or left. The DOCX cover uses the document's page size, shrinks to fit, and never crops. It sits in a dedicated zero-margin section, and the body's original section properties, styles, headers and footers are preserved. No header or footer is added to either cover. A missing or invalid cover fails the render before anything is written.
 
+Without a `cover:`, a document gets a cover page with the book's title and subtitle: the `title:` and `subtitle:` of the topic's index page (or the topic's `title` in folio.yml). Both may use `{name}` placeholders from folio.yml, so `subtitle: "For {audience-label}"` reads "For developers" for an audience whose `vars` set `audience-label: developers`. The title is shown on the cover only, not again as the first heading. The brand file sets the cover's fonts and sizes and, optionally, a cover template under `meta`:
+
+```yaml
+meta:
+  fonts:
+    title:    {font: "Aptos Display", size: 36pt}
+    subtitle: {font: "Aptos", size: 20pt}
+    h1:       {size: 24pt}          # h1 to h6 set the headings likewise
+  coverpage: /assets/templates/cover.svg
+```
+
+Every entry is optional; sizes are in pt (default) or px. The DOCX names the font; the PDF uses it if `typography: fonts` lists TrueType files for the family, as for the other brand fonts. Without a template the title (36pt, in the headings font and color) and the subtitle (20pt, in the base font) are centred on a blank page.
+
+For a template, folio looks for `cover_{topic}{audience-template}.svg`, `cover_{topic}.svg`, `cover{audience-template}.svg` and then `cover.svg` in the template's folder (relative to the brand file; `audience-template` is a variable, such as `_DEV`). The elements with the id `title` and `subtitle` are placeholders: folio takes them out and sets the title and subtitle in their place. A `<text>` placeholder, as design tools export one, passes on its position, color, font family and size (each unless `meta: fonts:` sets it), and the text starts on its baseline and wraps before the page's edge; any other element passes on the box it covers and its color. A template without one of them shows no title or subtitle there, and the render log says so. The rest of the template is drawn as an image, as SVG images are.
+
 The PDF has its own layout; it does not reproduce the Word template. Library research and rationale: [docs/native-rendering.md](docs/native-rendering.md).
 
 ### Starting a folio.yml

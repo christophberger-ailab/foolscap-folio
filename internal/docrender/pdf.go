@@ -29,6 +29,9 @@ type pdfWriter struct {
 	ctx      context.Context
 	fonts    fontSet
 	colors   palette
+	// sizes are the font sizes by role (see FontRoles) that replace the
+	// defaults.
+	sizes map[string]float64
 	// trace, if set, receives each paragraph line as it is drawn (tests).
 	trace func([]piece)
 	// left and right bound the text column; inset keeps text clear of the
@@ -92,22 +95,12 @@ func layoutPDF(ctx context.Context, path string, bb []Block, o Options) error {
 	if err = fonts.register(p); err != nil {
 		return err
 	}
-	w := &pdfWriter{p: p, root: o.Root, ctx: ctx, fonts: fonts, colors: newPalette(o.Colors), left: margin, right: pageW - margin, warn: o.Warn}
-	if o.Cover != "" {
-		if err = ValidateCover(o.Cover); err != nil {
-			return err
-		}
-		p.AddPage()
-		w.page++
-		c, err := imageSize(o.Cover)
-		if err != nil {
-			return err
-		}
-		scale := math.Max(pageW/float64(c.Width), pageH/float64(c.Height))
-		iw, ih := float64(c.Width)*scale, float64(c.Height)*scale
-		// Anchor bottom-right: the brand graphic ends at those edges, so any
-		// overflow from cover-scaling is cropped at the top/left instead.
-		if err = p.Image(o.Cover, pageW-iw, pageH-ih, &gopdf.Rect{W: iw, H: ih}); err != nil {
+	w := &pdfWriter{p: p, root: o.Root, ctx: ctx, fonts: fonts, colors: newPalette(o.Colors), sizes: o.Sizes, left: margin, right: pageW - margin, warn: o.Warn}
+	if o.Title != "" {
+		p.SetInfo(gopdf.PdfInfo{Title: o.Title})
+	}
+	if !o.Cover.empty() {
+		if err = w.cover(o.Cover); err != nil {
 			return err
 		}
 	}
@@ -145,12 +138,6 @@ func layoutPDF(ctx context.Context, path string, bb []Block, o Options) error {
 		tocPages = w.page - tocStart + 1
 	}
 	w.newPage()
-	if o.Title != "" && o.Cover == "" {
-		if err = w.paragraph([]Run{{Text: o.Title, Heading: true}}, 24, margin, pageW-2*margin); err != nil {
-			return err
-		}
-		w.y += 12
-	}
 	if err = w.body(bb); err != nil {
 		return err
 	}
@@ -181,7 +168,7 @@ func layoutPDF(ctx context.Context, path string, bb []Block, o Options) error {
 	}
 	// Cover has neither header nor page number.
 	first := 1
-	if o.Cover != "" {
+	if !o.Cover.empty() {
 		first = 2
 	}
 	for page := first; page <= last; page++ {
@@ -248,6 +235,10 @@ func (w *pdfWriter) body(bb []Block) error {
 		left := w.left + float64(b.Indent)*15
 		if b.Level > 0 {
 			size = math.Max(12, 23-float64(b.Level)*2)
+			role := fmt.Sprintf("h%d", min(b.Level, 6))
+			if s := w.sizes[role]; s > 0 {
+				size = s
+			}
 			w.y += 12
 			w.ensure(size * 2.8)
 			p.SetXY(left, w.y)
@@ -257,7 +248,7 @@ func (w *pdfWriter) body(bb []Block) error {
 			p.AddOutline(text(b.Runs))
 			w.headings = append(w.headings, tocEntry{title: text(b.Runs), id: b.ID, level: b.Level, page: w.page})
 			for i := range b.Runs {
-				b.Runs[i].Heading = true
+				b.Runs[i].Heading, b.Runs[i].Role = true, role
 			}
 		}
 		if b.Code {
@@ -351,6 +342,9 @@ func (w *pdfWriter) callout(b Block) error {
 // fontRole returns the role of r's font in FontRoles.
 func fontRole(r Run) string {
 	f := "regular"
+	if r.Role != "" && !r.Code {
+		return r.Role
+	}
 	if r.Heading {
 		f = "heading"
 	} else if r.Bold && r.Italic {

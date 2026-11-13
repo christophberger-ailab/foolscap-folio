@@ -12,12 +12,14 @@ import (
 	_ "embed"
 	"encoding/xml"
 	"errors"
+	"html"
 	"image"
 	"image/color"
 	"image/png"
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -121,12 +123,14 @@ type style struct {
 	size   float64
 	anchor string
 	weight string
+	family string
 }
 
 func parse(data []byte) (doc, error) {
 	var d doc
 	dec := xml.NewDecoder(strings.NewReader(string(data)))
 	stack := []style{{fill: "black", size: 16, anchor: "start"}}
+	cls := classes(data)
 	var cur *text
 	root := true
 	for {
@@ -148,7 +152,7 @@ func parse(data []byte) (doc, error) {
 				}
 				root = false
 			}
-			st := inherit(stack[len(stack)-1], t.Attr)
+			st := inherit(stack[len(stack)-1], t.Attr, cls)
 			stack = append(stack, st)
 			if t.Name.Local == "text" && cur == nil {
 				cur = &text{
@@ -206,7 +210,31 @@ func (d *doc) size(attrs []xml.Attr) error {
 	return nil
 }
 
-func inherit(st style, attrs []xml.Attr) style {
+var (
+	reStyle = regexp.MustCompile(`(?s)<style[^>]*>(.*?)</style>`)
+	reRule  = regexp.MustCompile(`([^{}]+)\{([^{}]*)\}`)
+)
+
+// classes reads the class rules (".name { ... }") of an image's style
+// sheets: their declarations, by class name. Other selectors are left out.
+func classes(data []byte) map[string]string {
+	out := map[string]string{}
+	for _, m := range reStyle.FindAllSubmatch(data, -1) {
+		css := html.UnescapeString(strings.NewReplacer("<![CDATA[", "", "]]>", "").Replace(string(m[1])))
+		for _, r := range reRule.FindAllStringSubmatch(css, -1) {
+			for _, sel := range strings.Split(r[1], ",") {
+				if sel = strings.TrimSpace(sel); strings.HasPrefix(sel, ".") && !strings.ContainsAny(sel[1:], " .#:>[+~") {
+					out[sel[1:]] += ";" + r[2]
+				}
+			}
+		}
+	}
+	return out
+}
+
+// inherit applies an element's presentation attributes, then the rules of
+// its classes in cls, then its style attribute to what it inherits.
+func inherit(st style, attrs []xml.Attr, cls map[string]string) style {
 	set := func(k, v string) {
 		v = strings.TrimSpace(v)
 		switch k {
@@ -220,16 +248,26 @@ func inherit(st style, attrs []xml.Attr) style {
 			st.anchor = v
 		case "font-weight":
 			st.weight = v
+		case "font-family":
+			// The first family, unquoted.
+			first, _, _ := strings.Cut(v, ",")
+			st.family = strings.Trim(strings.TrimSpace(first), `'"`)
+		}
+	}
+	decls := func(s string) {
+		for _, decl := range strings.Split(s, ";") {
+			if k, v, ok := strings.Cut(decl, ":"); ok {
+				set(strings.TrimSpace(k), v)
+			}
 		}
 	}
 	for _, a := range attrs {
 		set(a.Name.Local, a.Value)
 	}
-	for _, decl := range strings.Split(attr(attrs, "style"), ";") {
-		if k, v, ok := strings.Cut(decl, ":"); ok {
-			set(strings.TrimSpace(k), v)
-		}
+	for _, c := range strings.Fields(attr(attrs, "class")) {
+		decls(cls[c])
 	}
+	decls(attr(attrs, "style"))
 	return st
 }
 

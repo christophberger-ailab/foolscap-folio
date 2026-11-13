@@ -22,6 +22,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/yuin/goldmark/ast"
+
 	"github.com/christophberger-ailab/foolscap-folio/internal/bookmaker"
 	"github.com/christophberger-ailab/foolscap-folio/internal/config"
 	"github.com/christophberger-ailab/foolscap-folio/internal/docrender"
@@ -136,7 +138,7 @@ func Render(sel config.Selection, o Options, log Logf) error {
 		return nil
 	}
 
-	doc, title, err := Document(sel, log)
+	doc, book, err := Document(sel, log)
 	if err != nil {
 		return err
 	}
@@ -149,16 +151,22 @@ func Render(sel config.Selection, o Options, log Logf) error {
 		return err
 	}
 	look := brand.style()
+	page, done, err := coverPage(sel, brand, book, cover, log)
+	if err != nil {
+		return fmt.Errorf("topic %s: cover: %w", sel.Topic.Name, err)
+	}
+	defer done()
+	headings, sizes := brand.headings()
 	for _, t := range sel.Format.Type {
 		out := filepath.Join(dir, stem+"."+t)
 		switch t {
 		case config.TypeDOCX:
 			err = docx.Write(out, doc, docx.Options{
-				Root: sel.Config.Root, Template: template, Title: title, Lang: lang, TOC: sel.Format.TOC,
-				Look: docx.Look(look), Warn: warn(log),
+				Root: sel.Config.Root, Template: template, Title: book.Title, Lang: lang, TOC: sel.Format.TOC,
+				Look: docx.Look(look), Headings: headings, Warn: warn(log),
 			})
-			if err == nil && cover != "" {
-				err = docrender.CoverDOCX(out, cover)
+			if err == nil {
+				err = docrender.CoverDOCX(out, page)
 			}
 			if err == nil && sel.Format.TOC && o.UpdateTOC {
 				// The cover is a page too, so the pages are counted last.
@@ -172,13 +180,13 @@ func Render(sel config.Selection, o Options, log Logf) error {
 		case config.TypePDF:
 			var fonts map[string]string
 			var notes []string
-			fonts, notes, err = brand.fonts()
+			fonts, notes, err = brand.fonts(map[string]string{"title": page.Title.Font, "subtitle": page.Subtitle.Font})
 			for _, n := range notes {
 				log("note: %s", n)
 			}
 			if err == nil {
 				err = docrender.RunPDF(context.Background(), pdfTimeout, out, nil, docrender.Options{
-					Root: sel.Config.Root, Cover: cover, Title: title, TOC: sel.Format.TOC, Lang: lang, Fonts: fonts,
+					Root: sel.Config.Root, Cover: page, Title: book.Title, TOC: sel.Format.TOC, Lang: lang, Fonts: fonts, Sizes: sizes,
 					Colors:   docrender.Colors{Text: look.Color, Heading: look.HeadingColor, Link: look.LinkColor},
 					Markdown: doc, Warn: warn(log),
 				})
@@ -199,20 +207,7 @@ func placeholderCover(root string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	f, err := os.CreateTemp("", "folio-cover-*.png")
-	if err != nil {
-		return "", err
-	}
-	if _, err = f.Write(b); err == nil {
-		err = f.Close()
-	} else {
-		f.Close()
-	}
-	if err != nil {
-		os.Remove(f.Name())
-		return "", err
-	}
-	return f.Name(), nil
+	return tempPNG(b)
 }
 
 // warn turns log into a writer's warning hook.
@@ -221,26 +216,58 @@ func warn(log Logf) func(string, ...any) {
 }
 
 // Document builds the parsed, filtered document of a document selection,
-// and its title.
-func Document(sel config.Selection, log Logf) (*markdown.Document, string, error) {
+// and what its cover shows. The book's title is the cover's, so the
+// document leaves out its heading.
+func Document(sel config.Selection, log Logf) (*markdown.Document, Book, error) {
 	log = log.or()
-	text, title, err := Flatten(sel, log)
+	text, book, err := Flatten(sel, log)
 	if err != nil {
-		return nil, "", err
+		return nil, Book{}, err
 	}
 	doc := markdown.Parse([]byte(text))
 	doc.Prepare(markdown.Options{Keep: sel.Keep, Formats: sel.Types(), Lang: sel.Config.Lang, CalloutTitles: sel.Config.CalloutTitles})
-	return doc, title, nil
+	dropTitle(doc, book.Anchor)
+	vars := sel.Vars()
+	for _, f := range []struct {
+		name string
+		text *string
+	}{{"title", &book.Title}, {"subtitle", &book.Subtitle}} {
+		if s, err := config.Interpolate(*f.text, vars); err != nil {
+			log("warning: topic %s: %s: %v; it is shown as written", sel.Topic.Name, f.name, err)
+		} else {
+			*f.text = s
+		}
+	}
+	return doc, book, nil
+}
+
+// dropTitle removes the document's first heading if it is the book's
+// title, with the ID id.
+func dropTitle(doc *markdown.Document, id string) {
+	var title ast.Node
+	_ = ast.Walk(doc.Root, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if h, ok := n.(*ast.Heading); ok && entering {
+			if h.Level == 1 && markdown.HeadingID(h) == id {
+				title = h
+			}
+			return ast.WalkStop, nil
+		}
+		return ast.WalkContinue, nil
+	})
+	if title != nil {
+		title.Parent().RemoveChild(title.Parent(), title)
+	}
 }
 
 // Flatten returns a document selection's Markdown — the topic folder
-// flattened, shortcodes resolved — and the document's title.
-func Flatten(sel config.Selection, log Logf) (string, string, error) {
+// flattened, shortcodes resolved — and its book's title, subtitle and
+// title ID, the variables in them not resolved.
+func Flatten(sel config.Selection, log Logf) (string, Book, error) {
 	log = log.or()
 	root := sel.Config.Root
 	tree, err := loadTopic(root, sel.Topic)
 	if err != nil {
-		return "", "", err
+		return "", Book{}, err
 	}
 	res, err := bookmaker.Flatten(tree, bookmaker.Options{
 		ProjectRoot:   root,
@@ -250,7 +277,7 @@ func Flatten(sel config.Selection, log Logf) (string, string, error) {
 		ExtractSlides: true,
 	})
 	if err != nil {
-		return "", "", err
+		return "", Book{}, err
 	}
 	for _, w := range res.Warnings {
 		log("%s: warning: %s", sel.Topic.Folder, w)
@@ -258,9 +285,13 @@ func Flatten(sel config.Selection, log Logf) (string, string, error) {
 	log("%s: %d pages, %d links rewritten", sel.Topic.Folder, res.Pages, res.Links)
 	text, err := Expander(sel, log).Expand(res.Content)
 	if err != nil {
-		return "", "", err
+		return "", Book{}, err
 	}
-	return text, tree.Title(), nil
+	book := Book{Title: tree.Title(), Anchor: tree.Anchor}
+	if tree.Page != nil {
+		book.Subtitle = tree.Page.Subtitle
+	}
+	return text, book, nil
 }
 
 // Expander returns the shortcode expander of a selection.

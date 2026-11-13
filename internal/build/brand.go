@@ -17,6 +17,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/christophberger-ailab/foolscap-folio/internal/docrender"
+	"github.com/christophberger-ailab/foolscap-folio/internal/docx"
 	"github.com/christophberger-ailab/foolscap-folio/internal/foliocore"
 )
 
@@ -49,6 +50,90 @@ type brand struct {
 		MonospaceBlock  brandStyle  `yaml:"monospace-block"`
 		Link            brandStyle  `yaml:"link"`
 	} `yaml:"typography"`
+	// Meta holds what folio reads beyond the brand.yml standard: the fonts
+	// and sizes of the cover's title and subtitle and the headings by
+	// level (title, subtitle, h1 to h6), and the cover page template.
+	Meta struct {
+		Fonts     map[string]metaFont `yaml:"fonts"`
+		Coverpage string              `yaml:"coverpage"`
+	} `yaml:"meta"`
+}
+
+// metaFont is a font family and a size, such as "36pt", in meta.fonts.
+type metaFont struct {
+	Font string `yaml:"font"`
+	Size string `yaml:"size"`
+}
+
+// metaRoles are the entries of meta.fonts, which are font roles of the PDF
+// as well.
+var metaRoles = []string{"title", "subtitle", "h1", "h2", "h3", "h4", "h5", "h6"}
+
+// checkMeta reports an unknown meta.fonts entry or an unreadable size.
+func (b *brand) checkMeta() error {
+	for role, f := range b.Meta.Fonts {
+		if !slices.Contains(metaRoles, role) {
+			return fmt.Errorf("%s: meta: fonts: unknown entry %q, want one of %s", BrandFile, role, strings.Join(metaRoles, ", "))
+		}
+		if _, err := parseSize(f.Size); err != nil {
+			return fmt.Errorf("%s: meta: fonts: %s: %w", BrandFile, role, err)
+		}
+	}
+	return nil
+}
+
+// parseSize reads a font size in pt: a number, in pt by default, or with
+// the unit pt or px. "" is 0.
+func parseSize(s string) (float64, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return 0, nil
+	}
+	num, scale := s, 1.0
+	switch {
+	case strings.HasSuffix(s, "pt"):
+		num = strings.TrimSuffix(s, "pt")
+	case strings.HasSuffix(s, "px"):
+		num, scale = strings.TrimSuffix(s, "px"), 0.75
+	}
+	v, err := strconv.ParseFloat(strings.TrimSpace(num), 64)
+	if err != nil || v <= 0 {
+		return 0, fmt.Errorf("invalid font size %q, want a size in pt or px", s)
+	}
+	return v * scale, nil
+}
+
+// size returns the size meta.fonts sets for role, or def.
+func (b *brand) size(role string, def float64) float64 {
+	if b != nil {
+		if s, _ := parseSize(b.Meta.Fonts[role].Size); s > 0 {
+			return s
+		}
+	}
+	return def
+}
+
+// font returns the family meta.fonts sets for role, or "".
+func (b *brand) font(role string) string {
+	if b == nil {
+		return ""
+	}
+	return fontName(b.Meta.Fonts[role].Font)
+}
+
+// headings returns the fonts of the headings by level for the DOCX, and
+// the sizes by role for the PDF.
+func (b *brand) headings() ([6]docx.Font, map[string]float64) {
+	var fonts [6]docx.Font
+	sizes := map[string]float64{}
+	for i := range fonts {
+		role := fmt.Sprintf("h%d", i+1)
+		fonts[i] = docx.Font{Name: b.font(role), Size: b.size(role, 0)}
+		if fonts[i].Size > 0 {
+			sizes[role] = fonts[i].Size
+		}
+	}
+	return fonts, sizes
 }
 
 // loadBrand reads the project's brand file, or else the user's, whose path
@@ -67,6 +152,9 @@ func loadBrand(root, user string) (*brand, error) {
 		b := &brand{dir: filepath.Dir(file)}
 		if err = yaml.Unmarshal(data, b); err != nil {
 			return nil, fmt.Errorf("%s: %w", BrandFile, err)
+		}
+		if err = b.checkMeta(); err != nil {
+			return nil, err
 		}
 		return b, nil
 	}
@@ -199,8 +287,9 @@ type brandFace struct {
 
 // fonts reads the PDF's fonts from the brand: the paths of TrueType files
 // by docrender.FontRoles, and notes on the faces that stay Go fonts.
-// Without a brand both are nil.
-func (b *brand) fonts() (map[string]string, []string, error) {
+// Without a brand both are nil. cover names the families of the roles
+// in meta.fonts that it does not, as the cover template does.
+func (b *brand) fonts(cover map[string]string) (map[string]string, []string, error) {
 	if b == nil {
 		return nil, nil, nil
 	}
@@ -249,7 +338,7 @@ func (b *brand) fonts() (map[string]string, []string, error) {
 				if src := sources[strings.ToLower(family)]; src != "" {
 					why = "comes from " + src + ", which the PDF cannot embed"
 				}
-				notes = append(notes, fmt.Sprintf("%s: typography: %s: font %s %s, so the PDF does not use it",
+				notes = append(notes, fmt.Sprintf("%s: %s: font %s %s, so the PDF does not use it",
 					BrandFile, element, family, why))
 			}
 			return nil
@@ -257,7 +346,7 @@ func (b *brand) fonts() (map[string]string, []string, error) {
 		if s.Weight != "" {
 			var err error
 			if weight, _, err = parseWeight(s.Weight, 0); err != nil {
-				return fmt.Errorf("%s: typography: %s: %w", BrandFile, element, err)
+				return fmt.Errorf("%s: %s: %w", BrandFile, element, err)
 			}
 		}
 		if s.Style != "" {
@@ -283,20 +372,33 @@ func (b *brand) fonts() (map[string]string, []string, error) {
 	if heading == "" {
 		heading = base
 	}
-	for _, p := range []struct {
+	type face struct {
 		element, family string
 		style           brandStyle
 		role            string
 		weight          int
 		italic          bool
-	}{
-		{"base", base, t.Base, "regular", 400, false},
-		{"base", base, bold, "bold", 700, false},
-		{"base", base, brandStyle{Weight: t.Base.Weight}, "italic", 400, true},
-		{"base", base, brandStyle{}, "bolditalic", 700, true},
-		{"headings", heading, t.Headings, "heading", 700, false},
-		{"monospace", t.Monospace.Family, t.Monospace, "mono", 400, false},
-	} {
+	}
+	faces := []face{
+		{"typography: base", base, t.Base, "regular", 400, false},
+		{"typography: base", base, bold, "bold", 700, false},
+		{"typography: base", base, brandStyle{Weight: t.Base.Weight}, "italic", 400, true},
+		{"typography: base", base, brandStyle{}, "bolditalic", 700, true},
+		{"typography: headings", heading, t.Headings, "heading", 700, false},
+		{"typography: monospace", t.Monospace.Family, t.Monospace, "mono", 400, false},
+	}
+	for _, role := range metaRoles {
+		weight := 700
+		if role == "subtitle" {
+			weight = 400
+		}
+		element, family := "meta: fonts: "+role, b.Meta.Fonts[role].Font
+		if c := cover[role]; family == "" && c != "" && c != heading && c != base {
+			element, family = "cover "+role, cover[role]
+		}
+		faces = append(faces, face{element, family, brandStyle{}, role, weight, false})
+	}
+	for _, p := range faces {
 		if err := pick(p.element, p.family, p.style, p.role, p.weight, p.italic); err != nil {
 			return nil, nil, err
 		}

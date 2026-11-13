@@ -620,3 +620,22 @@ func TestBrandLook(t *testing.T) {
 	styles = build(t, md, Options{Look: look, Template: tpl})["word/styles.xml"]
 	lacks(t, styles, "Corporate Sans", "Fancy Display", "003366")
 }
+
+// _brand.yml's heading fonts and sizes are set on the heading's runs, over
+// the heading style; inline code keeps its own font.
+func TestHeadingFonts(t *testing.T) {
+	var headings [6]Font
+	headings[1] = Font{Name: "Aptos Display", Size: 20}
+	p := build(t, "# One\n\n## Two `code`\n", Options{Headings: headings})
+	doc := p["word/document.xml"]
+	two := `<w:rPr><w:rFonts w:ascii="Aptos Display" w:hAnsi="Aptos Display" w:eastAsia="Aptos Display" w:cs="Aptos Display"/><w:sz w:val="40"/><w:szCs w:val="40"/></w:rPr><w:t xml:space="preserve">Two </w:t>`
+	if !strings.Contains(doc, two) {
+		t.Errorf("h2 font not set:\n%s", doc)
+	}
+	if strings.Count(doc, "Aptos Display") != 4 {
+		t.Errorf("font set beyond the h2 text:\n%s", doc)
+	}
+	if !strings.Contains(doc, `<w:sz w:val="40"/><w:szCs w:val="40"/></w:rPr><w:t xml:space="preserve">code</w:t>`) {
+		t.Errorf("code in h2 lost the size:\n%s", doc)
+	}
+}
