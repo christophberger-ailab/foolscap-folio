@@ -71,12 +71,15 @@ func fakeReleaseNamed(t *testing.T, name, version, binary string, tamper bool) *
 			"assets": []map[string]any{
 				{"name": name, "browser_download_url": srv.URL + "/a/" + name},
 				{"name": checksumsName, "browser_download_url": srv.URL + "/a/" + checksumsName},
+				{"name": bundleName, "browser_download_url": srv.URL + "/a/" + bundleName},
 			},
 		})
 	})
 	mux.HandleFunc("GET /a/"+name, func(w http.ResponseWriter, r *http.Request) { w.Write(archive) })
 	mux.HandleFunc("GET /a/"+checksumsName, func(w http.ResponseWriter, r *http.Request) { w.Write([]byte(sums)) })
+	mux.HandleFunc("GET /a/"+bundleName, func(w http.ResponseWriter, r *http.Request) { w.Write(fakeBundle([]byte(sums))) })
 	t.Cleanup(srv.Close)
+	trustFakeBundles(t)
 	return srv
 }
 
@@ -110,7 +113,7 @@ func TestLatest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if rel.Version != "v0.5.0" || rel.URL != srv.URL+"/page" || len(rel.Assets) != 2 {
+	if rel.Version != "v0.5.0" || rel.URL != srv.URL+"/page" || len(rel.Assets) != 3 {
 		t.Errorf("Latest = %+v", rel)
 	}
 }

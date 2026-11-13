@@ -30,3 +30,5 @@ constraints:
       3: Every download and the unpacked binary are size-limited
       4: The new binary is written beside the running one and renamed over it, so a failure leaves the old binary in place; a symlinked binary is replaced at the link's target
       5: On Windows, where a running binary cannot be overwritten, the old one is renamed to `<name>.old` first and removed on a later start
+      6: SHA256SUMS.txt is checked against the release's SHA256SUMS.txt.sigstore.json, a Sigstore bundle, before any checksum in it is used; the signing certificate must name the release workflow on main (`https://github.com/christophberger-ailab/foolscap-folio/.github/workflows/release.yml@refs/heads/main`, issuer `https://token.actions.githubusercontent.com`), and a release without the bundle, or signed by anyone else, is not installed
+      6-1: Sigstore's trusted root comes over TUF from its public instance, anchored in the TUF root built into folio, and is cached for a day in the user cache directory
