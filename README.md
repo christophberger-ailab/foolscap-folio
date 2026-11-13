@@ -387,7 +387,7 @@ Any other shortcode is reported and left as written.
 
 Documents are written to `<output>/<dir>/<file>.docx` and `.pdf`, which by default is `_output/<format>/<topic>[-<audience>]`.
 
-**DOCX** is written in Go. A `template:` names a reference DOCX; its styles, page setup, headers, footers and numbering are used, and its body is discarded. Without one, a blank document with Word's default styles is used. `toc: true` adds a Word contents field. Only a word processor knows on which page a heading ends up, so folio asks one: where [LibreOffice](https://www.libreoffice.org) is installed (`soffice` on the `PATH`, or its usual place on macOS and Windows), it lays the finished DOCX out in the background, and folio writes the page of every heading into the contents. Without LibreOffice the contents list the headings without page numbers, and Word fills them in when it updates the fields, which it offers to do on opening. The numbers are LibreOffice's; if Word breaks a page elsewhere, for instance because a font is missing on one side, updating the field in Word (F9) corrects them. They are physical page numbers, so a template that restarts its page numbering needs that update too.
+**DOCX** is written in Go. A `template:` names a reference DOCX; its styles, page setup, headers, footers and numbering are used, and its body is discarded. Without one, a blank document with Word's default styles is used. `toc: true` adds a Word contents field. Only a word processor knows on which page a heading ends up, so the contents list the headings without page numbers, and Word fills them in when it updates the fields, which it offers to do on opening. `folio render --update-toc` fills them in right away: it has [LibreOffice](https://www.libreoffice.org) (`soffice` on the `PATH`, or in its usual place on macOS and Windows) lay the finished DOCX out in the background and writes the page of every heading into the contents, which then show their numbers in any viewer and no longer ask to be updated. Without LibreOffice the DOCX is still written, and the render reports the failure. The numbers are LibreOffice's; if Word breaks a page elsewhere, for instance because a font is missing on one side, updating the field in Word (F9) corrects them. They are physical page numbers, so a template that restarts its page numbering needs that update too.
 
 **PDF** is laid out in Go (A4, embedded fonts, headings, lists, tables, images, links, bookmarks, page numbers, a linked contents list). It is fed from the same parsed document as the DOCX. The PDF sets its text in the Go fonts, unless the brand file (see below) names fonts with local files in its `typography`. Then body text uses `base` (regular, bold, italic and bold italic, each the closest weight and style the family offers), headings use `headings` (default weight bold), and code uses `monospace`. Only TrueType files (`.ttf`) can be embedded; `.otf`, WOFF files and fonts from Google, Bunny or the system are skipped with a note in the render log, and their text keeps the Go fonts.
 
@@ -396,15 +396,16 @@ Documents are written to `<output>/<dir>/<file>.docx` and `.pdf`, which by defau
 | Brand | Website and `folio preview` | PDF | DOCX without a template |
 |---|---|---|---|
 | `color.foreground` | text | text (`#rgb`, `#rrggbb`) | text (`#rgb`, `#rrggbb`) |
-| `color.background` | page and navbar | – | – |
-| `color.primary` | accent; links unless `link.color` is set | links unless `link.color` is set | the same |
+| `color.background` | page | – | – |
+| `color.primary` | navbar and accent; links unless `link.color` is set | links unless `link.color` is set | the same |
 | `typography.base` | family, weight, size, line height | embedded TrueType fonts | font name |
 | `typography.headings` | family, weight, style, line height, color | embedded TrueType font, color | font name, color |
 | `typography.monospace` | family, weight, size | embedded TrueType font | font name |
 | `typography.monospace-inline`, `-block` | color, background | – | – |
 | `typography.link` | color, background, weight, decoration | color | color |
+| `logo.small`, else `medium`, else `large` | navbar logo and site icon | – | – |
 
-On the website, fonts with `files` are copied into the site, and fonts with `source: google` or `source: bunny` are loaded from that service by the reader's browser. The brand's colors apply to the light color scheme; the dark scheme keeps folio's own colors. The site's stylesheets come in this order: folio's, the brand's, then the format's `css`. A DOCX only names its fonts, so they must be installed where it is opened, and a DOCX with a `template` keeps the template's styles. A value the output cannot use is left out, with a note in the render log.
+The website's navbar is in the primary color, with white or black text, whichever reads better on it. A logo is a path, the name of an entry in `logo.images`, or `light` and `dark` variants, of which the light one is used. Fonts with `files` are copied into the site, and fonts with `source: google` or `source: bunny` are loaded from that service by the reader's browser. The brand's colors apply to the light color scheme; the dark scheme keeps folio's own colors. The site's stylesheets come in this order: folio's, the brand's, then the format's `css`. A DOCX only names its fonts, so they must be installed where it is opened, and a DOCX with a `template` keeps the template's styles. A value the output cannot use is left out, with a note in the render log.
 
 ```yaml
 typography:

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -12,7 +13,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"testing"
 	"time"
 	"unicode/utf16"
 )
@@ -21,10 +21,10 @@ import (
 //
 // Only a word processor knows on which page a heading ends up. Write
 // therefore leaves the contents without page numbers and marks them as
-// out of date, for Word to work out on opening. Where LibreOffice is
-// installed, Paginate asks it instead: it lays out a copy of the document
-// and tells the page of every heading, and the contents get these numbers
-// in the form Word writes them itself.
+// out of date, for Word to work out on opening. Paginate asks LibreOffice
+// instead: it lays out a copy of the document and tells the page of every
+// heading, and the contents get these numbers in the form Word writes
+// them itself.
 
 // officeTimeout bounds one run of LibreOffice.
 const officeTimeout = 2 * time.Minute
@@ -32,10 +32,10 @@ const officeTimeout = 2 * time.Minute
 // office returns the path of LibreOffice's soffice program, or "".
 var office = findOffice
 
+// ErrNoOffice is Paginate's error when LibreOffice is not installed.
+var ErrNoOffice = errors.New("LibreOffice not found (soffice is not on the PATH nor in its usual place)")
+
 func findOffice() string {
-	if testing.Testing() {
-		return "" // tests name the program themselves
-	}
 	for _, name := range []string{"soffice", "libreoffice"} {
 		if p, err := exec.LookPath(name); err == nil {
 			return p
@@ -75,12 +75,12 @@ var reTOCEntry = regexp.MustCompile(`(<w:pStyle w:val="[^"]*"/>)(</w:pPr>(?:<w:r
 
 // Paginate writes the page of every heading into the table of contents of
 // the DOCX at path, which Write made, and reports whether it did. It needs
-// LibreOffice; without it, and for a document without contents, the
-// document stays as it is.
+// LibreOffice and fails with ErrNoOffice without it; a document without
+// contents stays as it is.
 func Paginate(path string) (bool, error) {
 	soffice := office()
 	if soffice == "" {
-		return false, nil
+		return false, ErrNoOffice
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {

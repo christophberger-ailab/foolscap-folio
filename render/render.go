@@ -25,12 +25,13 @@ import (
 )
 
 var (
-	projectPath  *string
-	topicFlag    *string
-	formatFlag   *string
-	audienceFlag *string
-	cleanFlag    *bool
-	dryRunFlag   *bool
+	projectPath   *string
+	topicFlag     *string
+	formatFlag    *string
+	audienceFlag  *string
+	cleanFlag     *bool
+	dryRunFlag    *bool
+	updateTOCFlag *bool
 )
 
 // calloutTitles returns the user's callout titles by language and type,
@@ -59,6 +60,9 @@ func Register(projectFlag *string, titles func() (map[string]map[string]string, 
 	dryRunFlag = flag.Bool("dry-run", false,
 		"Print the render pipeline without running it")
 
+	updateTOCFlag = flag.Bool("update-toc", false,
+		"Fill the page numbers into the contents of each DOCX, using LibreOffice")
+
 	start.Add(&start.Command{
 		Name:  "render",
 		Short: "Render the project's topic/format/audience matrix",
@@ -68,7 +72,7 @@ func Register(projectFlag *string, titles func() (map[string]map[string]string, 
 			"once; a document (DOCX, PDF) is written per topic and audience. " +
 			"Which formats and audiences a topic takes part in is declared " +
 			"under the topic in folio.yml, as `formats:` and `audiences:`.",
-		Flags: []string{"topic", "format", "audience", "clean", "dry-run"},
+		Flags: []string{"topic", "format", "audience", "clean", "dry-run", "update-toc"},
 		Cmd:   cmd,
 	})
 }
@@ -127,6 +131,7 @@ func BuildOptions(docPath string, req config.Request, clean, dryRun bool) (build
 		Selections: sels,
 		Clean:      clean,
 		DryRun:     dryRun,
+		UpdateTOC:  derefBool(updateTOCFlag),
 	}, nil
 }
 

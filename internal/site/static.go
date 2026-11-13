@@ -29,6 +29,15 @@ func (b *builder) writeStatic() error {
 			return err
 		}
 	}
+	if b.logo != "" {
+		data, err := os.ReadFile(b.o.Logo)
+		if err != nil {
+			return err
+		}
+		if err := os.WriteFile(filepath.Join(b.outAbs, filepath.FromSlash(b.logo)), data, 0o644); err != nil {
+			return err
+		}
+	}
 	for name, src := range b.o.BrandFonts {
 		data, err := os.ReadFile(src)
 		if err != nil {

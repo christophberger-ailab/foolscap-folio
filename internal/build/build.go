@@ -51,7 +51,13 @@ type Options struct {
 	Clean bool
 	// DryRun prints what would be written without writing anything.
 	DryRun bool
+	// UpdateTOC has LibreOffice lay out every DOCX with a table of
+	// contents and fills the page numbers in (see docx.Paginate).
+	UpdateTOC bool
 }
+
+// paginate fills the page numbers into a DOCX's contents.
+var paginate = docx.Paginate
 
 // pdfTimeout bounds one PDF layout, which runs in a library that cannot be
 // interrupted.
@@ -69,7 +75,7 @@ func Run(o Options, log Logf) error {
 	failed := 0
 	for i, sel := range o.Selections {
 		log("[%d/%d] %s", i+1, len(o.Selections), sel)
-		if err := Render(sel, o.DryRun, log); err != nil {
+		if err := Render(sel, o, log); err != nil {
 			log("error: %v", err)
 			failed++
 		}
@@ -81,9 +87,10 @@ func Run(o Options, log Logf) error {
 	return nil
 }
 
-// Render produces one selection's output.
-func Render(sel config.Selection, dryRun bool, log Logf) error {
+// Render produces one selection's output, as o.DryRun and o.UpdateTOC say.
+func Render(sel config.Selection, o Options, log Logf) error {
 	log = log.or()
+	dryRun := o.DryRun
 	dir, err := sel.OutputDir()
 	if err != nil {
 		return err
@@ -153,12 +160,13 @@ func Render(sel config.Selection, dryRun bool, log Logf) error {
 			if err == nil && cover != "" {
 				err = docrender.CoverDOCX(out, cover)
 			}
-			if err == nil && sel.Format.TOC {
+			if err == nil && sel.Format.TOC && o.UpdateTOC {
 				// The cover is a page too, so the pages are counted last.
-				if filled, perr := docx.Paginate(out); perr != nil {
-					log("note: %s: the contents have no page numbers yet, the word processor fills them in: %v", rel(sel.Config.Root, out), perr)
+				var filled bool
+				if filled, err = paginate(out); err != nil {
+					err = fmt.Errorf("written, but its contents have no page numbers: %w", err)
 				} else if filled {
-					log("%s: page numbers of the contents from LibreOffice", rel(sel.Config.Root, out))
+					log("%s: contents updated with LibreOffice's page numbers", rel(sel.Config.Root, out))
 				}
 			}
 		case config.TypePDF:
@@ -306,6 +314,8 @@ func renderSite(sel config.Selection, dir string, dryRun bool, log Logf) error {
 		return err
 	}
 	brandCSS, brandFonts, notes := brand.css()
+	logo, logoAlt, logoNotes := brand.logo()
+	notes = append(notes, logoNotes...)
 	for _, n := range notes {
 		log("note: %s", n)
 	}
@@ -313,6 +323,8 @@ func renderSite(sel config.Selection, dir string, dryRun bool, log Logf) error {
 	err = site.Build(site.Options{
 		BrandCSS:      brandCSS,
 		BrandFonts:    brandFonts,
+		Logo:          logo,
+		LogoAlt:       logoAlt,
 		Root:          sel.Config.Root,
 		OutDir:        dir,
 		Title:         sel.Config.Title,

@@ -175,7 +175,7 @@ func TestBrandCSS(t *testing.T) {
 		`h1,h2,h3,h4,h5,h6{font-family:"Fancy Display",var(--font);font-weight:600}`,
 		`a{text-decoration:none}`,
 		`@media (prefers-color-scheme: light){`,
-		`--bg:#fffdf8`, `--nav-bg:#fffdf8`, `--fg:#222`, `--accent:#003366`, `--link:#0055aa`,
+		`--bg:#fffdf8`, `--fg:#222`, `--accent:#003366`, `--link:#0055aa`,
 		`h1,h2,h3,h4,h5,h6{color:#003366}`,
 		`:not(pre)>code{color:#aa0000;background-color:#eee}`,
 	} {
@@ -244,5 +244,55 @@ func TestUserBrand(t *testing.T) {
 	}
 	if b, err = loadBrand(t.TempDir(), ""); b != nil || err != nil {
 		t.Errorf("no brand: %v, %v", b, err)
+	}
+}
+
+// The website's logo is the brand's small one, else the medium, else the
+// large; each is a path, the name of an image, or light and dark variants.
+func TestBrandLogo(t *testing.T) {
+	for name, c := range map[string]struct{ yml, file, alt string }{
+		"path":      {"logo:\n  small: fonts/Mono.ttf\n  large: fonts/Sans.woff2\n", "Mono.ttf", ""},
+		"named":     {"logo:\n  images:\n    mark: {path: fonts/Sans.woff2, alt: The mark}\n  medium: mark\n", "Sans.woff2", "The mark"},
+		"light":     {"logo:\n  large: {light: fonts/Mono.ttf, dark: fonts/Sans.woff2}\n", "Mono.ttf", ""},
+		"with alt":  {"logo:\n  small: {path: fonts/Mono.ttf, alt: Mono}\n", "Mono.ttf", "Mono"},
+		"none":      {"color:\n  primary: blue\n", "", ""},
+		"missing":   {"logo:\n  small: nope.png\n", "", ""},
+		"outside":   {"logo:\n  small: ../x.png\n", "", ""},
+		"not image": {"logo:\n  small: [1, 2]\n", "", ""},
+	} {
+		root := brandProject(t, c.yml)
+		b, err := loadBrand(root, "")
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		file, alt, notes := b.logo()
+		want := ""
+		if c.file != "" {
+			want = filepath.Join(root, "fonts", c.file)
+		}
+		if file != want || alt != c.alt {
+			t.Errorf("%s: logo %q (%q), want %q (%q)", name, file, alt, want, c.alt)
+		}
+		if wantNote := name == "missing" || name == "outside"; (len(notes) > 0) != wantNote {
+			t.Errorf("%s: notes %q", name, notes)
+		}
+	}
+	var none *brand
+	if file, alt, notes := none.logo(); file != "" || alt != "" || notes != nil {
+		t.Error("no brand: a logo")
+	}
+}
+
+// The navbar is in the primary color; its text is white or black, whichever
+// reads better on it.
+func TestBrandNavbarText(t *testing.T) {
+	for primary, want := range map[string]string{"#003366": "--nav-fg:#fff", "#ffe066": "--nav-fg:#000", "#fff": "--nav-fg:#000"} {
+		b, err := loadBrand(brandProject(t, "color:\n  primary: \""+primary+"\"\n"), "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if css, _, _ := b.css(); !strings.Contains(css, want) || strings.Contains(css, "--nav-bg") {
+			t.Errorf("%s: want %s in\n%s", primary, want, css)
+		}
 	}
 }

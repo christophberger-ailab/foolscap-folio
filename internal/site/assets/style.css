@@ -6,7 +6,7 @@
   --fs-h2: 1.55em;
   --fs-h3: 1.25em;
   --fs-h4: 1.1em;
-  --lh-body: 1.6;
+  --lh-body: 1.5;
   --lh-tight: 1.25;
   --space: 1em;
   --measure: 42em;
@@ -19,16 +19,20 @@
   --mono:
     ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
 
+  /* The colors of Quarto's default theme. */
   --bg: #ffffff;
-  --bg-soft: #f6f7f9;
-  --fg: #212529;
-  --fg-muted: #5c6670;
+  --bg-soft: #f8f9fa;
+  --fg: #343a40;
+  --fg-muted: #5a6570;
   --border: #dee2e6;
-  --link: #0b5ed7;
-  --accent: #0d6efd;
-  --accent-soft: #e7f0ff;
-  --code-bg: #f3f4f6;
-  --nav-bg: #ffffff;
+  --link: #2761e3;
+  --accent: #2780e3;
+  --accent-soft: #e9f2fc;
+  --code-bg: #f1f3f5;
+  --code-fg: #7d12ba;
+  /* The navbar is in the accent color, as Quarto's is in the primary. */
+  --nav-bg: var(--accent);
+  --nav-fg: #ffffff;
   --shadow: 0 0.2em 1.2em rgba(0, 0, 0, 0.18);
   color-scheme: light dark;
 }
@@ -43,7 +47,9 @@
     --accent: #6ea8fe;
     --accent-soft: #1e2a3d;
     --code-bg: #1f242a;
+    --code-fg: #d4a5f0;
     --nav-bg: #1a1d22;
+    --nav-fg: #ffffff;
     --shadow: 0 0.2em 1.2em rgba(0, 0, 0, 0.6);
   }
 }
@@ -54,7 +60,7 @@
   box-sizing: border-box;
 }
 html {
-  font-size: 100%;
+  font-size: 106.25%; /* 17px, Quarto's body size */
   scroll-padding-top: calc(var(--nav-h) + 1em);
 }
 body {
@@ -103,7 +109,7 @@ a:hover {
   top: 0;
   z-index: 30;
   background: var(--nav-bg);
-  border-bottom: 1px solid var(--border);
+  color: var(--nav-fg);
   min-height: var(--nav-h);
 }
 .navbar-inner {
@@ -116,12 +122,20 @@ a:hover {
   min-height: var(--nav-h);
 }
 .site-title {
-  font-weight: 700;
-  font-size: 1.15em;
-  color: var(--fg);
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  font-size: 1.2em;
+  color: var(--nav-fg);
   text-decoration: none;
   margin-right: 0.5em;
   white-space: nowrap;
+}
+.site-logo {
+  display: block;
+  height: 1.6em;
+  width: auto;
+  max-width: 12em;
 }
 .topics ul {
   list-style: none;
@@ -140,18 +154,13 @@ a:hover {
   display: block;
   padding: 0.35em 0.75em;
   border-radius: 0.4em;
-  color: var(--fg-muted);
+  color: var(--nav-fg);
+  opacity: 0.8;
   text-decoration: none;
-  font-size: 0.95em;
 }
-.topics a:hover {
-  background: var(--bg-soft);
-  color: var(--fg);
-}
+.topics a:hover,
 .topics a.active {
-  color: var(--accent);
-  background: var(--accent-soft);
-  font-weight: 600;
+  opacity: 1;
 }
 .icon-button {
   display: none;
@@ -162,12 +171,12 @@ a:hover {
   padding: 0;
   cursor: pointer;
   background: transparent;
-  color: var(--fg);
-  border: 1px solid var(--border);
+  color: var(--nav-fg);
+  border: 1px solid color-mix(in srgb, var(--nav-fg) 35%, transparent);
   border-radius: 0.4em;
 }
 .icon-button:hover {
-  background: var(--bg-soft);
+  background: color-mix(in srgb, var(--nav-fg) 15%, transparent);
 }
 .icon {
   display: block;
@@ -209,12 +218,9 @@ html:not(.js) .search {
   font: inherit;
   font-size: var(--fs-small);
   color: var(--fg);
-  background: var(--bg-soft);
-  border: 1px solid var(--border);
-  border-radius: 0.4em;
-}
-.search input:focus {
   background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 0.25em;
 }
 .search input::-webkit-search-cancel-button {
   -webkit-appearance: none;
@@ -379,13 +385,11 @@ html:not(.js) .search {
 .sidebar ul ul {
   margin-left: 0.6em;
   padding-left: 0.6em;
-  border-left: 1px solid var(--border);
 }
 .sidebar a,
 .sidebar .group {
   display: block;
-  padding: 0.3em 0.6em;
-  border-radius: 0.35em;
+  padding: 0.25em 0.6em;
   color: var(--fg-muted);
   text-decoration: none;
 }
@@ -393,14 +397,9 @@ html:not(.js) .search {
   font-weight: 600;
   color: var(--fg);
 }
-.sidebar a:hover {
-  background: var(--bg-soft);
-  color: var(--fg);
-}
+.sidebar a:hover,
 .sidebar a[aria-current="page"] {
-  color: var(--accent);
-  background: var(--accent-soft);
-  font-weight: 600;
+  color: var(--link);
 }
 .sidebar summary {
   display: flex;
@@ -445,11 +444,9 @@ html:not(.js) .search {
 /* ---------- table of contents ---------- */
 .toc-title {
   margin: 0 0 0.6em;
-  font-weight: 700;
-  font-size: 0.9em;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--fg-muted);
+  font-weight: 500;
+  font-size: 1em;
+  color: var(--fg);
 }
 .toc ul {
   list-style: none;
@@ -472,9 +469,8 @@ html:not(.js) .search {
   color: var(--fg);
 }
 .toc a.active {
-  color: var(--accent);
-  border-left-color: var(--accent);
-  font-weight: 600;
+  color: var(--link);
+  border-left-color: var(--link);
 }
 
 /* ---------- content ---------- */
@@ -489,7 +485,7 @@ h5,
 h6 {
   line-height: var(--lh-tight);
   margin: 1.8em 0 0.5em;
-  font-weight: 650;
+  font-weight: 600;
   scroll-margin-top: calc(var(--nav-h) + 1em);
 }
 h1 {
@@ -568,19 +564,20 @@ pre {
   font-size: 0.9em;
 }
 code {
+  color: var(--code-fg);
   background: var(--code-bg);
-  padding: 0.1em 0.35em;
-  border-radius: 0.3em;
+  padding: 0.125em 0.25em;
+  border-radius: 0.25em;
 }
 pre {
   background: var(--code-bg);
   padding: 0.9em 1.1em;
-  border-radius: 0.4em;
-  border: 1px solid var(--border);
+  border-radius: 0.25em;
   overflow-x: auto;
   line-height: 1.5;
 }
 pre code {
+  color: var(--fg);
   background: none;
   padding: 0;
   font-size: 1em;

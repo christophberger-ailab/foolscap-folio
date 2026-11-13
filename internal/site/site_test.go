@@ -341,3 +341,28 @@ func TestBrandStylesheet(t *testing.T) {
 		t.Error("brand.css written without a brand")
 	}
 }
+
+// The brand's logo stands in the navbar before the site's title, and is
+// the site's icon.
+func TestLogo(t *testing.T) {
+	root, out := project(t)
+	write(t, root, "assets/logo mark.svg", "<svg/>")
+	o := opts(root, out)
+	o.Logo, o.LogoAlt = filepath.Join(root, "assets", "logo mark.svg"), `Acme "Inc"`
+	if err := Build(o); err != nil {
+		t.Fatal(err)
+	}
+	page := read(t, out, "dispatcher/b.html")
+	has(t, "logo", page,
+		`<img class="site-logo" src="../_site/logo.svg" alt="Acme &#34;Inc&#34;">Test Site</a>`,
+		`<link rel="icon" href="../_site/logo.svg">`)
+	if got := read(t, out, "_site/logo.svg"); got != "<svg/>" {
+		t.Errorf("logo = %q", got)
+	}
+
+	root, out = project(t)
+	if err := Build(opts(root, out)); err != nil {
+		t.Fatal(err)
+	}
+	hasNot(t, "plain", read(t, out, "index.html"), "site-logo", `rel="icon"`)
+}

@@ -27,7 +27,13 @@ const BrandFile = "_brand.yml"
 
 type brand struct {
 	// dir is the directory of the file, which its paths are relative to.
-	dir   string
+	dir  string
+	Logo struct {
+		Images map[string]brandLogo `yaml:"images"`
+		Small  brandLogo            `yaml:"small"`
+		Medium brandLogo            `yaml:"medium"`
+		Large  brandLogo            `yaml:"large"`
+	} `yaml:"logo"`
 	Color struct {
 		Palette    map[string]string `yaml:"palette"`
 		Foreground string            `yaml:"foreground"`
@@ -65,6 +71,49 @@ func loadBrand(root, user string) (*brand, error) {
 		return b, nil
 	}
 	return nil, nil
+}
+
+// brandLogo is a logo: a path or the name of an image, a path with its
+// alt text, or a light and a dark variant, of which the light one counts.
+type brandLogo struct {
+	Path  string `yaml:"path"`
+	Alt   string `yaml:"alt"`
+	Light string `yaml:"light"`
+}
+
+func (l *brandLogo) UnmarshalYAML(n *yaml.Node) error {
+	switch n.Kind {
+	case yaml.ScalarNode:
+		l.Path = n.Value
+	case yaml.MappingNode:
+		type plain brandLogo
+		return n.Decode((*plain)(l))
+	}
+	return nil // anything else is no logo
+}
+
+// logo is the logo of a website: the image file and its alt text, from
+// the brand's small logo, else the medium, else the large one.
+func (b *brand) logo() (file, alt string, notes []string) {
+	if b == nil {
+		return "", "", nil
+	}
+	for _, l := range []brandLogo{b.Logo.Small, b.Logo.Medium, b.Logo.Large} {
+		name := cmp.Or(l.Path, l.Light)
+		if img, ok := b.Logo.Images[name]; ok {
+			name, l.Alt = cmp.Or(img.Path, img.Light), cmp.Or(l.Alt, img.Alt)
+		}
+		if name == "" {
+			continue
+		}
+		path, err := foliocore.ProjectPath(b.dir, name)
+		if st, serr := os.Stat(path); err != nil || serr != nil || st.IsDir() {
+			notes = append(notes, fmt.Sprintf("%s: logo: %s is not a file the website can use", BrandFile, name))
+			continue
+		}
+		return path, l.Alt, notes
+	}
+	return "", "", notes
 }
 
 type brandFont struct {
@@ -448,8 +497,18 @@ func (b *brand) css() (string, map[string]string, []string) {
 		soft = "color-mix(in srgb," + primary + " 12%,var(--bg))"
 	}
 	inline, block := t.MonospaceInline, t.MonospaceBlock
-	light := rule(":root", decls("--bg", bg, "--nav-bg", bg, "--fg", color("color: foreground", b.Color.Foreground),
-		"--accent", primary, "--accent-soft", soft,
+	// The navbar is in the primary color; its text is the one of white
+	// and black that reads better on it.
+	navText := ""
+	if h := b.hex(b.Color.Primary); h != "" {
+		c, _ := strconv.ParseUint(h, 16, 32)
+		navText = "#fff"
+		if 299*(c>>16)+587*(c>>8&0xFF)+114*(c&0xFF) > 150_000 {
+			navText = "#000"
+		}
+	}
+	light := rule(":root", decls("--bg", bg, "--fg", color("color: foreground", b.Color.Foreground),
+		"--accent", primary, "--accent-soft", soft, "--nav-fg", navText,
 		"--link", cmp.Or(color("typography: link: color", t.Link.Color), primary))) +
 		rule(headings, decls("color", color("typography: headings: color", t.Headings.Color))) +
 		rule("a", decls("background-color", color("typography: link: background-color", t.Link.Background))) +

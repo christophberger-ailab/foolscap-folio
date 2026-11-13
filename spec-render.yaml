@@ -16,6 +16,7 @@ components:
       3-5: Flag --clean empties the output directories of the selected formats before the first render. Defaults to false
       3-6: Flag --dry-run prints the files that would be written without writing anything. Defaults to false
       3-7: Positional arguments name topics and are added to --topic
+      3-8: Flag --update-toc fills the page numbers into the contents of every DOCX rendered with `toc`, using LibreOffice (see DOCUMENT 3-1-1). Defaults to false
 
 constraints:
   STANDARD: See the constraints in spec.yaml.
@@ -48,8 +49,9 @@ constraints:
       2: Conditional content the selected format and audience do not show is removed after parsing (see CONDITIONAL in spec.yaml)
       3: The DOCX is written in Go. A format's `template` names a reference DOCX whose styles, page setup, headers, footers and numbering are used and whose body is discarded; a missing template fails before anything is written
       3-1: 'With `toc: true` the DOCX has a Word contents field, pre-filled with the headings of levels 1 to 3 as links'
-      3-1-1: Where LibreOffice is installed (`soffice` or `libreoffice` on the PATH, or its default place on macOS and Windows), folio has it lay out a copy of the finished DOCX, cover included, in the background and under a profile of its own, and writes the page of every heading into the contents as Word writes them (dot leader, page field); the document then no longer asks to have its fields updated
-      3-1-2: Without LibreOffice, or when it fails or does not tell every page, which the log notes, the entries carry no page numbers and the field is marked out of date, so Word works it out on opening
+      3-1-1: With --update-toc, folio has LibreOffice (`soffice` or `libreoffice` on the PATH, or its default place on macOS and Windows) lay out a copy of the finished DOCX, cover included, in the background and under a profile of its own, and writes the page of every heading into the contents as Word writes them (dot leader, page field); the document then no longer asks to have its fields updated
+      3-1-2: Without --update-toc the entries carry no page numbers and the field is marked out of date, so Word works it out on opening
+      3-1-3: With --update-toc and no LibreOffice, or one that fails or does not tell every page, the DOCX is written as without the flag and the render of that combination fails with the reason
       3-2: Every heading keeps a bookmark of its own that the contents entries and the in-book links point to; an identifier Word does not take as a bookmark name (longer than 40 characters, or not starting with a letter) is cut and given a checksum instead of being cut to a beginning it shares with others
       4: The PDF is laid out in Go (gopdf) from the same parsed document, A4, with embedded fonts, pagination, contents, links, headings, lists, ordinary tables and local images
       4-1: Emoji render in a monochrome emoji font, and a line never breaks inside a word that spans quote marks, emphasis or links
@@ -76,6 +78,7 @@ constraints:
       1-1: Font files are found relative to the brand file that names them, and a path that leaves its directory is refused
       1-2: A color is a value, a name from `color.palette`, or one of `foreground`, `background` and `primary`
       2: 'A website links a stylesheet made from the brand after folio''s own and before the format''s `css`: text, page and accent colors, the link color (`typography.link.color`, else `primary`), the families, weights, sizes and line heights of base, headings and monospace, the heading color, and the colors of inline and block code'
+      2-0: 'The navbar is in the primary color, its text white or black, whichever contrasts more; the brand''s small logo, else the medium, else the large one -- a path, the name of an entry of `logo.images`, or the light one of two variants -- stands before the site title and is the site''s icon'
       2-1: Fonts with `files` are copied into the site and declared with `@font-face`; fonts with `source` google or bunny are imported from that service
       2-2: The brand's colors apply to the light color scheme; the dark scheme keeps folio's colors
       2-3: A value that could not stand in a stylesheet as it is (anything but a plain color, size, number or name) is left out and reported in the render log
@@ -86,6 +89,7 @@ constraints:
   SITE:
     description: A website format writes a static site of all selected topics, with a layout like Quarto's.
     requirements:
+      0: The site looks like a Quarto website in its default theme -- a navbar in the accent color, a plain sidebar and contents list that mark the current entry by the link color, Quarto's text and code colors and its 17px body size
       1: Each topic is one entry in a top navbar; the current topic's page tree is a left sidebar; the headings of the current page are a right "On this page" contents list with scroll-spy; each page has previous/next links
       1-1: The site's home page lists the topics
       2: Pages are rendered from the same tree and with the same heading demotion as a document, with the same shortcodes and conditional filter

@@ -1,12 +1,14 @@
 package build
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/christophberger-ailab/foolscap-folio/internal/config"
+	"github.com/christophberger-ailab/foolscap-folio/internal/docx"
 	"github.com/christophberger-ailab/foolscap-folio/internal/markdown"
 )
 
@@ -93,5 +95,50 @@ func TestRenderAppliesTheBrand(t *testing.T) {
 				t.Errorf("%s: %v", name, err)
 			}
 		}
+	}
+}
+
+// The contents of a DOCX get their page numbers from LibreOffice only when
+// the render asks for it.
+func TestUpdateTOCIsOptIn(t *testing.T) {
+	root := t.TempDir()
+	for file, body := range map[string]string{
+		"folio.yml":      "formats:\n  handout: {type: docx, toc: true}\n",
+		"book/index.qmd": "---\ntitle: Book\n---\n\n# Book\n\nText.\n",
+	} {
+		os.MkdirAll(filepath.Join(root, filepath.Dir(file)), 0o755)
+		os.WriteFile(filepath.Join(root, file), []byte(body), 0o644)
+	}
+	cfg, err := config.Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sels, err := cfg.Expand(config.Request{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	calls := 0
+	defer func(f func(string) (bool, error)) { paginate = f }(paginate)
+	paginate = func(string) (bool, error) { calls++; return true, nil }
+
+	if err := Run(Options{Selections: sels}, nil); err != nil || calls != 0 {
+		t.Errorf("without the option: %v, %d calls", err, calls)
+	}
+	if err := Run(Options{Selections: sels, UpdateTOC: true}, nil); err != nil || calls != 1 {
+		t.Errorf("with the option: %v, %d calls", err, calls)
+	}
+	// A dry run touches nothing.
+	if err := Run(Options{Selections: sels, UpdateTOC: true, DryRun: true}, nil); err != nil || calls != 1 {
+		t.Errorf("dry run: %v, %d calls", err, calls)
+	}
+	// A contents list that cannot be updated fails the render, with the file written.
+	paginate = func(string) (bool, error) { return false, docx.ErrNoOffice }
+	var log []string
+	err = Run(Options{Selections: sels, UpdateTOC: true}, func(f string, a ...any) { log = append(log, fmt.Sprintf(f, a...)) })
+	if err == nil || !strings.Contains(strings.Join(log, "\n"), "LibreOffice") {
+		t.Errorf("no LibreOffice: %v\n%s", err, strings.Join(log, "\n"))
+	}
+	if _, err := os.Stat(filepath.Join(root, "_output", "handout", "book.docx")); err != nil {
+		t.Error(err)
 	}
 }

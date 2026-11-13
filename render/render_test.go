@@ -250,3 +250,20 @@ func TestBuildOptionsCarriesTheUsersBrand(t *testing.T) {
 		}
 	}
 }
+
+// --update-toc asks the render to fill in the page numbers of the contents.
+func TestBuildOptionsCarriesUpdateTOC(t *testing.T) {
+	root := fixture(t)
+	on := true
+	defer func(f *bool) { updateTOCFlag = f }(updateTOCFlag)
+	for _, flag := range []*bool{nil, &on} {
+		updateTOCFlag = flag
+		opts, err := BuildOptions(root, config.Request{}, false, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if opts.UpdateTOC != (flag != nil) {
+			t.Errorf("UpdateTOC = %v with flag %v", opts.UpdateTOC, flag)
+		}
+	}
+}

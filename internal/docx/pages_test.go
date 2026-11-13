@@ -1,6 +1,7 @@
 package docx
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -46,12 +47,14 @@ func tocDoc(t *testing.T) string {
 	return path
 }
 
-// Without an office suite the document stays as it is: the word processor
-// that opens it works the contents out.
+// Without LibreOffice the contents cannot be updated, which is an error,
+// and the document stays as it is.
 func TestPaginateWithoutOffice(t *testing.T) {
+	defer func(f func() string) { office = f }(office)
+	office = func() string { return "" }
 	path := tocDoc(t)
 	before, _ := os.ReadFile(path)
-	if filled, err := Paginate(path); filled || err != nil {
+	if filled, err := Paginate(path); filled || !errors.Is(err, ErrNoOffice) {
 		t.Errorf("Paginate = %v, %v", filled, err)
 	}
 	if after, _ := os.ReadFile(path); string(after) != string(before) {
