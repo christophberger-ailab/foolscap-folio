@@ -119,41 +119,43 @@ func TestLoadHeadingFallback(t *testing.T) {
 }
 
 func TestPageFlags(t *testing.T) {
-	todo, review, comment := "\U0001F6A7", "\U0001F440", "\U0001F4AC"
+	todo := Flag{"\U0001F6A7", "Contains todos"}
+	review := Flag{"\U0001F440", "Needs review"}
+	comment := Flag{"\U0001F4AC", "Contains comments"}
 	cases := []struct {
 		name string
 		src  string
-		want []string
+		want []Flag
 	}{
 		{"none", "---\ntitle: A\n---\n# A\n", nil},
 		{"no frontmatter", "# A\n", nil},
-		{"todo", "---\nfolio:\n  todo: true\n---\n", []string{todo}},
-		{"review", "---\nfolio:\n  review: true\n---\n", []string{review}},
-		{"both", "---\nfolio:\n  review: true\n  todo: true\n---\n", []string{todo, review}},
+		{"todo", "---\nfolio:\n  todo: true\n---\n", []Flag{todo}},
+		{"review", "---\nfolio:\n  review: true\n---\n", []Flag{review}},
+		{"both", "---\nfolio:\n  review: true\n  todo: true\n---\n", []Flag{todo, review}},
 		{"false", "---\nfolio:\n  todo: false\n  review: false\n---\n", nil},
 		{"not a bool", "---\nfolio:\n  todo: yes please\n---\n", nil},
 		{"unknown key", "---\nfolio:\n  later: true\n---\n", nil},
-		{"legacy qm", "---\nqm:\n  review: true\n---\n", []string{review}},
-		{"folio wins over qm", "---\nfolio:\n  review: false\nqm:\n  review: true\n  todo: true\n---\n", []string{todo}},
-		{"text", "# A\n\nSome ==TODO== here.\n", []string{todo}},
-		{"text in comment", "# A\n\n<!-- ==TODO== fix -->\n", []string{todo}},
-		{"text twice and key", "---\nfolio:\n  todo: true\n---\n==TODO== ==TODO==\n", []string{todo}},
-		{"text and review", "---\nfolio:\n  review: true\n---\n==TODO==\n", []string{todo, review}},
+		{"legacy qm", "---\nqm:\n  review: true\n---\n", []Flag{review}},
+		{"folio wins over qm", "---\nfolio:\n  review: false\nqm:\n  review: true\n  todo: true\n---\n", []Flag{todo}},
+		{"text", "# A\n\nSome ==TODO== here.\n", []Flag{todo}},
+		{"text in comment", "# A\n\n<!-- ==TODO== fix -->\n", []Flag{todo}},
+		{"text twice and key", "---\nfolio:\n  todo: true\n---\n==TODO== ==TODO==\n", []Flag{todo}},
+		{"text and review", "---\nfolio:\n  review: true\n---\n==TODO==\n", []Flag{todo, review}},
 		{"lowercase text", "==todo==\n", nil},
-		{"comment", "# A\n\n<!-- << Check this -->the passage<!-- >> -->\n", []string{comment}},
-		{"comment with attrs", "<!--<<{#c1 author=\"Ann\"} Hm -->x<!-- >> {#c1} -->\n", []string{comment}},
-		{"comment over lines", "<!--\n<< Hm\n-->x<!-- >> -->\n", []string{comment}},
-		{"comments twice", "<!-- << A -->x<!-- >> --> <!-- << B -->y<!-- >> -->\n", []string{comment}},
-		{"all three", "---\nfolio:\n  review: true\n---\n==TODO== <!-- << A -->x<!-- >> -->\n", []string{todo, review, comment}},
+		{"comment", "# A\n\n<!-- << Check this -->the passage<!-- >> -->\n", []Flag{comment}},
+		{"comment with attrs", "<!--<<{#c1 author=\"Ann\"} Hm -->x<!-- >> {#c1} -->\n", []Flag{comment}},
+		{"comment over lines", "<!--\n<< Hm\n-->x<!-- >> -->\n", []Flag{comment}},
+		{"comments twice", "<!-- << A -->x<!-- >> --> <!-- << B -->y<!-- >> -->\n", []Flag{comment}},
+		{"all three", "---\nfolio:\n  review: true\n---\n==TODO== <!-- << A -->x<!-- >> -->\n", []Flag{todo, review, comment}},
 		{"plain html comment", "<!-- a note << not a comment -->\n", nil},
 		{"end marker alone", "<!-- >> -->\n", nil},
 		{"comment in code span", "Write `<!-- << A -->` to comment.\n", nil},
 		{"comment in double code span", "Write ``<!-- << ` -->`` to comment.\n", nil},
 		{"comment in code block", "```\n<!-- << A -->x<!-- >> -->\n```\n", nil},
 		{"comment in tilde block", "~~~ markdown\n<!-- << A -->\n~~~\n", nil},
-		{"comment after code block", "```\ncode\n```\n<!-- << A -->x<!-- >> -->\n", []string{comment}},
-		{"comment after code span", "`code` <!-- << A -->x<!-- >> -->\n", []string{comment}},
-		{"unclosed backtick", "a ` b <!-- << A -->x<!-- >> -->\n", []string{comment}},
+		{"comment after code block", "```\ncode\n```\n<!-- << A -->x<!-- >> -->\n", []Flag{comment}},
+		{"comment after code span", "`code` <!-- << A -->x<!-- >> -->\n", []Flag{comment}},
+		{"unclosed backtick", "a ` b <!-- << A -->x<!-- >> -->\n", []Flag{comment}},
 	}
 	for _, c := range cases {
 		got := PageFlags([]byte(c.src))
@@ -180,7 +182,7 @@ func TestLoadFlags(t *testing.T) {
 	if pg.Title != "Flagged" || pg.Order == nil || *pg.Order != 1 {
 		t.Errorf("title/order = %q/%v, want Flagged/1", pg.Title, pg.Order)
 	}
-	if want := []string{"\U0001F6A7", "\U0001F440"}; !slices.Equal(pg.Flags, want) {
+	if want := []Flag{{"\U0001F6A7", "Contains todos"}, {"\U0001F440", "Needs review"}}; !slices.Equal(pg.Flags, want) {
 		t.Errorf("Flags = %q, want %q", pg.Flags, want)
 	}
 }

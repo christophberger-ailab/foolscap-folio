@@ -124,7 +124,7 @@ func TestTreeMarksDrafts(t *testing.T) {
 }
 
 // A page flagged by its `folio:` frontmatter, or by a ==TODO== anywhere in
-// it, carries each flag's emoji once in the tree.
+// it, carries each flag's emoji once in the tree, with a tooltip naming it.
 func TestTreeShowsPageFlags(t *testing.T) {
 	srv, root := testServer(t)
 	page := "---\ntitle: Sketch\norder: 4\nfolio:\n  todo: true\n  review: true\n---\n# Sketch\n<!-- ==TODO== -->\n==TODO==\n<!-- << Why? -->a<!-- >> --> <!-- << And? -->b<!-- >> -->\n"
@@ -132,13 +132,13 @@ func TestTreeShowsPageFlags(t *testing.T) {
 		t.Fatal(err)
 	}
 	body := get(t, srv, "/tree").Body.String()
-	if n := strings.Count(body, `<span class="marker flag">🚧</span>`); n != 1 {
+	if n := strings.Count(body, `<span class="marker flag" title="Contains todos">🚧</span>`); n != 1 {
 		t.Errorf("🚧 shown %d times, want 1:\n%s", n, body)
 	}
-	if n := strings.Count(body, `<span class="marker flag">👀</span>`); n != 1 {
+	if n := strings.Count(body, `<span class="marker flag" title="Needs review">👀</span>`); n != 1 {
 		t.Errorf("👀 shown %d times, want 1:\n%s", n, body)
 	}
-	if n := strings.Count(body, `<span class="marker flag">💬</span>`); n != 1 {
+	if n := strings.Count(body, `<span class="marker flag" title="Contains comments">💬</span>`); n != 1 {
 		t.Errorf("💬 shown %d times, want 1:\n%s", n, body)
 	}
 }

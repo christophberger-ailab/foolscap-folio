@@ -22,11 +22,11 @@ type Page struct {
 	Dir       string
 	Title     string
 	Order     *int
-	BadFences bool     // the file has unmatched Quarto block fences
-	Draft     bool     // the page's frontmatter says `draft: true`
-	Marker    string   // emoji marker from a _FW/_POL suffix (own or inherited)
-	Flags     []string // status emojis from the folio: frontmatter and the body, see PageFlags
-	Hidden    bool     // the page's frontmatter says `folio: {hide: true}`
+	BadFences bool   // the file has unmatched Quarto block fences
+	Draft     bool   // the page's frontmatter says `draft: true`
+	Marker    string // emoji marker from a _FW/_POL suffix (own or inherited)
+	Flags     []Flag // status flags from the folio: frontmatter and the body, see PageFlags
+	Hidden    bool   // the page's frontmatter says `folio: {hide: true}`
 	Children  []*Page
 }
 
@@ -36,31 +36,38 @@ const (
 	markerPOL = "\U0001F693" // 🚔
 )
 
+// Flag is a page's status flag as the tree shows it: an emoji, with a
+// tooltip saying what it means.
+type Flag struct {
+	Emoji string
+	Title string
+}
+
 // pageFlags lists the status flags a page can carry, in the order the tree
 // shows them. A flag is set by `folio: {<Key>: true}` in the frontmatter, or
 // by In reporting true for the page's file when In is not nil. A new flag
 // is one more entry here.
 var pageFlags = []struct {
-	Key   string
-	Emoji string
-	In    func(src []byte) bool
+	Key string
+	Flag
+	In func(src []byte) bool
 }{
-	{Key: "todo", Emoji: "\U0001F6A7", In: hasTodo},       // 🚧
-	{Key: "review", Emoji: "\U0001F440"},                  // 👀
-	{Key: "comment", Emoji: "\U0001F4AC", In: hasComment}, // 💬
+	{Key: "todo", Flag: Flag{"\U0001F6A7", "Contains todos"}, In: hasTodo},          // 🚧
+	{Key: "review", Flag: Flag{"\U0001F440", "Needs review"}},                       // 👀
+	{Key: "comment", Flag: Flag{"\U0001F4AC", "Contains comments"}, In: hasComment}, // 💬
 }
 
-// PageFlags returns the emojis of the status flags src carries, each at
+// PageFlags returns the status flags src carries, each at
 // most once, in the order of pageFlags.
-func PageFlags(src []byte) []string {
+func PageFlags(src []byte) []Flag {
 	return pageFlagsOf(src, ParseFrontmatter(src))
 }
 
-func pageFlagsOf(src []byte, fm FrontMatter) []string {
-	var flags []string
+func pageFlagsOf(src []byte, fm FrontMatter) []Flag {
+	var flags []Flag
 	for _, f := range pageFlags {
 		if fm.Flag(f.Key) || f.In != nil && f.In(src) {
-			flags = append(flags, f.Emoji)
+			flags = append(flags, f.Flag)
 		}
 	}
 	return flags
