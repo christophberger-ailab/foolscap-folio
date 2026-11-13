@@ -42,7 +42,7 @@ constraints:
   UPDATE:
     description: The top bar offers an update when a newer release of folio is out.
     requirements:
-      1: While folio web runs, it looks for a newer release at the update source as often as SETTINGS 8 says, first right after it starts; a development build never looks
+      1: While folio web runs, it looks for a newer release at the update source as often as SETTINGS 8 says, first right after it starts; a development build looks too and is offered the newest release, whatever it is, since it has no version to compare
       1-1: A change of the interval in the settings file takes effect within the hour, without a restart
       1-2: A failed check is reported on the console only; the next one is tried as usual
       2: 'When a newer release is found, an Update button appears at the right end of the top bar, with the tooltip "Update to <release>. Your current release is <release>."'
@@ -50,6 +50,7 @@ constraints:
       3: The button asks for confirmation, then installs the release the way `folio upgrade` does (spec-upgrade.yaml SECURITY)
       3-1: Once installed, the button gives way to "Restart folio web to use <release>"; the running server keeps running the old version until it is restarted
       3-2: A failed install leaves the binary as it was, shows the reason beside the button, and keeps the button for another try
+      4: The Config page's Release box offers the same update with a button of its own, "Update to <release>", which asks for confirmation and installs it like the top bar's; once installed, the box says to restart folio web
 
   ORIGIN:
     description: The command is the quarto-sorter tool (github.com/christophberger-ailab/quarto-sorter) merged into folio.

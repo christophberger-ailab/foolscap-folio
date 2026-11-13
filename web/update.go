@@ -91,14 +91,14 @@ func (u *updateState) view() updateView {
 }
 
 // startUpdateChecks sets the server up to update the binary of release
-// current, and starts looking for new releases -- unless this is a
-// development build, which has no release to compare against.
+// current, and starts looking for new releases. A development build looks
+// too: it has no release to compare against, so it is offered the newest.
 func (s *server) startUpdateChecks(current string) {
 	s.update.mu.Lock()
 	s.update.current = current
 	s.update.mu.Unlock()
 	exe, err := selfupdate.Executable()
-	if err != nil || !selfupdate.IsRelease(current) {
+	if err != nil {
 		return
 	}
 	s.update.mu.Lock()
@@ -137,7 +137,7 @@ func (s *server) checkRelease(ctx context.Context) error {
 	client, current := s.update.client, s.update.current
 	s.update.mu.Unlock()
 	if client == nil {
-		return errors.New("this is a development build, which has no release to compare against")
+		return errors.New("folio cannot find its own binary to update")
 	}
 
 	rel, err := selfupdate.Latest(ctx, client, source)
@@ -147,16 +147,23 @@ func (s *server) checkRelease(ctx context.Context) error {
 	s.update.mu.Lock()
 	defer s.update.mu.Unlock()
 	s.update.checked = time.Now()
-	if selfupdate.Newer(current, rel.Version) {
+	if offered(current, rel.Version) {
 		s.update.latest = &rel
 	}
 	return nil
 }
 
+// offered reports whether latest is worth installing over current: a newer
+// release, or any release over a development build, which cannot be
+// compared with one.
+func offered(current, latest string) bool {
+	return selfupdate.IsRelease(latest) && (!selfupdate.IsRelease(current) || selfupdate.Newer(current, latest))
+}
+
 // releaseView is the release box atop the Config overview.
 type releaseView struct {
 	Current, Latest, LatestURL, Installed string
-	// Dev is a build that cannot check: it has no release to compare.
+	// Dev is a development build, which is offered any release.
 	Dev bool
 	// Checked is when a check last succeeded; Check how often they run.
 	Checked, Check string
@@ -169,7 +176,7 @@ func (s *server) releaseView() releaseView {
 	u := &s.update
 	u.mu.Lock()
 	defer u.mu.Unlock()
-	v := releaseView{Current: u.current, Installed: u.installed, Dev: u.client == nil, Check: s.cfg.Update.Check}
+	v := releaseView{Current: u.current, Installed: u.installed, Dev: !selfupdate.IsRelease(u.current), Check: s.cfg.Update.Check}
 	if u.latest != nil {
 		v.Latest, v.LatestURL = u.latest.Version, u.latest.URL
 	}
@@ -201,23 +208,24 @@ func (s *server) updateHandler(w http.ResponseWriter, r *http.Request) {
 	s.render(w, "update", v)
 }
 
-// installUpdateHandler puts the release the button offers in place of the
-// running binary.
-func (s *server) installUpdateHandler(w http.ResponseWriter, r *http.Request) {
+// errNothingToInstall is an install asked for when there is no release
+// waiting, one is already installed, or one is being installed.
+var errNothingToInstall = errors.New("there is no update to install")
+
+// installUpdate puts the release a check found in place of the running
+// binary. The top bar's Update button and the Config page's both run it.
+func (s *server) installUpdate(ctx context.Context) error {
 	u := &s.update
 	u.mu.Lock()
 	if u.latest == nil || u.installed != "" || u.busy {
-		v := u.view()
 		u.mu.Unlock()
-		w.WriteHeader(http.StatusConflict)
-		s.render(w, "update", v)
-		return
+		return errNothingToInstall
 	}
 	u.busy = true
 	rel, client, exe := *u.latest, u.client, u.exe
 	u.mu.Unlock()
 
-	err := selfupdate.Install(r.Context(), client, rel, exe)
+	err := selfupdate.Install(ctx, client, rel, exe)
 
 	u.mu.Lock()
 	defer u.mu.Unlock()
@@ -226,9 +234,32 @@ func (s *server) installUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		u.installed = rel.Version
 		fmt.Fprintf(os.Stderr, "folio web: updated to %s; restart folio web to use it\n", rel.Version)
 	}
-	v := u.view()
-	if err != nil {
+	return err
+}
+
+// installUpdateHandler is the top bar's Update button.
+func (s *server) installUpdateHandler(w http.ResponseWriter, r *http.Request) {
+	err := s.installUpdate(r.Context())
+	s.update.mu.Lock()
+	v := s.update.view()
+	s.update.mu.Unlock()
+	switch {
+	case errors.Is(err, errNothingToInstall):
+		w.WriteHeader(http.StatusConflict)
+	case err != nil:
 		v.Error = err.Error()
 	}
 	s.render(w, "update", v)
+}
+
+// installUpdateConfigHandler is the Config page's Update button.
+func (s *server) installUpdateConfigHandler(w http.ResponseWriter, r *http.Request) {
+	err := s.installUpdate(r.Context())
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	v := s.configView()
+	if err != nil {
+		v.Release.Error = "Not updated: " + err.Error()
+	}
+	s.render(w, "config-page", v)
 }

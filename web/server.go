@@ -139,6 +139,7 @@ func newServer(configFile string) (*server, error) {
 	s.mux.HandleFunc("GET /config/settings-file", s.settingsFilePage)
 	s.mux.HandleFunc("POST /config/settings-file", s.saveSettingsFileHandler)
 	s.mux.HandleFunc("POST /config/check-update", s.checkUpdateHandler)
+	s.mux.HandleFunc("POST /config/install-update", s.installUpdateConfigHandler)
 	s.mux.HandleFunc("POST /editor/open", s.openEditorHandler)
 	s.mux.HandleFunc("POST /editor/image", s.openImageEditorHandler)
 	s.mux.HandleFunc("POST /copyedit/active", s.activeConnectionHandler)

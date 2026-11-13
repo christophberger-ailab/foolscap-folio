@@ -2,7 +2,7 @@
 
 ## Die Schaltfläche Config
 
-`Config` ganz rechts in der oberen Leiste öffnet eine Seite, die die Konfigurationsbereiche auflistet. Mit der Schaltfläche `App` oben kehrst du zurück. Über den Bereichen nennt ein Kasten `Release` die laufende folio-Version und bietet die Schaltfläche `Check for updates` (zu den automatischen Prüfungen siehe [Die Einstellungsdatei](#die-einstellungsdatei)). Gibt es eine neuere Version, sagt der Kasten es, und die Schaltfläche **Update** in der oberen Leiste installiert sie. Ein Entwicklungs-Build kann nicht prüfen. Die Bereiche sind:
+`Config` ganz rechts in der oberen Leiste öffnet eine Seite, die die Konfigurationsbereiche auflistet. Mit der Schaltfläche `App` oben kehrst du zurück. Über den Bereichen nennt ein Kasten `Release` die laufende folio-Version und bietet die Schaltfläche `Check for updates` (zu den automatischen Prüfungen siehe [Die Einstellungsdatei](#die-einstellungsdatei)). Gibt es eine neuere Version, sagt der Kasten es und bietet die Schaltfläche **Update to …**, die sie installiert wie die Schaltfläche **Update** in der oberen Leiste. Einem Entwicklungs-Build wird die neueste Version angeboten, welche es auch ist. Die Bereiche sind:
 
 - `Preview: Custom CSS`: das Stylesheet für die [Vorschau](preview.md).
 - `Copyedit: Editing tasks` und `Copyedit: API connections`: siehe [Lektorat](copyedit.md).

@@ -176,7 +176,7 @@ update: {
 }
 ```
 
-`source` is any https URL that describes a release the way GitHub's REST API does, so a Gitea or Forgejo instance (`/api/v1/repos/<owner>/<repo>/releases/latest`) or a static JSON file works too. A development build (`folio version` says `dev`) is offered the newest release, whatever it is; `folio web` on a development build does not look.
+`source` is any https URL that describes a release the way GitHub's REST API does, so a Gitea or Forgejo instance (`/api/v1/repos/<owner>/<repo>/releases/latest`) or a static JSON file works too. A development build (`folio version` says `dev`) is offered the newest release, whatever it is, by `folio upgrade` and by `folio web` alike. The Config page's Release box has an Update button of its own besides the top bar's.
 
 ### Settings
 

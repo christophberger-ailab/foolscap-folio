@@ -75,6 +75,15 @@ document.addEventListener('click', function (evt) {
   }
 });
 
+// A button with data-confirm asks before its form posts: the Config page's
+// Update button replaces the folio binary.
+document.addEventListener('click', function (evt) {
+  var button = evt.target.closest('button[data-confirm]');
+  if (button && !window.confirm(button.dataset.confirm)) {
+    evt.preventDefault();
+  }
+});
+
 // The base URL and the key belong to the two HTTP kinds and to neither
 // the GitHub Copilot kind nor the user: Copilot is reached through the
 // CLI, which knows where GitHub is and who the user is. So both fields

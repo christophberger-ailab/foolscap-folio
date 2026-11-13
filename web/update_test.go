@@ -197,17 +197,52 @@ func TestCheckForUpdatesReportsAFailure(t *testing.T) {
 	}
 }
 
-func TestADevelopmentBuildCannotCheckForUpdates(t *testing.T) {
-	s, err := newServer("")
-	if err != nil {
-		t.Fatal(err)
+// A development build has no version to compare, so whatever release the
+// source names is offered, in the top bar and on the Config page alike.
+func TestADevelopmentBuildIsOfferedTheNewestRelease(t *testing.T) {
+	s := updatingServer(t, "dev", releaseServer(t, "v0.4.0"))
+	body := post(t, s, "/config/check-update", nil).Body.String()
+	if !strings.Contains(body, "v0.4.0 is available") || strings.Contains(body, "disabled") {
+		t.Errorf("the Config page does not offer the release to a dev build:\n%s", body)
 	}
-	s.startUpdateChecks("dev")
+	if !strings.Contains(get(t, s, "/update").Body.String(), `hx-post="/update"`) {
+		t.Error("the top bar does not offer the release to a dev build")
+	}
+}
+
+func TestTheConfigPageOffersTheUpdateItself(t *testing.T) {
+	s := updatingServer(t, "v0.3.1", releaseServer(t, "v0.4.0"))
+	s.checkRelease(context.Background())
 	body := get(t, s, "/config").Body.String()
-	if !strings.Contains(body, "development build") || !strings.Contains(body, "disabled") {
-		t.Errorf("a development build offers an update check:\n%s", body)
+	for _, want := range []string{`action="/config/install-update"`, ">Update to v0.4.0</button>", `data-confirm="Update folio from v0.3.1 to v0.4.0?"`, "/static/config.js"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the release box lacks %q:\n%s", want, body)
+		}
 	}
-	if body := post(t, s, "/config/check-update", nil).Body.String(); !strings.Contains(body, "development build") {
-		t.Errorf("check accepted on a development build:\n%s", body)
+	if strings.Contains(body, "button in the app's top bar") {
+		t.Errorf("the release box still sends the user to the top bar:\n%s", body)
+	}
+}
+
+func TestAnUpdateFromTheConfigPageThatFailsSaysWhy(t *testing.T) {
+	s := updatingServer(t, "v0.3.1", releaseServer(t, "v0.4.0"))
+	s.update.exe = filepath.Join(t.TempDir(), "folio")
+	os.WriteFile(s.update.exe, []byte("old"), 0o755)
+	s.checkRelease(context.Background())
+	body := post(t, s, "/config/install-update", nil).Body.String()
+	if !strings.Contains(body, "has no build for") || !strings.Contains(body, `action="/config/install-update"`) {
+		t.Errorf("the failure is not reported, or the button is gone:\n%s", body)
+	}
+	if b, _ := os.ReadFile(s.update.exe); string(b) != "old" {
+		t.Errorf("binary changed: %q", b)
+	}
+}
+
+func TestTheConfigPageAsksForARestartOnceInstalled(t *testing.T) {
+	s := updatingServer(t, "v0.3.1", releaseServer(t, "v0.4.0"))
+	s.update.installed = "v0.4.0"
+	body := get(t, s, "/config").Body.String()
+	if !strings.Contains(body, "Restart folio web to use it") || strings.Contains(body, `action="/config/install-update"`) {
+		t.Errorf("no restart notice, or still an update button:\n%s", body)
 	}
 }
