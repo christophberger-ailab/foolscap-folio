@@ -25,6 +25,7 @@ import (
 	"syscall"
 
 	"github.com/christophberger-ailab/foolscap-folio/internal/config"
+	"github.com/christophberger-ailab/foolscap-folio/internal/selfupdate"
 	"github.com/christophberger/start"
 	flag "github.com/spf13/pflag"
 )
@@ -107,6 +108,10 @@ func cmd(c *start.Command) error {
 // then, when that port is in use, on the next free one up. It blocks until
 // the server stops.
 func Serve(flagAddr string, root string) error {
+	restartAddr, restartRoot := takeRestartEnv()
+	if restartRoot != "" {
+		root = restartRoot
+	}
 	srv, err := newServer(defaultConfigFile())
 	if err != nil {
 		return fmt.Errorf("web: %w", err)
@@ -121,15 +126,43 @@ func Serve(flagAddr string, root string) error {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "folio web: %v; listening on the default address\n", err)
 	}
+	if restartAddr != "" {
+		listenAddr, searchPort = restartAddr, true
+	}
 	ln, err := listen(listenAddr, searchPort)
 	if err != nil {
 		return fmt.Errorf("web: %w", err)
 	}
-	fmt.Fprintf(os.Stderr, "folio web running on http://%s\n", servedAddr(listenAddr, ln.Addr()))
-	if err := http.Serve(ln, srv); err != nil {
+	served := servedAddr(listenAddr, ln.Addr())
+	fmt.Fprintf(os.Stderr, "folio web running on http://%s\n", served)
+
+	srv.restart = make(chan struct{}, 1)
+	errc := make(chan error, 1)
+	go func() { errc <- http.Serve(ln, srv) }()
+	select {
+	case err := <-errc:
 		return fmt.Errorf("web: %w", err)
+	case <-srv.restart:
+		return restart(srv, ln, served)
 	}
-	return nil
+}
+
+// restart hands the address and the open project to the updated binary
+// and runs it in place of this process. It returns only when that fails,
+// and then the user has to start folio web again.
+func restart(srv *server, ln net.Listener, addr string) error {
+	ln.Close()
+	srv.mu.Lock()
+	root := srv.root
+	srv.mu.Unlock()
+	srv.update.mu.Lock()
+	exe, next := srv.update.exe, srv.update.installed
+	srv.update.mu.Unlock()
+	os.Setenv(restartAddrEnv, addr)
+	os.Setenv(restartRootEnv, root)
+	fmt.Fprintf(os.Stderr, "folio web: restarting with %s\n", next)
+	err := selfupdate.Restart(exe)
+	return fmt.Errorf("web: updated to %s, but could not restart (%v); start folio web again to use it", next, err)
 }
 
 // listen opens addr, or with searchPort the first port from addr's up that

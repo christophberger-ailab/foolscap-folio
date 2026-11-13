@@ -80,6 +80,8 @@ type updateState struct {
 // updateView is the top bar's update slot.
 type updateView struct {
 	Current, Latest, Installed, Error string
+	// Restarting is an installed update the server restarts with.
+	Restarting bool
 }
 
 func (u *updateState) view() updateView {
@@ -165,6 +167,8 @@ type releaseView struct {
 	Current, Latest, LatestURL, Installed string
 	// Dev is a development build, which is offered any release.
 	Dev bool
+	// Restarting is an installed update the server restarts with.
+	Restarting bool
 	// Checked is when a check last succeeded; Check how often they run.
 	Checked, Check string
 	Message, Error string
@@ -180,6 +184,7 @@ func (s *server) releaseView() releaseView {
 	if u.latest != nil {
 		v.Latest, v.LatestURL = u.latest.Version, u.latest.URL
 	}
+	v.Restarting = v.Installed != "" && s.restart != nil
 	if !u.checked.IsZero() {
 		v.Checked = u.checked.Format("2006-01-02 15:04")
 	}
@@ -202,10 +207,43 @@ func (s *server) checkUpdateHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) updateHandler(w http.ResponseWriter, r *http.Request) {
+	s.render(w, "update", s.updateView())
+}
+
+// updateView is the top bar's update slot as it stands.
+func (s *server) updateView() updateView {
 	s.update.mu.Lock()
+	defer s.update.mu.Unlock()
 	v := s.update.view()
-	s.update.mu.Unlock()
-	s.render(w, "update", v)
+	v.Restarting = v.Installed != "" && s.restart != nil
+	return v
+}
+
+// versionHandler answers the running release: after an update, the page
+// asks it until the restarted server answers with the new one.
+func (s *server) versionHandler(w http.ResponseWriter, r *http.Request) {
+	s.update.mu.Lock()
+	defer s.update.mu.Unlock()
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	fmt.Fprint(w, s.update.current)
+}
+
+// restartDelay gives the response that reports an install the time to
+// reach the browser before the server goes away.
+const restartDelay = 500 * time.Millisecond
+
+// requestRestart asks Serve to restart on the new binary. A server that
+// Serve did not start (tests) has no one to ask; a second request while
+// one is pending is dropped.
+func (s *server) requestRestart() {
+	if s.restart == nil {
+		return
+	}
+	select {
+	case s.restart <- struct{}{}:
+	default:
+	}
 }
 
 // errNothingToInstall is an install asked for when there is no release
@@ -232,7 +270,8 @@ func (s *server) installUpdate(ctx context.Context) error {
 	u.busy = false
 	if err == nil {
 		u.installed = rel.Version
-		fmt.Fprintf(os.Stderr, "folio web: updated to %s; restart folio web to use it\n", rel.Version)
+		fmt.Fprintf(os.Stderr, "folio web: updated to %s\n", rel.Version)
+		time.AfterFunc(restartDelay, s.requestRestart)
 	}
 	return err
 }
@@ -240,9 +279,7 @@ func (s *server) installUpdate(ctx context.Context) error {
 // installUpdateHandler is the top bar's Update button.
 func (s *server) installUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	err := s.installUpdate(r.Context())
-	s.update.mu.Lock()
-	v := s.update.view()
-	s.update.mu.Unlock()
+	v := s.updateView()
 	switch {
 	case errors.Is(err, errNothingToInstall):
 		w.WriteHeader(http.StatusConflict)
@@ -262,4 +299,21 @@ func (s *server) installUpdateConfigHandler(w http.ResponseWriter, r *http.Reque
 		v.Release.Error = "Not updated: " + err.Error()
 	}
 	s.render(w, "config-page", v)
+}
+
+// The restarted server listens where the old one did and opens the project
+// that was open, rather than the one its command line named: the page
+// waiting for it asks the same address, and reloads into the same folio.
+const (
+	restartAddrEnv = "FOLIO_RESTART_ADDR"
+	restartRootEnv = "FOLIO_RESTART_ROOT"
+)
+
+// takeRestartEnv reads what a restart handed over and clears it, so a
+// process folio web starts in turn does not inherit it.
+func takeRestartEnv() (addr, root string) {
+	addr, root = os.Getenv(restartAddrEnv), os.Getenv(restartRootEnv)
+	os.Unsetenv(restartAddrEnv)
+	os.Unsetenv(restartRootEnv)
+	return addr, root
 }

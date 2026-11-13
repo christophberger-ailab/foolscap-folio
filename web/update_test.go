@@ -214,7 +214,7 @@ func TestTheConfigPageOffersTheUpdateItself(t *testing.T) {
 	s := updatingServer(t, "v0.3.1", releaseServer(t, "v0.4.0"))
 	s.checkRelease(context.Background())
 	body := get(t, s, "/config").Body.String()
-	for _, want := range []string{`action="/config/install-update"`, ">Update to v0.4.0</button>", `data-confirm="Update folio from v0.3.1 to v0.4.0?"`, "/static/config.js"} {
+	for _, want := range []string{`action="/config/install-update"`, ">Update to v0.4.0</button>", `data-confirm="Update folio from v0.3.1 to v0.4.0? folio web restarts with it."`, "/static/config.js"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the release box lacks %q:\n%s", want, body)
 		}
@@ -244,5 +244,57 @@ func TestTheConfigPageAsksForARestartOnceInstalled(t *testing.T) {
 	body := get(t, s, "/config").Body.String()
 	if !strings.Contains(body, "Restart folio web to use it") || strings.Contains(body, `action="/config/install-update"`) {
 		t.Errorf("no restart notice, or still an update button:\n%s", body)
+	}
+}
+
+func TestVersionAnswersTheRunningRelease(t *testing.T) {
+	s := updatingServer(t, "v0.3.1", releaseServer(t, "v0.4.0"))
+	if body := get(t, s, "/version").Body.String(); body != "v0.3.1" {
+		t.Errorf("/version = %q", body)
+	}
+}
+
+// A server that can restart itself does so after an install, and the page
+// waits for the new release to answer, then reloads.
+func TestAnInstalledUpdateRestartsWhenItCan(t *testing.T) {
+	s := updatingServer(t, "v0.3.1", releaseServer(t, "v0.4.0"))
+	s.restart = make(chan struct{}, 1)
+	s.update.installed = "v0.4.0"
+	for _, page := range []string{"/update", "/config"} {
+		body := get(t, s, page).Body.String()
+		if !strings.Contains(body, `data-restart-to="v0.4.0"`) || !strings.Contains(body, "Restarting folio web") {
+			t.Errorf("%s does not wait for the restart:\n%s", page, body)
+		}
+	}
+	for _, page := range []string{"/", "/config"} {
+		if body := get(t, s, page).Body.String(); !strings.Contains(body, "/static/restart.js") {
+			t.Errorf("%s does not load restart.js", page)
+		}
+	}
+}
+
+func TestARestartIsAskedForOnce(t *testing.T) {
+	s, err := newServer("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.requestRestart() // no channel: nothing to do, and no panic
+	s.restart = make(chan struct{}, 1)
+	s.requestRestart()
+	s.requestRestart() // must not block
+	if len(s.restart) != 1 {
+		t.Errorf("%d restarts pending, want 1", len(s.restart))
+	}
+}
+
+func TestARestartKeepsTheAddressAndProject(t *testing.T) {
+	t.Setenv(restartAddrEnv, "localhost:8250")
+	t.Setenv(restartRootEnv, "/books/two")
+	addr, root := takeRestartEnv()
+	if addr != "localhost:8250" || root != "/books/two" {
+		t.Errorf("takeRestartEnv = %q, %q", addr, root)
+	}
+	if os.Getenv(restartAddrEnv) != "" || os.Getenv(restartRootEnv) != "" {
+		t.Error("the restart variables are left for the next process")
 	}
 }
