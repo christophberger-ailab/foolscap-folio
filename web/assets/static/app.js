@@ -344,8 +344,20 @@ document.addEventListener('folio-shown', function (evt) {
 // (findCommentMarkers): each with who wrote it and when, its text, the
 // passage it is about, and its replies. A click on one puts the cursor at
 // the start of its text in the editor, as a click on its passage in the
-// preview does; Reply and Remove do what the editor's rail does for the
-// comment the cursor is in, so they go through the same code.
+// preview does; Remove does what the editor's rail does for the comment
+// the cursor is in, so it goes through the same code.
+//
+// Comments are written here rather than among their markers in the page:
+// a comment or reply signed with the user's own name has an Edit button,
+// which puts its text into a field in its place, and Reply opens the same
+// field for a new reply. Saving writes the text into the editor
+// (editComment, writeReply), so it is autosaved and undone like any edit.
+
+// commentEdit is the edit going on in the pane, or null: the comment it
+// is in, the reply it edits (-1 for the comment itself, 'new' for a reply
+// yet to be written), the text it started from, the form it is typed
+// into, and the editor's textarea, which tells one page from the next.
+var commentEdit = null;
 
 // commentPassage is the commented text, without the markers of any comment
 // inside it, in one line and cut short.
@@ -358,17 +370,39 @@ function commentPassage(text, start) {
   return passage.length > 160 ? passage.slice(0, 159) + '…' : passage;
 }
 
-function commentByline(marker) {
-  return [marker.author, marker.date].filter(Boolean).join(' · ');
+// commentItem fills el with one comment or reply: who wrote it and when,
+// an Edit button when it is the user's own, and its text.
+function commentItem(el, marker, reply, empty) {
+  el.classList.add('comments-item');
+  el.dataset.reply = String(reply);
+  var by = textBlock('div', 'comments-byline', [marker.author, marker.date].filter(Boolean).join(' · '));
+  if (marker.author && marker.author === commentUser()) {
+    var edit = textBlock('button', 'comments-edit', 'Edit');
+    edit.type = 'button';
+    edit.title = 'Edit this text here';
+    by.appendChild(edit);
+  }
+  if (by.firstChild) {
+    el.appendChild(by);
+  }
+  el.appendChild(textBlock('p', 'comments-text', marker.text || empty));
+  return el;
 }
 
-// updateComments lists the comments of the page in the editor anew.
+// updateComments lists the comments of the page in the editor anew. While
+// a comment of this page is being edited in the pane, the list stays as it
+// is, so typing in the editor does not sweep the edit away; saving checks
+// that the comment is still the one the edit started from.
 function updateComments() {
   var list = document.getElementById('comments-list');
   if (!list) {
     return;
   }
   var editor = document.querySelector('#content textarea.file-content');
+  if (commentEdit && commentEdit.page === editor && list.contains(commentEdit.form)) {
+    return;
+  }
+  commentEdit = null;
   list.innerHTML = '';
   if (!editor) {
     list.appendChild(emptyNote('Open a page to see its comments.'));
@@ -393,35 +427,23 @@ function updateComments() {
     li.className = 'comments-entry';
     li.dataset.comment = String(i);
     li.title = 'Show this comment in the editor';
-    var by = commentByline(start);
-    if (by) {
-      li.appendChild(textBlock('div', 'comments-byline', by));
-    }
-    li.appendChild(textBlock('p', 'comments-text', start.text || '(empty comment)'));
+    li.appendChild(commentItem(document.createElement('div'), start, -1, '(empty comment)'));
     var passage = commentPassage(text, start);
     if (passage) {
       li.appendChild(textBlock('blockquote', 'comments-passage', passage));
     }
-    if (start.replies.length) {
-      var replies = document.createElement('ul');
-      replies.className = 'comments-replies';
-      start.replies.forEach(function (reply) {
-        var r = document.createElement('li');
-        var rby = commentByline(reply);
-        if (rby) {
-          r.appendChild(textBlock('div', 'comments-byline', rby));
-        }
-        r.appendChild(textBlock('p', 'comments-text', reply.text || '(empty reply)'));
-        replies.appendChild(r);
-      });
-      li.appendChild(replies);
-    }
+    var replies = document.createElement('ul');
+    replies.className = 'comments-replies';
+    start.replies.forEach(function (reply, j) {
+      replies.appendChild(commentItem(document.createElement('li'), reply, j, '(empty reply)'));
+    });
+    li.appendChild(replies);
     var actions = document.createElement('div');
     actions.className = 'comments-actions';
     actions.appendChild(textBlock('button', 'comments-reply', 'Reply'));
     actions.appendChild(textBlock('button', 'comments-remove', 'Remove'));
     actions.firstChild.type = 'button';
-    actions.firstChild.title = 'Write a reply to this comment in the editor';
+    actions.firstChild.title = 'Write a reply to this comment';
     actions.lastChild.type = 'button';
     actions.lastChild.title = 'Remove this comment and its replies; the commented text stays';
     li.appendChild(actions);
@@ -450,14 +472,113 @@ function scheduleComments() {
   commentsTimer = setTimeout(updateComments, 300);
 }
 
+// startCommentEdit switches the nth comment of the pane into edit mode:
+// the text of the comment (reply -1) or of one of its replies gives way to
+// a field holding it, and reply 'new' adds an empty field below the last
+// reply. An edit already going on is dropped, as only one field is open at
+// a time.
+function startCommentEdit(index, reply) {
+  commentEdit = null;
+  updateComments(); // fresh from the editor, and without another edit's field
+  var entry = document.querySelector('#comments-list .comments-entry[data-comment="' + index + '"]');
+  var editor = document.querySelector('#content textarea.file-content');
+  var start = editor && findCommentMarkers(editor.value).filter(function (m) { return m.kind === 'start'; })[index];
+  if (!entry || !start) {
+    return;
+  }
+  var item, was = start.text;
+  if (reply === 'new') {
+    item = entry.querySelector('.comments-replies').appendChild(document.createElement('li'));
+  } else {
+    item = entry.querySelector('.comments-item[data-reply="' + reply + '"]');
+    was = (reply < 0 ? start : start.replies[reply]).text;
+    item.querySelector('.comments-text').hidden = true;
+    item.querySelector('.comments-edit').hidden = true;
+  }
+  var form = document.createElement('div');
+  form.className = 'comments-form';
+  var field = document.createElement('textarea');
+  field.rows = 3;
+  field.value = reply === 'new' ? '' : was;
+  field.placeholder = reply === 'new' ? 'Your reply' : 'Your comment';
+  field.title = 'Enter saves, Escape cancels';
+  form.appendChild(field);
+  form.appendChild(textBlock('button', 'comments-save', 'Save'));
+  form.appendChild(textBlock('button', 'comments-cancel', 'Cancel'));
+  form.children[1].type = form.children[2].type = 'button';
+  item.appendChild(form);
+  commentEdit = { comment: index, reply: reply, was: was, form: form, page: editor };
+  entry.title = '';
+  field.focus();
+  field.setSelectionRange(field.value.length, field.value.length);
+}
+
+// saveCommentEdit writes the field's text into the page and leaves edit
+// mode; a new reply left empty is not written at all. When the comment is
+// no longer what the edit started from -- the page was edited meanwhile --
+// nothing is written, and the user is told so.
+function saveCommentEdit() {
+  var edit = commentEdit;
+  if (!edit) {
+    return;
+  }
+  var text = edit.form.querySelector('textarea').value;
+  var saved;
+  if (edit.reply === 'new') {
+    saved = !text.trim() || writeReply(edit.comment, edit.was, text);
+  } else {
+    saved = editComment(edit.comment, edit.reply, edit.was, text);
+  }
+  if (!saved) {
+    window.alert('The comment has changed in the editor since you started. Your text was not saved; copy it, cancel, and try again.');
+    return;
+  }
+  commentEdit = null;
+  updateComments();
+}
+
+function cancelCommentEdit() {
+  commentEdit = null;
+  updateComments();
+}
+
+document.addEventListener('keydown', function (evt) {
+  if (!commentEdit || !commentEdit.form.contains(evt.target)) {
+    return;
+  }
+  if (evt.key === 'Enter' && !evt.shiftKey && !evt.isComposing) {
+    evt.preventDefault();
+    saveCommentEdit();
+  } else if (evt.key === 'Escape') {
+    evt.preventDefault();
+    evt.stopPropagation();
+    cancelCommentEdit();
+  }
+}, true);
+
 document.addEventListener('click', function (evt) {
   var entry = evt.target.closest && evt.target.closest('#comments-list .comments-entry');
   if (!entry) {
     return;
   }
-  focusComment(Number(entry.dataset.comment));
-  if (evt.target.closest('.comments-reply')) {
-    replyToComment();
+  if (evt.target.closest('.comments-form')) {
+    if (evt.target.closest('.comments-save')) {
+      saveCommentEdit();
+    } else if (evt.target.closest('.comments-cancel')) {
+      cancelCommentEdit();
+    }
+    return;
+  }
+  var index = Number(entry.dataset.comment);
+  var item = evt.target.closest('.comments-item');
+  var reply = item ? Number(item.dataset.reply) : -1;
+  // Every click shows the comment in the editor; the buttons then take
+  // the focus back into the pane.
+  focusComment(index, reply);
+  if (evt.target.closest('.comments-edit')) {
+    startCommentEdit(index, reply);
+  } else if (evt.target.closest('.comments-reply')) {
+    startCommentEdit(index, 'new');
   } else if (evt.target.closest('.comments-remove')) {
     removeComment();
   }

@@ -73,6 +73,10 @@ constraints:
       1-1: The site's home page lists the topics
       2: Pages are rendered from the same tree and with the same heading demotion as a document, with the same shortcodes and conditional filter
       2-1: An image alone in its paragraph with alt text is a `<figure>` with that text as its `<figcaption>`, as Pandoc writes an implicit figure; an image among text or without alt text stays in its paragraph
+      2-2: 'A `::: {.subpages title="..."}` block is replaced, at its position, by a table of the page''s subpages, one row each with the subpage''s title linking to it, the row under the pointer highlighted, as a Quarto listing of type table showing the title field; the `title` attribute is the text of the table''s one header cell, and without it the table has no header'
+      2-2-1: The subpages of a folder's index page are the pages in that folder and the subfolders with an index page of their own, as one level, in sidebar order; a subfolder without an index page is not listed, nor is anything further down
+      2-2-2: On the site's home page the block lists the topics; on a page without subpages it renders nothing, and whatever the block contains is dropped
+      2-2-3: A document format renders nothing for the block, as the subpages follow the page as its chapters
       3: All links in the output are relative, so the site works from file:// and below any URL prefix; links between pages of a topic are rewritten to the generated pages, raw HTML links are not
       3-1: A relative link to a page -- `.qmd` or `.md`, a page's `.html`, or a folder -- resolves against the folder of the page it is in, as the file system resolves it, and is rewritten to the generated page; a link that climbs out of the project root and back in through the root's own folder name, as links written for a larger tree do, lands on the page it names
       3-2: A link that leaves the project is left as written and warned about as leaving it; a link to a page that exists but is not part of the site -- a folder that is no topic, or a topic not selected -- is warned about as such, and only a target that does not exist is reported as not found

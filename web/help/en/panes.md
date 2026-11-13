@@ -31,8 +31,12 @@ The `Panes ▾` menu in the top bar lists every pane, with a tick beside the ope
 
 The comments pane lists the [comments](editor.md) of the page in the editor, in the order they stand, each with who wrote it and when, its text, the passage it is about, and its replies. It follows the editor as you type.
 
-- Click a comment to put the cursor at its text in the editor.
-- `Reply` writes a signed and dated reply in the editor, where you type it.
+- Click a comment or a reply, anywhere but on its buttons, to put the cursor at its text in the editor.
+- `Edit`, shown on the comments and replies signed with [your name](settings.md), turns the text into a field right in the pane, so you do not have to write among the markers in the page. `Save` or `Enter` writes it into the page; `Cancel` or `Escape` leaves the comment as it was.
+- `Reply` opens the same field for a new reply. It is written after the last reply, signed with your name and the date, when you save it; a reply left empty is not written.
+- A comment is kept on one line: line breaks you type become spaces.
+- While a field is open, the list does not follow the editor. If the comment was changed in the editor meanwhile, your text is not saved and you are told so.
+- `Ctrl-Z` in the editor takes a saved edit or reply back.
 - `Remove` removes the comment and its replies after asking; the commented text stays.
 
 ## The help pane
