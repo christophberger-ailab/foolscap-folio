@@ -595,3 +595,28 @@ func TestLongBookmarks(t *testing.T) {
 	}
 	has(t, doc, `w:name="short"`, `w:anchor="short"`)
 }
+
+// Without a template, the brand names the fonts and colors of the styles
+// folio defines; a template keeps its own.
+func TestBrandLook(t *testing.T) {
+	md := "# One\n\nText with `code` and a [link](https://example.org).\n\n```\nblock\n```\n"
+	look := Look{Font: "Corporate Sans", HeadingFont: "Fancy Display", MonoFont: "Corp Mono",
+		Color: "222222", HeadingColor: "003366", LinkColor: "0055AA"}
+	styles := build(t, md, Options{Look: look, TOC: true})["word/styles.xml"]
+	has(t, styles,
+		`<w:rPrDefault><w:rPr><w:rFonts w:ascii="Corporate Sans" w:hAnsi="Corporate Sans" w:eastAsia="Corporate Sans" w:cs="Corporate Sans"/><w:color w:val="222222"/>`,
+		`<w:rFonts w:ascii="Fancy Display" w:hAnsi="Fancy Display" w:eastAsia="Fancy Display" w:cs="Fancy Display"/>`, `<w:color w:val="003366"/><w:sz w:val="32">`,
+		`<w:color w:val="0055AA"/><w:u w:val="single">`,
+		`w:cs="Fancy Display"/><w:b/><w:color w:val="003366"/><w:sz w:val="32"/>`, // the contents heading
+		`<w:rFonts w:ascii="Corp Mono" w:hAnsi="Corp Mono" w:eastAsia="Corp Mono" w:cs="Corp Mono"/>`)
+	lacks(t, styles, "Consolas", "Calibri Light", "0000FF")
+
+	// No brand: the styles as they were.
+	plain := build(t, md, Options{})["word/styles.xml"]
+	has(t, plain, "Consolas", "Calibri Light", "0000FF")
+	lacks(t, plain, "Corporate Sans")
+
+	tpl := makeTemplate(t)
+	styles = build(t, md, Options{Look: look, Template: tpl})["word/styles.xml"]
+	lacks(t, styles, "Corporate Sans", "Fancy Display", "003366")
+}

@@ -1188,6 +1188,7 @@ func (s *server) selections(prefs projectPrefs) ([]config.Selection, error) {
 		return nil, err
 	}
 	cfg.CalloutTitles = s.cfg.Callouts
+	cfg.UserBrand = userBrandIn(s.configFile)
 	var docs, webs []string
 	for _, f := range prefs.Formats {
 		if fm, ok := cfg.Formats.Get(f); ok && fm.IsWeb() {

@@ -137,13 +137,18 @@ func Render(sel config.Selection, dryRun bool, log Logf) error {
 		return err
 	}
 	lang := sel.Config.Lang
+	brand, err := loadBrand(sel.Config.Root, sel.Config.UserBrand)
+	if err != nil {
+		return err
+	}
+	look := brand.style()
 	for _, t := range sel.Format.Type {
 		out := filepath.Join(dir, stem+"."+t)
 		switch t {
 		case config.TypeDOCX:
 			err = docx.Write(out, doc, docx.Options{
 				Root: sel.Config.Root, Template: template, Title: title, Lang: lang, TOC: sel.Format.TOC,
-				Warn: warn(log),
+				Look: docx.Look(look), Warn: warn(log),
 			})
 			if err == nil && cover != "" {
 				err = docrender.CoverDOCX(out, cover)
@@ -151,13 +156,14 @@ func Render(sel config.Selection, dryRun bool, log Logf) error {
 		case config.TypePDF:
 			var fonts map[string]string
 			var notes []string
-			fonts, notes, err = brandFonts(sel.Config.Root)
+			fonts, notes, err = brand.fonts()
 			for _, n := range notes {
 				log("note: %s", n)
 			}
 			if err == nil {
 				err = docrender.RunPDF(context.Background(), pdfTimeout, out, nil, docrender.Options{
 					Root: sel.Config.Root, Cover: cover, Title: title, TOC: sel.Format.TOC, Lang: lang, Fonts: fonts,
+					Colors:   docrender.Colors{Text: look.Color, Heading: look.HeadingColor, Link: look.LinkColor},
 					Markdown: doc, Warn: warn(log),
 				})
 			}
@@ -287,8 +293,18 @@ func renderSite(sel config.Selection, dir string, dryRun bool, log Logf) error {
 	for i, t := range sel.Topics {
 		topics[i] = site.Topic{Name: t.Name, Folder: t.Folder, Title: t.Title}
 	}
+	brand, err := loadBrand(sel.Config.Root, sel.Config.UserBrand)
+	if err != nil {
+		return err
+	}
+	brandCSS, brandFonts, notes := brand.css()
+	for _, n := range notes {
+		log("note: %s", n)
+	}
 	exp := Expander(sel, log)
 	err = site.Build(site.Options{
+		BrandCSS:      brandCSS,
+		BrandFonts:    brandFonts,
 		Root:          sel.Config.Root,
 		OutDir:        dir,
 		Title:         sel.Config.Title,

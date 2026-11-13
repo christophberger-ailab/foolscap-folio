@@ -53,7 +53,7 @@ constraints:
       4-1: Emoji render in a monochrome emoji font, and a line never breaks inside a word that spans quote marks, emphasis or links
       4-2: An image among text in a paragraph is drawn inline on the text's baseline, and a line with a tall image grows to hold it; an image alone in its paragraph stays a block of its own
       4-3: Image width and height attributes are honoured in cm, mm, in, pt, px, em, per cent of the available width, and bare numbers as pixels; with one of the two given the other follows the aspect ratio, and an image too large for the text width or the page shrinks to fit
-      4-4: 'With a `_brand.yml` at the project root, the PDF sets body text, headings and code in the typography base, headings and monospace fonts, choosing the closest weight and style among the family''s TrueType files; fonts it cannot embed (other formats, or not from local files) are reported and leave that text in the Go fonts, and emoji still fall back to the emoji font'
+      4-4: 'With a brand file (see BRAND), the PDF sets body text, headings and code in the typography base, headings and monospace fonts, choosing the closest weight and style among the family''s TrueType files; fonts it cannot embed (other formats, or not from local files) are reported and leave that text in the Go fonts, and emoji still fall back to the emoji font'
       4-5: Callouts are drawn in a box in the callout type's own color, with a thick left bar; the title of a default callout sits on a header background for that type and stays with the first lines of the body, and a callout running over pages keeps its box open at the page breaks
       4-5-1: A callout without a title of its own is titled with its type's name in the project's `lang`, taken from the `callouts` translations in the user's config.cue, else from the English and German titles folio knows, else in English; a regional `lang` (`fr-CA`) falls back to its language (`fr`). The website, DOCX, PDF and `folio preview` title callouts alike
       4-6: A `{{< pagebreak >}}` starts a new page, also inside lists, block quotes and callouts; a break on a page that holds nothing yet adds no blank page, and one inside a table cell is ignored
@@ -66,6 +66,20 @@ constraints:
       6: Unsupported PDF constructs produce actionable errors rather than silently discarding content
       7: Mermaid diagrams stay code blocks, with a warning; math is not typeset
       8: 'PPTX slide decks are not supported; `::: slide` blocks and `.notes` are dropped'
+
+  BRAND:
+    description: A Quarto brand file, `_brand.yml`, styles the rendered output.
+    requirements:
+      1: The brand file is `_brand.yml` at the project root; a project without one takes `_brand.yml` in the user's config directory, where config.cue lives; with neither, the output keeps folio's own look
+      1-1: Font files are found relative to the brand file that names them, and a path that leaves its directory is refused
+      1-2: A color is a value, a name from `color.palette`, or one of `foreground`, `background` and `primary`
+      2: 'A website links a stylesheet made from the brand after folio''s own and before the format''s `css`: text, page and accent colors, the link color (`typography.link.color`, else `primary`), the families, weights, sizes and line heights of base, headings and monospace, the heading color, and the colors of inline and block code'
+      2-1: Fonts with `files` are copied into the site and declared with `@font-face`; fonts with `source` google or bunny are imported from that service
+      2-2: The brand's colors apply to the light color scheme; the dark scheme keeps folio's colors
+      2-3: A value that could not stand in a stylesheet as it is (anything but a plain color, size, number or name) is left out and reported in the render log
+      3: The PDF draws text in `color.foreground`, headings in `typography.headings.color` and links in the link color, where these are given as `#rgb` or `#rrggbb`, and takes its fonts as DOCUMENT 4-4 says
+      4: A DOCX without a `template` names the base, headings and monospace families in its styles and takes the same three colors; a DOCX with a template keeps the template's styles
+      5: '`folio preview` and the renders of `folio web` apply the brand as `folio render` does'
 
   SITE:
     description: A website format writes a static site of all selected topics, with a layout like Quarto's.

@@ -1,11 +1,16 @@
 package build
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"io/fs"
+	"maps"
+	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -16,18 +21,50 @@ import (
 )
 
 // BrandFile is the Quarto brand file (https://posit-dev.github.io/brand-yml/)
-// at the project root. The qm renderer sets the PDF in its typography
-// fonts; without it, or for any face it does not provide, the PDF keeps
-// the Go fonts.
+// at the project root, or else in the user's config directory. Its colors
+// and typography style the website, the PDF and a DOCX without a template.
 const BrandFile = "_brand.yml"
 
 type brand struct {
+	// dir is the directory of the file, which its paths are relative to.
+	dir   string
+	Color struct {
+		Palette    map[string]string `yaml:"palette"`
+		Foreground string            `yaml:"foreground"`
+		Background string            `yaml:"background"`
+		Primary    string            `yaml:"primary"`
+	} `yaml:"color"`
 	Typography struct {
-		Fonts     []brandFont `yaml:"fonts"`
-		Base      brandStyle  `yaml:"base"`
-		Headings  brandStyle  `yaml:"headings"`
-		Monospace brandStyle  `yaml:"monospace"`
+		Fonts           []brandFont `yaml:"fonts"`
+		Base            brandStyle  `yaml:"base"`
+		Headings        brandStyle  `yaml:"headings"`
+		Monospace       brandStyle  `yaml:"monospace"`
+		MonospaceInline brandStyle  `yaml:"monospace-inline"`
+		MonospaceBlock  brandStyle  `yaml:"monospace-block"`
+		Link            brandStyle  `yaml:"link"`
 	} `yaml:"typography"`
+}
+
+// loadBrand reads the project's brand file, or else the user's, whose path
+// is user ("" for none). Without either the brand is nil.
+func loadBrand(root, user string) (*brand, error) {
+	for _, file := range []string{filepath.Join(root, BrandFile), user} {
+		if file == "" {
+			continue
+		}
+		data, err := os.ReadFile(file)
+		if errors.Is(err, fs.ErrNotExist) {
+			continue
+		} else if err != nil {
+			return nil, err
+		}
+		b := &brand{dir: filepath.Dir(file)}
+		if err = yaml.Unmarshal(data, b); err != nil {
+			return nil, fmt.Errorf("%s: %w", BrandFile, err)
+		}
+		return b, nil
+	}
+	return nil, nil
 }
 
 type brandFont struct {
@@ -52,12 +89,17 @@ func (f *brandFile) UnmarshalYAML(n *yaml.Node) error {
 	return n.Decode((*plain)(f))
 }
 
-// brandStyle is a typography element, given as a family name or as family,
-// weight and style.
+// brandStyle is a typography element, given as a family name or as a
+// mapping of its properties.
 type brandStyle struct {
-	Family string `yaml:"family"`
-	Weight string `yaml:"weight"`
-	Style  string `yaml:"style"`
+	Family     string `yaml:"family"`
+	Weight     string `yaml:"weight"`
+	Style      string `yaml:"style"`
+	Size       string `yaml:"size"`
+	LineHeight string `yaml:"line-height"`
+	Color      string `yaml:"color"`
+	Background string `yaml:"background-color"`
+	Decoration string `yaml:"decoration"`
 }
 
 func (s *brandStyle) UnmarshalYAML(n *yaml.Node) error {
@@ -106,19 +148,12 @@ type brandFace struct {
 	italic bool
 }
 
-// brandFonts reads the PDF's fonts from the project's _brand.yml: the
-// paths of TrueType files by docrender.FontRoles, and notes on the faces
-// that stay Go fonts. Without a brand file both are nil.
-func brandFonts(root string) (map[string]string, []string, error) {
-	data, err := os.ReadFile(filepath.Join(root, BrandFile))
-	if errors.Is(err, fs.ErrNotExist) {
+// fonts reads the PDF's fonts from the brand: the paths of TrueType files
+// by docrender.FontRoles, and notes on the faces that stay Go fonts.
+// Without a brand both are nil.
+func (b *brand) fonts() (map[string]string, []string, error) {
+	if b == nil {
 		return nil, nil, nil
-	} else if err != nil {
-		return nil, nil, err
-	}
-	var b brand
-	if err = yaml.Unmarshal(data, &b); err != nil {
-		return nil, nil, fmt.Errorf("%s: %w", BrandFile, err)
 	}
 	t := b.Typography
 	families := map[string][]brandFace{}
@@ -131,7 +166,7 @@ func brandFonts(root string) (map[string]string, []string, error) {
 			continue
 		}
 		for _, file := range f.Files {
-			path, err := foliocore.ProjectPath(root, file.Path)
+			path, err := foliocore.ProjectPath(b.dir, file.Path)
 			if err != nil {
 				return nil, nil, fmt.Errorf("%s: font %s: %w", BrandFile, f.Family, err)
 			}
@@ -218,4 +253,215 @@ func brandFonts(root string) (map[string]string, []string, error) {
 		}
 	}
 	return paths, notes, nil
+}
+
+// brandLook is what the brand gives a document: the names of its fonts and
+// its colors as RRGGBB, each "" where the brand has none.
+type brandLook struct {
+	Font, HeadingFont, MonoFont    string
+	Color, HeadingColor, LinkColor string
+}
+
+func (b *brand) style() brandLook {
+	if b == nil {
+		return brandLook{}
+	}
+	t := b.Typography
+	return brandLook{
+		Font: fontName(t.Base.Family), HeadingFont: fontName(t.Headings.Family), MonoFont: fontName(t.Monospace.Family),
+		Color: b.hex(b.Color.Foreground), HeadingColor: b.hex(t.Headings.Color),
+		LinkColor: b.hex(cmp.Or(t.Link.Color, b.Color.Primary)),
+	}
+}
+
+// color resolves a color given by its name in the palette or as a theme
+// color, to the value behind it.
+func (b *brand) color(v string) string {
+	for range 8 { // a palette that names itself ends here
+		switch next, ok := b.Color.Palette[v]; {
+		case ok:
+			v = next
+		case v == "foreground":
+			v = b.Color.Foreground
+		case v == "background":
+			v = b.Color.Background
+		case v == "primary":
+			v = b.Color.Primary
+		default:
+			return v
+		}
+	}
+	return ""
+}
+
+var (
+	reHex      = regexp.MustCompile(`^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$`)
+	reCSSValue = regexp.MustCompile(`^[#\w(),.%/ +-]+$`)
+	reFontName = regexp.MustCompile(`^[\w .'-]+$`)
+)
+
+// hex is a color as RRGGBB, or "" for one that is not given as #rgb or
+// #rrggbb.
+func (b *brand) hex(v string) string {
+	v = b.color(v)
+	if !reHex.MatchString(v) {
+		return ""
+	}
+	v = strings.ToUpper(v[1:])
+	if len(v) == 3 {
+		v = string([]byte{v[0], v[0], v[1], v[1], v[2], v[2]})
+	}
+	return v
+}
+
+// fontName is a family name that is safe to write into a stylesheet or a
+// document, or "".
+func fontName(family string) string {
+	if !reFontName.MatchString(family) {
+		return ""
+	}
+	return family
+}
+
+// css is the stylesheet the brand adds to a website, the font files it
+// refers to (name below the stylesheet's fonts/ directory to source file),
+// and notes on the values left out. Colors apply to the light color
+// scheme; the dark one keeps the site's own.
+func (b *brand) css() (string, map[string]string, []string) {
+	if b == nil {
+		return "", nil, nil
+	}
+	var notes []string
+	// val checks a value before it goes into the stylesheet.
+	val := func(what, v string, re *regexp.Regexp) string {
+		if v != "" && !re.MatchString(v) {
+			notes = append(notes, fmt.Sprintf("%s: %s: %q is not a value the website can use", BrandFile, what, v))
+			return ""
+		}
+		return v
+	}
+	color := func(what, v string) string { return val(what, b.color(v), reCSSValue) }
+	// decls joins the properties that have a value.
+	decls := func(kv ...string) string {
+		var d []string
+		for i := 0; i < len(kv); i += 2 {
+			if kv[i+1] != "" {
+				d = append(d, kv[i]+":"+kv[i+1])
+			}
+		}
+		return strings.Join(d, ";")
+	}
+	rule := func(sel, d string) string {
+		if d == "" {
+			return ""
+		}
+		return sel + "{" + d + "}\n"
+	}
+
+	t := b.Typography
+	base := val("typography: base", t.Base.Family, reFontName)
+	head := val("typography: headings", t.Headings.Family, reFontName)
+	mono := val("typography: monospace", t.Monospace.Family, reFontName)
+
+	var imports, faces strings.Builder
+	files := map[string]string{}
+	for _, f := range t.Fonts {
+		if !reFontName.MatchString(f.Family) {
+			continue
+		}
+		// A hosted font is asked for in the weights its elements use.
+		weights := map[int]bool{400: true, 700: true}
+		for _, s := range []brandStyle{t.Base, t.Headings, t.Monospace} {
+			if w, _, err := parseWeight(s.Weight, 0); err == nil && w > 0 && strings.EqualFold(s.Family, f.Family) {
+				weights[w] = true
+			}
+		}
+		var google, bunny []string
+		for _, w := range slices.Sorted(maps.Keys(weights)) {
+			google = append(google, fmt.Sprintf("%d,%ditalic", w, w))
+			bunny = append(bunny, fmt.Sprintf("%d,%di", w, w))
+		}
+		switch f.Source {
+		case "google":
+			fmt.Fprintf(&imports, "@import url(\"https://fonts.googleapis.com/css?family=%s:%s&display=swap\");\n",
+				strings.ReplaceAll(f.Family, " ", "+"), strings.Join(google, ","))
+		case "bunny":
+			fmt.Fprintf(&imports, "@import url(\"https://fonts.bunny.net/css?family=%s:%s&display=swap\");\n",
+				strings.ReplaceAll(strings.ToLower(f.Family), " ", "-"), strings.Join(bunny, ","))
+		}
+		for _, file := range f.Files {
+			path, err := foliocore.ProjectPath(b.dir, file.Path)
+			lo, hi, werr := parseWeight(file.Weight, 400)
+			if st, serr := os.Stat(path); err != nil || werr != nil || serr != nil || st.IsDir() {
+				notes = append(notes, fmt.Sprintf("%s: font %s: %s is not a font file the website can use", BrandFile, f.Family, file.Path))
+				continue
+			}
+			name := fmt.Sprintf("%d-%s", len(files)+1, filepath.Base(path))
+			files[name] = path
+			weight := strconv.Itoa(lo)
+			if hi != lo {
+				weight += " " + strconv.Itoa(hi)
+			}
+			style := "normal"
+			if file.Style == "italic" || file.Style == "oblique" {
+				style = file.Style
+			}
+			fmt.Fprintf(&faces, "@font-face{font-family:%q;src:url(%q);font-weight:%s;font-style:%s}\n",
+				f.Family, "fonts/"+url.PathEscape(name), weight, style)
+		}
+	}
+	family := func(name, fallback string) string {
+		if name == "" {
+			return ""
+		}
+		return `"` + name + `",` + fallback
+	}
+	weight := func(what, v string) string {
+		w, _, err := parseWeight(v, 0)
+		if err != nil {
+			notes = append(notes, fmt.Sprintf("%s: %s: %v", BrandFile, what, err))
+		}
+		if w == 0 {
+			return ""
+		}
+		return strconv.Itoa(w)
+	}
+	text := func(what, v string) string { return val(what, v, reCSSValue) }
+
+	const headings = "h1,h2,h3,h4,h5,h6"
+	all := rule(":root", decls("--font", family(base, "system-ui,sans-serif"), "--mono", family(mono, "ui-monospace,monospace"),
+		"--lh-body", text("typography: base: line-height", t.Base.LineHeight))) +
+		rule("html", decls("font-size", text("typography: base: size", t.Base.Size))) +
+		rule("body", decls("font-weight", weight("typography: base: weight", t.Base.Weight))) +
+		rule(headings, decls("font-family", family(head, "var(--font)"),
+			"font-weight", weight("typography: headings: weight", t.Headings.Weight),
+			"font-style", text("typography: headings: style", t.Headings.Style),
+			"line-height", text("typography: headings: line-height", t.Headings.LineHeight))) +
+		rule("a", decls("font-weight", weight("typography: link: weight", t.Link.Weight),
+			"text-decoration", text("typography: link: decoration", t.Link.Decoration))) +
+		rule("code,pre", decls("font-size", text("typography: monospace: size", t.Monospace.Size),
+			"font-weight", weight("typography: monospace: weight", t.Monospace.Weight)))
+
+	bg, primary := color("color: background", b.Color.Background), color("color: primary", b.Color.Primary)
+	soft := ""
+	if primary != "" {
+		soft = "color-mix(in srgb," + primary + " 12%,var(--bg))"
+	}
+	inline, block := t.MonospaceInline, t.MonospaceBlock
+	light := rule(":root", decls("--bg", bg, "--nav-bg", bg, "--fg", color("color: foreground", b.Color.Foreground),
+		"--accent", primary, "--accent-soft", soft,
+		"--link", cmp.Or(color("typography: link: color", t.Link.Color), primary))) +
+		rule(headings, decls("color", color("typography: headings: color", t.Headings.Color))) +
+		rule("a", decls("background-color", color("typography: link: background-color", t.Link.Background))) +
+		rule(":not(pre)>code", decls("color", color("typography: monospace-inline: color", inline.Color),
+			"background-color", color("typography: monospace-inline: background-color", inline.Background))) +
+		rule("pre,pre code", decls("color", color("typography: monospace-block: color", block.Color),
+			"background-color", color("typography: monospace-block: background-color", block.Background)))
+	if light != "" {
+		light = "@media (prefers-color-scheme: light){\n" + light + "}\n"
+	}
+	if len(files) == 0 {
+		files = nil
+	}
+	return imports.String() + faces.String() + all + light, files, notes
 }

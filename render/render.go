@@ -37,12 +37,17 @@ var (
 // which folio's settings file (config.cue) holds. Register sets it.
 var calloutTitles = func() (map[string]map[string]string, error) { return nil, nil }
 
+// userBrand returns the path of the user's brand file, beside folio's
+// settings file. Register sets it.
+var userBrand = func() string { return "" }
+
 // Register wires the `render` command into start. `render` has no
 // sub-commands, so — as with `lint` — it is registered as a leaf. titles
-// returns the user's callout titles.
-func Register(projectFlag *string, titles func() (map[string]map[string]string, error)) {
+// returns the user's callout titles, brand the path of their brand file.
+func Register(projectFlag *string, titles func() (map[string]map[string]string, error), brand func() string) {
 	projectPath = projectFlag
 	calloutTitles = titles
+	userBrand = brand
 	topicFlag = flag.String("topic", "",
 		"Comma-separated topics to render (default: all)")
 	formatFlag = flag.String("format", "",
@@ -113,6 +118,7 @@ func BuildOptions(docPath string, req config.Request, clean, dryRun bool) (build
 	if cfg.CalloutTitles, err = calloutTitles(); err != nil {
 		return build.Options{}, fmt.Errorf("render: %w", err)
 	}
+	cfg.UserBrand = userBrand()
 	sels, err := cfg.Expand(req)
 	if err != nil {
 		return build.Options{}, fmt.Errorf("render: %w", err)

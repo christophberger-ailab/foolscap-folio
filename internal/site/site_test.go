@@ -305,3 +305,39 @@ func TestCalloutTitlesAreTranslated(t *testing.T) {
 	}
 	has(t, "x/page", read(t, out, "x/page.html"), `<div class="callout-title">Remarque</div>`)
 }
+
+// The brand's stylesheet comes after the site's own and before the
+// format's, and its font files are copied beside it.
+func TestBrandStylesheet(t *testing.T) {
+	root, out := project(t)
+	write(t, root, "fonts/Sans.ttf", "FONT")
+	write(t, root, "custom.css", "body{}")
+	o := opts(root, out)
+	o.BrandCSS = ":root{--accent:#003366}\n"
+	o.BrandFonts = map[string]string{"1-Sans.ttf": filepath.Join(root, "fonts", "Sans.ttf")}
+	o.CSS = []string{filepath.Join(root, "custom.css")}
+	if err := Build(o); err != nil {
+		t.Fatal(err)
+	}
+	page := read(t, out, "dispatcher/b.html")
+	style, brand, custom := strings.Index(page, `href="../_site/style.css"`), strings.Index(page, `href="../_site/brand.css"`), strings.Index(page, "_site/css/1-custom.css")
+	if style < 0 || brand < style || custom < brand {
+		t.Errorf("stylesheets at %d, %d, %d", style, brand, custom)
+	}
+	if got := read(t, out, "_site/brand.css"); got != o.BrandCSS {
+		t.Errorf("brand.css = %q", got)
+	}
+	if got := read(t, out, "_site/fonts/1-Sans.ttf"); got != "FONT" {
+		t.Errorf("font = %q", got)
+	}
+
+	// Without a brand there is no stylesheet for it.
+	root, out = project(t)
+	if err := Build(opts(root, out)); err != nil {
+		t.Fatal(err)
+	}
+	hasNot(t, "plain", read(t, out, "index.html"), "brand.css")
+	if _, err := os.Stat(filepath.Join(out, "_site", "brand.css")); err == nil {
+		t.Error("brand.css written without a brand")
+	}
+}

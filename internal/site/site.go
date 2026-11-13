@@ -44,6 +44,11 @@ type Options struct {
 	// CSS are stylesheets, absolute paths, that every page links after the
 	// site's own. They are copied verbatim into OutDir/_site/css.
 	CSS []string
+	// BrandCSS is the stylesheet of the project's brand, which every page
+	// links between the site's own and CSS; "" for none. BrandFonts are
+	// the font files it refers to: name below _site/fonts to source file.
+	BrandCSS   string
+	BrandFonts map[string]string
 	// Expand expands shortcodes in a page's Markdown; may be nil.
 	Expand func(string) (string, error)
 	// Log receives warnings and progress; may be nil.

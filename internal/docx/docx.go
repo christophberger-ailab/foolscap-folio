@@ -40,6 +40,9 @@ type Options struct {
 	// TOC inserts a Word table of contents field, headed "Inhaltsverzeichnis"
 	// for German and "Contents" otherwise, at the start.
 	TOC bool
+	// Look is the brand's look, for a document without a Template; a
+	// template's styles are its own.
+	Look Look
 	// Warn, if set, receives the problems that do not stop the render,
 	// such as an image that is not there.
 	Warn func(format string, args ...any)
@@ -71,9 +74,13 @@ func Write(path string, d *markdown.Document, o Options) error {
 	if o.Template != "" {
 		styles = setLang(styles, o.Lang)
 	} else {
-		styles = tuneBase(styles)
+		styles = tuneBase(styles, o.Look)
 	}
-	w := newWriter(d, o, p, parseStyles([]byte(styles)), textWidth(sect))
+	st := parseStyles([]byte(styles))
+	if o.Template == "" {
+		st.look = o.Look
+	}
+	w := newWriter(d, o, p, st, textWidth(sect))
 	w.document()
 	if w.err != nil {
 		return w.err

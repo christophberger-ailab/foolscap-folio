@@ -37,7 +37,7 @@ func main() {
 	lint.Register(projectFlag)
 
 	// `render` builds the project's topic × format × audience matrix.
-	render.Register(projectFlag, web.CalloutTitles)
+	render.Register(projectFlag, web.CalloutTitles, web.UserBrand)
 
 	// `migrate` writes folio.yml from a project's old Quarto configuration.
 	migrate.Register(projectFlag)

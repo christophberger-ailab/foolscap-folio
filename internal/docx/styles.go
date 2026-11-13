@@ -1,6 +1,7 @@
 package docx
 
 import (
+	"cmp"
 	"encoding/xml"
 	"fmt"
 	"regexp"
@@ -15,6 +16,40 @@ type styleSet struct {
 	ids    map[string]bool
 	memo   map[string]string
 	added  []string
+	look   Look // the brand's fonts and colors for the styles added
+}
+
+// Look is what a brand gives the styles folio defines: the names of the
+// fonts of body text, headings and code, and the colors of text, headings
+// and links as RRGGBB. Each is "" where the brand has none.
+type Look struct {
+	Font, HeadingFont, MonoFont    string
+	Color, HeadingColor, LinkColor string
+}
+
+// rFonts sets a run's font in every script, or nothing for "".
+func rFonts(name string) string {
+	if name == "" {
+		return ""
+	}
+	n := esc(name)
+	return `<w:rFonts w:ascii="` + n + `" w:hAnsi="` + n + `" w:eastAsia="` + n + `" w:cs="` + n + `"/>`
+}
+
+// rColor sets a run's color, or nothing for "".
+func rColor(rgb string) string {
+	if rgb == "" {
+		return ""
+	}
+	return `<w:color w:val="` + esc(rgb) + `"/>`
+}
+
+// mono is the font of code.
+func (s *styleSet) mono() string {
+	if s.look.MonoFont != "" {
+		return rFonts(s.look.MonoFont)
+	}
+	return `<w:rFonts w:ascii="Consolas" w:hAnsi="Consolas" w:eastAsia="Consolas" w:cs="Courier New"/>`
 }
 
 func parseStyles(data []byte) *styleSet {
@@ -104,7 +139,7 @@ func (s *styleSet) quote() string {
 func (s *styleSet) code() string {
 	return s.need("paragraph", "SourceCode", `<w:basedOn w:val="`+s.normal()+`"/>`+
 		`<w:pPr><w:keepLines/><w:shd w:val="clear" w:color="auto" w:fill="F5F5F5"/><w:spacing w:before="120" w:after="120" w:line="240" w:lineRule="auto"/></w:pPr>`+
-		`<w:rPr><w:rFonts w:ascii="Consolas" w:hAnsi="Consolas" w:eastAsia="Consolas" w:cs="Courier New"/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr>`,
+		`<w:rPr>`+s.mono()+`<w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr>`,
 		"Source Code")
 }
 
@@ -120,7 +155,7 @@ func (s *styleSet) imageCaption() string {
 
 func (s *styleSet) verbatim() string {
 	return s.need("character", "VerbatimChar",
-		`<w:rPr><w:rFonts w:ascii="Consolas" w:hAnsi="Consolas" w:eastAsia="Consolas" w:cs="Courier New"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr>`,
+		`<w:rPr>`+s.mono()+`<w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr>`,
 		"Verbatim Char")
 }
 
@@ -142,7 +177,8 @@ func (s *styleSet) footnoteRef() string {
 
 func (s *styleSet) tocHeading() string {
 	return s.need("paragraph", "TOCHeading", `<w:basedOn w:val="`+s.normal()+`"/><w:next w:val="`+s.normal()+`"/>`+
-		`<w:pPr><w:keepNext/><w:spacing w:before="240" w:after="120"/></w:pPr><w:rPr><w:b/><w:sz w:val="32"/><w:szCs w:val="32"/></w:rPr>`,
+		`<w:pPr><w:keepNext/><w:spacing w:before="240" w:after="120"/></w:pPr><w:rPr>`+rFonts(cmp.Or(s.look.HeadingFont, s.look.Font))+
+		`<w:b/>`+rColor(s.look.HeadingColor)+`<w:sz w:val="32"/><w:szCs w:val="32"/></w:rPr>`,
 		"TOC Heading")
 }
 
@@ -166,11 +202,42 @@ var (
 	reLangTag    = regexp.MustCompile(`<w:lang\b[^>]*?(?:/>|>\s*</w:lang>)`)
 )
 
+var (
+	reStyle     = regexp.MustCompile(`(?s)<w:style\b[^>]*w:styleId="(Heading\d|Title|Hyperlink)".*?</w:style>`)
+	reStyleFont = regexp.MustCompile(`<w:rFonts\b[^>]*?(?:/>|>\s*</w:rFonts>)`)
+	reStyleCol  = regexp.MustCompile(`<w:color\b[^>]*?(?:/>|>\s*</w:color>)`)
+)
+
 // tuneBase gives the docxgo base document, whose Normal style carries no
-// font at all, a readable body font and paragraph spacing.
-func tuneBase(styles string) string {
-	styles = reRPrDefault.ReplaceAllString(styles,
-		`$1<w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:eastAsia="Calibri" w:cs="Calibri"/><w:sz w:val="22"/><w:szCs w:val="22"/>`)
+// font at all, a readable body font and paragraph spacing, and its
+// defaults, headings and links the brand's fonts and colors.
+func tuneBase(styles string, l Look) string {
+	if reRPrDefault.MatchString(styles) {
+		styles = reRPrDefault.ReplaceAllString(styles,
+			`$1`+rFonts(cmp.Or(l.Font, "Calibri"))+rColor(l.Color)+`<w:sz w:val="22"/><w:szCs w:val="22"/>`)
+	} else if brand := rFonts(l.Font) + rColor(l.Color); brand != "" {
+		styles = strings.Replace(styles, "<w:docDefaults>",
+			"<w:docDefaults><w:rPrDefault><w:rPr>"+brand+"</w:rPr></w:rPrDefault>", 1)
+	}
+	styles = reStyle.ReplaceAllStringFunc(styles, func(st string) string {
+		font, col := rFonts(cmp.Or(l.HeadingFont, l.Font)), rColor(l.HeadingColor)
+		if strings.Contains(st, `w:styleId="Hyperlink"`) {
+			font, col = "", rColor(l.LinkColor)
+		}
+		if font != "" {
+			st = reStyleFont.ReplaceAllLiteralString(st, font)
+		}
+		if col != "" {
+			// The color follows the font and the bold mark in a run's properties.
+			st = reStyleCol.ReplaceAllLiteralString(st, "")
+			at := max(strings.Index(st, "<w:sz "), strings.Index(st, "<w:u "))
+			if at < 0 {
+				return st
+			}
+			st = st[:at] + col + st[at:]
+		}
+		return st
+	})
 	return reSpacingDef.ReplaceAllString(styles,
 		`${1}<w:spacing w:before="0" w:after="120" w:line="276" w:lineRule="auto"/>`)
 }

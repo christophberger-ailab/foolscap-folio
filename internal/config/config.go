@@ -90,6 +90,10 @@ type Config struct {
 	// folio's settings file (config.cue), which whoever loads the
 	// project puts here.
 	CalloutTitles map[string]map[string]string `yaml:"-"`
+	// UserBrand is the path of the user's _brand.yml, beside folio's
+	// settings file, which styles a project that has no brand file of its
+	// own; "" for none. Whoever loads the project puts it here.
+	UserBrand string `yaml:"-"`
 	// Output is the directory every format writes below, project-relative.
 	// Default "_output".
 	Output string `yaml:"output"`

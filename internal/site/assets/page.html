@@ -9,6 +9,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{.Title}}</title>
 <link rel="stylesheet" href="{{.Base}}_site/style.css">
+{{if .Brand}}<link rel="stylesheet" href="{{.Base}}_site/brand.css">
+{{end -}}
 {{range .CSS}}<link rel="stylesheet" href="{{$.Base}}{{.}}">
 {{end -}}
 <script>document.documentElement.classList.add('js')</script>

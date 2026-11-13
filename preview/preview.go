@@ -55,6 +55,10 @@ var projectPath *string
 // from folio's settings file.
 var calloutTitles = web.CalloutTitles
 
+// userBrand returns the path of the user's brand file, beside folio's
+// settings file.
+var userBrand = web.UserBrand
+
 // Register wires the `preview` command into start. It shares --addr with
 // `web` and --topic, --format and --audience with `render`, which register
 // them; it must therefore be registered after both.
@@ -206,6 +210,7 @@ func (s *Server) render() (string, config.Selection, error) {
 	if cfg.CalloutTitles, err = calloutTitles(); err != nil {
 		return "", config.Selection{}, err
 	}
+	cfg.UserBrand = userBrand()
 	sel, others, err := selectSite(cfg, s.req)
 	if err != nil {
 		return "", sel, err

@@ -38,6 +38,8 @@ type Options struct {
 	// Fonts maps roles in FontRoles to TrueType files that replace the Go
 	// fonts there.
 	Fonts map[string]string
+	// Colors are the brand's colors for text, headings and links.
+	Colors Colors
 	// Warn, if set, receives the problems that do not stop the render,
 	// such as an image that is not there.
 	Warn func(format string, args ...any)

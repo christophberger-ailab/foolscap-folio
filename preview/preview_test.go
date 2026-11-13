@@ -339,3 +339,25 @@ func TestCalloutTitlesComeFromTheSettings(t *testing.T) {
 		t.Error("no page titles the callout in French")
 	}
 }
+
+// The previewed site is styled by the user's brand file when the project
+// has none of its own.
+func TestBrandComesFromTheSettings(t *testing.T) {
+	root := fixture(t)
+	brand := filepath.Join(t.TempDir(), "_brand.yml")
+	if err := os.WriteFile(brand, []byte("color:\n  primary: \"#003366\"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	defer func(f func() string) { userBrand = f }(userBrand)
+	userBrand = func() string { return brand }
+	s := newServer(t, root, config.Request{})
+	dir, _, err := s.render()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+	css, err := os.ReadFile(filepath.Join(dir, "_site", "brand.css"))
+	if err != nil || !strings.Contains(string(css), "--accent:#003366") {
+		t.Errorf("brand.css: %v\n%s", err, css)
+	}
+}
