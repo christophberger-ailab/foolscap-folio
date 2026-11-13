@@ -1616,7 +1616,8 @@ textarea.file-content {
   min-height: 12rem;
 }
 
-textarea.preview-css-content {
+textarea.preview-css-content,
+textarea.config-file-content {
   width: 100%;
   min-height: 24rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -2653,4 +2654,27 @@ mark.folio-todo-hidden {
 
 .comments-actions button {
   font-size: 0.78rem;
+}
+
+/* The release box atop the Config overview. */
+.release-info {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin: 0 0 1.5rem;
+}
+
+.release-info h3 {
+  margin: 0 0 0.5rem;
+}
+
+.release-info p {
+  margin: 0 0 0.5rem;
+}
+
+/* A config file editor's error is a parser's report, line breaks and all. */
+.error pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
 }

@@ -73,6 +73,8 @@ type updateState struct {
 	// effect when folio web is started again.
 	installed string
 	busy      bool
+	// checked is when a check last got an answer.
+	checked time.Time
 }
 
 // updateView is the top bar's update slot.
@@ -92,12 +94,15 @@ func (u *updateState) view() updateView {
 // current, and starts looking for new releases -- unless this is a
 // development build, which has no release to compare against.
 func (s *server) startUpdateChecks(current string) {
+	s.update.mu.Lock()
+	s.update.current = current
+	s.update.mu.Unlock()
 	exe, err := selfupdate.Executable()
 	if err != nil || !selfupdate.IsRelease(current) {
 		return
 	}
 	s.update.mu.Lock()
-	s.update.current, s.update.client, s.update.exe = current, selfupdate.Client(), exe
+	s.update.client, s.update.exe = selfupdate.Client(), exe
 	s.update.mu.Unlock()
 	go s.watchReleases()
 }
@@ -113,33 +118,80 @@ func (s *server) watchReleases() {
 		s.mu.Unlock()
 		if every > 0 && time.Since(last) >= every {
 			last = time.Now()
-			s.checkRelease(context.Background())
+			if err := s.checkRelease(context.Background()); err != nil {
+				fmt.Fprintf(os.Stderr, "folio web: cannot check for updates: %v\n", err)
+			}
 		}
 	}
 }
 
 // checkRelease asks the configured source for the newest release and
-// remembers it when it is newer than the running one. A failed check is
-// only reported on the console: there is nothing the page could do about
-// it, and the next check may well succeed.
-func (s *server) checkRelease(ctx context.Context) {
+// remembers it when it is newer than the running one. The periodic checks
+// only report a failure on the console: there is nothing the page could do
+// about it, and the next check may well succeed.
+func (s *server) checkRelease(ctx context.Context) error {
 	s.mu.Lock()
 	source := s.cfg.Update.Source
 	s.mu.Unlock()
 	s.update.mu.Lock()
 	client, current := s.update.client, s.update.current
 	s.update.mu.Unlock()
+	if client == nil {
+		return errors.New("this is a development build, which has no release to compare against")
+	}
 
 	rel, err := selfupdate.Latest(ctx, client, source)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "folio web: cannot check for updates: %v\n", err)
-		return
+		return err
 	}
+	s.update.mu.Lock()
+	defer s.update.mu.Unlock()
+	s.update.checked = time.Now()
 	if selfupdate.Newer(current, rel.Version) {
-		s.update.mu.Lock()
 		s.update.latest = &rel
-		s.update.mu.Unlock()
 	}
+	return nil
+}
+
+// releaseView is the release box atop the Config overview.
+type releaseView struct {
+	Current, Latest, LatestURL, Installed string
+	// Dev is a build that cannot check: it has no release to compare.
+	Dev bool
+	// Checked is when a check last succeeded; Check how often they run.
+	Checked, Check string
+	Message, Error string
+}
+
+// releaseView describes the running release and what the checks found.
+// The caller must hold s.mu.
+func (s *server) releaseView() releaseView {
+	u := &s.update
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	v := releaseView{Current: u.current, Installed: u.installed, Dev: u.client == nil, Check: s.cfg.Update.Check}
+	if u.latest != nil {
+		v.Latest, v.LatestURL = u.latest.Version, u.latest.URL
+	}
+	if !u.checked.IsZero() {
+		v.Checked = u.checked.Format("2006-01-02 15:04")
+	}
+	return v
+}
+
+// checkUpdateHandler is the release box's Check for updates button.
+func (s *server) checkUpdateHandler(w http.ResponseWriter, r *http.Request) {
+	err := s.checkRelease(r.Context())
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	v := s.configView()
+	switch {
+	case err != nil:
+		v.Release.Error = "Could not check for updates: " + err.Error()
+	case v.Release.Latest == "":
+		v.Release.Message = "folio is up to date."
+	}
+	s.render(w, "config-page", v)
 }
 
 func (s *server) updateHandler(w http.ResponseWriter, r *http.Request) {
