@@ -101,8 +101,8 @@ func TestDockScripts(t *testing.T) {
 	for file, wants := range map[string][]string{
 		"assets/static/dock.js": {"function renderDock(", "function moveTab(", "function splitGroup(", "function closePane(", "function openPane(",
 			"localStorage.setItem(DOCK_KEY", "'folio-shown'", "function dropZone(", "function migrateLayout("},
-		"assets/static/app.js":  {"function updateComments(", "focusComment(", "replyToComment(", "removeComment("},
-		"assets/static/app.css": {".dock-group", ".dock-tab", ".dock-tab.active", ".dock-split", ".dock-sash", ".dock-drop", ".comments-entry", ".pane-menu"},
+		"assets/static/app.js":           {"function updateComments(", "focusComment(", "replyToComment(", "removeComment("},
+		"assets/static/app.css":          {".dock-group", ".dock-tab", ".dock-tab.active", ".dock-split", ".dock-sash", ".dock-drop", ".comments-entry", ".pane-menu"},
 		"assets/templates/app.html.tmpl": {`<script src="/static/dock.js" defer></script>`},
 	} {
 		src, err := assets.ReadFile(file)

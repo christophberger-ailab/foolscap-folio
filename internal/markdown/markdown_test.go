@@ -143,3 +143,38 @@ func TestImageCaptionEscaped(t *testing.T) {
 		t.Errorf("got %s", got)
 	}
 }
+
+// A callout without a title of its own is titled in the document's
+// language: from the user's own translations where they name one, else
+// from the ones folio ships, else in English.
+func TestCalloutTitlesFollowTheLanguage(t *testing.T) {
+	own := map[string]map[string]string{
+		"fr":    {"note": "Remarque"},
+		"de":    {"tip": "Hinweis am Rande"},
+		"pt-BR": {"note": "Nota"},
+	}
+	for _, c := range []struct{ lang, typ, want string }{
+		{"fr", "note", "Remarque"},
+		{"fr-CA", "note", "Remarque"}, // a region falls back to its language
+		{"FR", "note", "Remarque"},
+		{"fr", "tip", "Tip"}, // what the user leaves out is English
+		{"de", "tip", "Hinweis am Rande"},
+		{"de", "note", "Hinweis"}, // shipped German, where the user names none
+		{"de_AT", "warning", "Warnung"},
+		{"", "caution", "Caution"},
+		{"it", "important", "Important"},
+		{"pt-br", "note", "Nota"}, // tags are compared regardless of case
+	} {
+		if got := CalloutTitles(own, c.lang)[c.typ]; got != c.want {
+			t.Errorf("CalloutTitles(%q)[%q] = %q, want %q", c.lang, c.typ, got, c.want)
+		}
+	}
+
+	src := "::: {.callout-note}\nBody\n:::\n\n::: {.callout-tip title=\"Eigener\"}\nBody\n:::\n"
+	got := render(t, src, Options{Lang: "fr", CalloutTitles: own})
+	for _, want := range []string{`<div class="callout-title">Remarque</div>`, `<div class="callout-title">Eigener</div>`} {
+		if !strings.Contains(got, want) {
+			t.Errorf("missing %q in\n%s", want, got)
+		}
+	}
+}

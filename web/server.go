@@ -276,6 +276,9 @@ type contentView struct {
 	Body      string
 	CSSFiles  []string
 	ActiveCSS string
+	// CalloutTitles are every callout type's title in the project's
+	// language, as JSON, for the preview to title callouts by.
+	CalloutTitles string
 	// Copyedit is the second tab of the preview column: the editing
 	// tasks it lists and the models they can be run on.
 	Copyedit copyeditPane
@@ -404,12 +407,13 @@ func (s *server) lastPage() *contentView {
 		return nil
 	}
 	return &contentView{
-		Title:     project.ParseFrontmatter(body).Title,
-		Path:      rel,
-		Body:      string(body),
-		CSSFiles:  s.cssFiles(),
-		ActiveCSS: s.activeCSS(),
-		Copyedit:  s.copyeditPaneView(),
+		Title:         project.ParseFrontmatter(body).Title,
+		Path:          rel,
+		Body:          string(body),
+		CSSFiles:      s.cssFiles(),
+		ActiveCSS:     s.activeCSS(),
+		CalloutTitles: s.calloutTitlesJSON(),
+		Copyedit:      s.copyeditPaneView(),
 	}
 }
 
@@ -997,12 +1001,13 @@ func (s *server) content(w http.ResponseWriter, r *http.Request) {
 	s.rememberPage(rel)
 	s.rebaseOn(rel, body)
 	s.render(w, "content", contentView{
-		Title:     title,
-		Path:      rel,
-		Body:      string(body),
-		CSSFiles:  s.cssFiles(),
-		ActiveCSS: s.activeCSS(),
-		Copyedit:  s.copyeditPaneView(),
+		Title:         title,
+		Path:          rel,
+		Body:          string(body),
+		CSSFiles:      s.cssFiles(),
+		ActiveCSS:     s.activeCSS(),
+		CalloutTitles: s.calloutTitlesJSON(),
+		Copyedit:      s.copyeditPaneView(),
 	})
 	// The reload button also refreshes the tree: outside edits may have
 	// changed titles or the chapter order.
@@ -1186,6 +1191,7 @@ func (s *server) selections(prefs projectPrefs) ([]config.Selection, error) {
 	if err != nil {
 		return nil, err
 	}
+	cfg.CalloutTitles = s.cfg.Callouts
 	var docs, webs []string
 	for _, f := range prefs.Formats {
 		if fm, ok := cfg.Formats.Get(f); ok && fm.IsWeb() {

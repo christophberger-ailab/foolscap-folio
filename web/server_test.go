@@ -596,9 +596,9 @@ func TestPreviewDrawsCalloutsLikeQuarto(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, want := range []string{
-		"function buildCallouts(root)",
+		"function buildCallouts(root, titles)",
 		"var calloutKeys = ['title', 'appearance', 'icon', 'collapse'];",
-		"buildCallouts(el);",
+		"buildCallouts(el, titles || {});",
 		// A bare `::: {.callout}` is Quarto's untyped callout: a grey box
 		// without an icon or a title of its own, but laid out all the same.
 		`none: ""`,
@@ -1480,5 +1480,30 @@ func TestTopbarShowsLogo(t *testing.T) {
 	}
 	if strings.Contains(string(src), "<h1>Foolscap Folio</h1>") {
 		t.Error("a page's top bar names the app without the logo")
+	}
+}
+
+// The preview titles a callout from the titles the page carries for the
+// project's language, and falls back to English where it carries none.
+func TestPreviewTitlesCalloutsInThePagesLanguage(t *testing.T) {
+	preview, err := assets.ReadFile("assets/static/preview.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		"function renderPreview(el, text, pagePath, titles)",
+		"buildCallouts(el, titles || {});",
+		"title.textContent = titles[type] || calloutTypes[type];",
+	} {
+		if !assetContains("assets/static/preview.js", string(preview), want) {
+			t.Errorf("preview.js does not translate callout titles, missing %q", want)
+		}
+	}
+	app, err := assets.ReadFile("assets/static/app.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !assetContains("assets/static/app.js", string(app), "calloutTitles()") {
+		t.Error("app.js does not hand the page's callout titles to the preview")
 	}
 }

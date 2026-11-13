@@ -52,6 +52,9 @@ type storedConfig struct {
 	Editor   editorConfig            `json:"editor"`
 	User     userConfig              `json:"user"`
 	Update   updateConfig            `json:"update"`
+	// Callouts are the titles of callouts by language and type (see
+	// callouts.go).
+	Callouts map[string]map[string]string `json:"callouts"`
 }
 
 // previewConfig is the Markdown preview's own settings. The stylesheets
@@ -87,6 +90,13 @@ const configSchema = `// -------------------------------------------------------
 	user:     #User
 	update:   #Update
 
+	// The titles callouts without a title of their own get, per language
+	// as folio.yml's lang names it ("de", "fr", "pt-BR"). A language
+	// missing here, or a type it leaves out, falls back to the primary
+	// language ("pt" for "pt-BR"), then to the titles folio knows itself
+	// (English and German), and last to English.
+	callouts: {[string]: #Callouts}
+
 	// Where folio web listens is the project's to say, in folio.yml.
 	// Older versions kept it here; what is left of that is ignored.
 	web?: _
@@ -101,6 +111,14 @@ const configSchema = `// -------------------------------------------------------
 
 	// The page the editor last had open, relative to the project root.
 	page: string | *""
+}
+
+#Callouts: {
+	note?:      string
+	tip?:       string
+	warning?:   string
+	important?: string
+	caution?:   string
 }
 
 #Preview: {
@@ -275,8 +293,9 @@ func defaultConfig() storedConfig {
 			Mode:        modeBatched,
 			Selected:    []string{},
 		},
-		Editor: editorConfig{Command: defaultEditorCommand, Image: defaultImageEditorCommand()},
-		Update: updateConfig{Source: selfupdate.DefaultSource, Check: checkDaily},
+		Editor:   editorConfig{Command: defaultEditorCommand, Image: defaultImageEditorCommand()},
+		Update:   updateConfig{Source: selfupdate.DefaultSource, Check: checkDaily},
+		Callouts: defaultCallouts(),
 	}
 }
 
@@ -312,6 +331,9 @@ func (c *storedConfig) normalize() {
 	}
 	if c.Update.Check == "" {
 		c.Update.Check = checkDaily
+	}
+	if c.Callouts == nil {
+		c.Callouts = defaultCallouts()
 	}
 	if c.Copyedit.Selected == nil {
 		c.Copyedit.Selected = []string{}

@@ -552,7 +552,9 @@
        another page's name, and the first keystroke would autosave it
        over that other page. editor.js guards the same thing again for
        the browsers that restore anyway. */ -}}
-  <form class="edit-form" autocomplete="off" hx-post="/save" hx-trigger="input delay:1s from:find textarea" hx-swap="none">
+  {{/* data-callout-titles: what preview.js titles callouts by, in the
+       project's language (see calloutTitlesJSON). */ -}}
+  <form class="edit-form" autocomplete="off" data-callout-titles="{{.CalloutTitles}}" hx-post="/save" hx-trigger="input delay:1s from:find textarea" hx-swap="none">
     <input type="hidden" id="content-path" name="path" value="{{.Path}}">
     {{/* The newline right after the tag is dropped by the HTML parser, so
          a page whose text starts with one keeps it instead of losing it on
