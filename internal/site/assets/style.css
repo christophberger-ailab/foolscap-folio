@@ -602,6 +602,13 @@ th {
   border-bottom: 2px solid var(--border);
   font-weight: 650;
 }
+table.subpages {
+  display: table;
+  width: 100%;
+}
+table.subpages tbody tr:hover {
+  background: var(--bg-soft);
+}
 .footnotes {
   font-size: var(--fs-small);
   color: var(--fg-muted);

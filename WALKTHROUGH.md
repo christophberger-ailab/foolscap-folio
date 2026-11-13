@@ -355,7 +355,9 @@ selection's `Keep`, and put into `assets/page.html`. `nav.go` builds the
 navigation data: the navbar with one entry per topic, the topic's sidebar tree and
 the previous/next links; `tocOf` takes the page's headings for the "On this page"
 list. `links.go` rewrites links between pages and images to relative URLs and
-copies the project files they point at. `assets/style.css` and `site.js` (scroll-
+copies the project files they point at. `subpages.go` replaces a page's
+`::: subpages` blocks by a table of links to the pages one level below it
+(`markdown.Raw` carries the generated HTML through the renderer). `assets/style.css` and `site.js` (scroll-
 spy, off-canvas sidebar, search) are embedded; the layout is in em throughout, with its
 breakpoints at 75em and 50em. `search.go` collects each rendered page's visible
 text (`htmlText`) into the search index, written as `_site/search.js` beside the

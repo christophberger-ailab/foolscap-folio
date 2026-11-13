@@ -364,6 +364,15 @@ audiences:
   all: {show: [fw, pol]}
 ```
 
+A page lists its subpages where it holds a `subpages` block:
+
+```markdown
+::: {.subpages title="Topics:"}
+:::
+```
+
+The block becomes a table with one row per subpage, each the page's title linking to it, as a Quarto `listing` of `type: table` with the `title` field does; `title` is the text of the table's header, and without it the table has none. The subpages of a folder's index page are the pages beside it and the folders that have an index page of their own -- `./<name>.md` and `./<name>/index.md` are the same level -- in the order of the sidebar. On the site's home page, the block lists the topics. A page without subpages shows no table, and documents (DOCX, PDF) show none either, since there the subpages follow as chapters anyway.
+
 The kept divs and spans keep their classes (`<div class="pol">`), but the site's own stylesheet does not style them; a format's `css:` adds the stylesheets that do. They are copied verbatim to `_site/css/` and linked after the site's own: a `.scss` file is not compiled, so it has to be plain CSS, and `url()` references in it are not rewritten.
 
 ### Documents: DOCX and PDF

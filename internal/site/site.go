@@ -269,6 +269,7 @@ func (b *builder) renderPage(p *pageInfo) error {
 		doc := markdown.Parse([]byte(md))
 		doc.Prepare(markdown.Options{Keep: b.o.Keep, Formats: b.o.Formats, Lang: b.o.Lang, CalloutTitles: b.o.CalloutTitles})
 		b.rewriteLinks(doc, p)
+		b.expandSubpages(doc, p)
 		toc = tocOf(doc)
 		s, err := markdown.HTML(doc)
 		if err != nil {
