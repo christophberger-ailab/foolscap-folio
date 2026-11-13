@@ -2,7 +2,7 @@
 
 ## Die Schaltfläche Config
 
-`Config` ganz rechts in der oberen Leiste öffnet eine Seite, die die Konfigurationsbereiche auflistet. Mit der Schaltfläche `App` oben kehrst du zurück. Über den Bereichen nennt ein Kasten `Release` die laufende folio-Version und bietet die Schaltfläche `Check for updates` (zu den automatischen Prüfungen siehe [Die Einstellungsdatei](#die-einstellungsdatei)). Gibt es eine neuere Version, sagt der Kasten es und bietet die Schaltfläche **Update to …**, die sie installiert wie die Schaltfläche **Update** in der oberen Leiste. Nach dem Update startet folio web mit der neuen Version neu, und die Seite lädt sich neu. Einem Entwicklungs-Build wird die neueste Version angeboten, welche es auch ist. Die Bereiche sind:
+`Config` ganz rechts in der oberen Leiste öffnet eine Seite, die die Konfigurationsbereiche auflistet. Mit der Schaltfläche `App` oben kehrst du zurück. Über den Bereichen nennt ein Kasten `Release` die laufende folio-Version und bietet die Schaltfläche `Check for updates` (zu den automatischen Prüfungen siehe [Die Einstellungsdatei](#die-einstellungsdatei)). Gibt es eine neuere Version, sagt der Kasten es und bietet die Schaltfläche **Update to …**, die sie installiert wie die Schaltfläche **Update** in der oberen Leiste. Unter der Schaltfläche stehen die Release Notes aller Versionen, die das Update bringt, die neueste zuerst, auch die übersprungenen dazwischen. Nach dem Update startet folio web mit der neuen Version neu, und die Seite lädt sich neu; eine Schaltfläche **What's new in …** in der oberen Leiste führt dann hierher zu den Notes von allem, was das Update gebracht hat. Einem Entwicklungs-Build wird die neueste Version angeboten, welche es auch ist. Die Bereiche sind:
 
 - `Preview: Custom CSS`: das Stylesheet für die [Vorschau](preview.md).
 - `Copyedit: Editing tasks` und `Copyedit: API connections`: siehe [Lektorat](copyedit.md).
@@ -45,6 +45,13 @@ Alles, was sich `folio web` merkt, steht in einer einzigen Datei: `<user config 
 - die Kommandozeilen des externen Editors,
 - der Name, mit dem deine Kommentare gezeichnet werden (`user: name:`).
 - wo und wie oft nach einer neuen folio-Version gesucht wird (`update: source:` und `update: check:`, das `daily`, `weekly` oder `never` ist). Findet `folio web` eine, erscheint rechts in der oberen Leiste ein **Update**-Knopf; er installiert die Version, die ab dem nächsten Start von `folio web` gilt.
+- die Titel von Callouts ohne eigenen Titel, je Sprache (`callouts:`). Die Sprache ist `lang` aus der `folio.yml` des Projekts; `folio render`, `folio preview` und die Vorschau in `folio web` verwenden sie alle. Englisch und Deutsch sind vorbelegt; eine weitere Sprache kommt so hinzu, und ein weggelassener Typ bleibt englisch:
+
+  ```
+  callouts: fr: {note: "Remarque", tip: "Astuce", warning: "Avertissement", important: "Important", caution: "Attention"}
+  ```
+
+  Ein regionales `lang` wie `fr-CA` nimmt `fr`, solange es keinen eigenen Eintrag hat.
 
 Wegen der Schlüssel ist sie nur für dich lesbar. Die Datei wird beim ersten Start mit Standardwerten angelegt. Ältere JSON-Einstellungsdateien werden einmalig übernommen und in `*.migrated` umbenannt.
 

@@ -22,6 +22,8 @@ constraints:
       2: A release is newer when its tag is a higher vMAJOR.MINOR.PATCH than the running version; a pre-release tag is never compared. A development build cannot be compared, so it is offered the newest release, whatever it is, and asked the same way (3)
       3: When a newer release exists, its version, the running version and its release notes URL are printed; without --check and --yes the user is asked "Update now? [y/N]", and anything but y or yes leaves the binary as it is
       4: When no newer release exists, that is said and nothing changes
+      5: 'Before it asks, and with --check, it prints the release notes of every release the update brings -- each release after the running one up to the new one, newest first -- so an update that skips releases shows what each of them changed. A development build gets the new release''s notes alone'
+      5-1: The releases are listed from `.../releases` beside a source of `.../releases/latest` (GitHub, Gitea, Forgejo); drafts and pre-releases are left out. A source without a listing, or a listing that fails, gives the newest release's notes alone, or its link
 
   SECURITY:
     requirements:

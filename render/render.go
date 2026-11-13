@@ -33,10 +33,16 @@ var (
 	dryRunFlag   *bool
 )
 
+// calloutTitles returns the user's callout titles by language and type,
+// which folio's settings file (config.cue) holds. Register sets it.
+var calloutTitles = func() (map[string]map[string]string, error) { return nil, nil }
+
 // Register wires the `render` command into start. `render` has no
-// sub-commands, so — as with `lint` — it is registered as a leaf.
-func Register(projectFlag *string) {
+// sub-commands, so — as with `lint` — it is registered as a leaf. titles
+// returns the user's callout titles.
+func Register(projectFlag *string, titles func() (map[string]map[string]string, error)) {
 	projectPath = projectFlag
+	calloutTitles = titles
 	topicFlag = flag.String("topic", "",
 		"Comma-separated topics to render (default: all)")
 	formatFlag = flag.String("format", "",
@@ -102,6 +108,9 @@ func Run(docPath string, req config.Request, clean, dryRun bool) error {
 func BuildOptions(docPath string, req config.Request, clean, dryRun bool) (build.Options, error) {
 	cfg, err := config.Load(docPath)
 	if err != nil {
+		return build.Options{}, fmt.Errorf("render: %w", err)
+	}
+	if cfg.CalloutTitles, err = calloutTitles(); err != nil {
 		return build.Options{}, fmt.Errorf("render: %w", err)
 	}
 	sels, err := cfg.Expand(req)

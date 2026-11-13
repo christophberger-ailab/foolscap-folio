@@ -19,6 +19,7 @@ func (htmlRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
 	r.Register(ast.KindParagraph, renderParagraph)
 	r.Register(KindDiv, renderDiv)
 	r.Register(KindSpan, renderSpan)
+	r.Register(KindRaw, renderRaw)
 	r.Register(ast.KindFencedCodeBlock, renderFencedCode)
 }
 
@@ -72,6 +73,28 @@ func renderDiv(w util.BufWriter, src []byte, n ast.Node, entering bool) (ast.Wal
 		w.WriteString("</div>\n")
 	}
 	return ast.WalkContinue, nil
+}
+
+// KindRaw is the node kind of a Raw block.
+var KindRaw = ast.NewNodeKind("Raw")
+
+// Raw is a block of HTML a writer generated, written out as it stands.
+type Raw struct {
+	ast.BaseBlock
+	HTML string
+}
+
+// Kind implements ast.Node.
+func (n *Raw) Kind() ast.NodeKind { return KindRaw }
+
+// Dump implements ast.Node.
+func (n *Raw) Dump(source []byte, level int) { ast.DumpHelper(n, source, level, nil, nil) }
+
+func renderRaw(w util.BufWriter, src []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
+	if entering {
+		w.WriteString(n.(*Raw).HTML)
+	}
+	return ast.WalkSkipChildren, nil
 }
 
 func renderSpan(w util.BufWriter, src []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {

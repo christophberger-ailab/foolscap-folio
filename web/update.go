@@ -9,14 +9,19 @@ package web
 // found while the page is open still shows up.
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"html/template"
 	"io/fs"
 	"net/http"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/extension"
 
 	"github.com/christophberger-ailab/foolscap-folio/internal/selfupdate"
 )
@@ -75,11 +80,47 @@ type updateState struct {
 	busy      bool
 	// checked is when a check last got an answer.
 	checked time.Time
+	// notes are the changes latest brings: the notes of every release
+	// after current up to latest.
+	notes []releaseNote
+	// updatedFrom is the release folio web ran before an update restarted
+	// it, and whatsNew what the update brought. The top bar points to them
+	// until the Config page has shown them (newsSeen).
+	updatedFrom string
+	whatsNew    []releaseNote
+	newsSeen    bool
+}
+
+// releaseNote is one release's notes as the Config page shows them.
+type releaseNote struct {
+	Version, URL string
+	HTML         template.HTML
+}
+
+// notesMarkdown renders release notes. It is goldmark's safe default --
+// raw HTML in the notes is dropped and javascript: links are not linked --
+// with GitHub's flavor, whose generated notes are full of bare URLs.
+var notesMarkdown = goldmark.New(goldmark.WithExtensions(extension.GFM))
+
+func renderNotes(rs []selfupdate.Release) []releaseNote {
+	out := make([]releaseNote, 0, len(rs))
+	for _, r := range rs {
+		var b bytes.Buffer
+		if err := notesMarkdown.Convert([]byte(r.Notes), &b); err != nil {
+			b.Reset()
+			template.HTMLEscape(&b, []byte(r.Notes))
+		}
+		out = append(out, releaseNote{Version: r.Version, URL: r.URL, HTML: template.HTML(b.String())}) // #nosec G203 -- goldmark without WithUnsafe escapes raw HTML
+	}
+	return out
 }
 
 // updateView is the top bar's update slot.
 type updateView struct {
 	Current, Latest, Installed, Error string
+	// News is the release an update restarted folio web with, while what
+	// it brought has not been looked at.
+	News string
 	// Restarting is an installed update the server restarts with.
 	Restarting bool
 }
@@ -88,6 +129,9 @@ func (u *updateState) view() updateView {
 	v := updateView{Current: u.current, Installed: u.installed}
 	if u.latest != nil {
 		v.Latest = u.latest.Version
+	}
+	if u.updatedFrom != "" && !u.newsSeen {
+		v.News = u.current
 	}
 	return v
 }
@@ -146,13 +190,48 @@ func (s *server) checkRelease(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	ok := offered(current, rel.Version)
+	var notes []releaseNote
+	if ok {
+		changes, err := selfupdate.Changes(ctx, client, source, current, rel.Version)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "folio web: cannot list the release notes: %v\n", err)
+		}
+		notes = renderNotes(changes)
+	}
 	s.update.mu.Lock()
 	defer s.update.mu.Unlock()
 	s.update.checked = time.Now()
-	if offered(current, rel.Version) {
-		s.update.latest = &rel
+	if ok {
+		s.update.latest, s.update.notes = &rel, notes
 	}
 	return nil
+}
+
+// showChangesSince fetches what an update from release `from` to the
+// running one brought, for the top bar to point to and the Config page to
+// show. from is empty when folio web was not restarted by an update.
+func (s *server) showChangesSince(ctx context.Context, from string) {
+	if from == "" {
+		return
+	}
+	s.mu.Lock()
+	source := s.cfg.Update.Source
+	s.mu.Unlock()
+	s.update.mu.Lock()
+	client, current := s.update.client, s.update.current
+	s.update.updatedFrom = from
+	s.update.mu.Unlock()
+	if client == nil {
+		return
+	}
+	changes, err := selfupdate.Changes(ctx, client, source, from, current)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "folio web: cannot list the release notes: %v\n", err)
+	}
+	s.update.mu.Lock()
+	s.update.whatsNew = renderNotes(changes)
+	s.update.mu.Unlock()
 }
 
 // offered reports whether latest is worth installing over current: a newer
@@ -169,6 +248,11 @@ type releaseView struct {
 	Dev bool
 	// Restarting is an installed update the server restarts with.
 	Restarting bool
+	// Notes are what Latest brings; WhatsNew what the update from
+	// UpdatedFrom to Current brought.
+	Notes       []releaseNote
+	UpdatedFrom string
+	WhatsNew    []releaseNote
 	// Checked is when a check last succeeded; Check how often they run.
 	Checked, Check string
 	Message, Error string
@@ -182,8 +266,12 @@ func (s *server) releaseView() releaseView {
 	defer u.mu.Unlock()
 	v := releaseView{Current: u.current, Installed: u.installed, Dev: !selfupdate.IsRelease(u.current), Check: s.cfg.Update.Check}
 	if u.latest != nil {
-		v.Latest, v.LatestURL = u.latest.Version, u.latest.URL
+		v.Latest, v.LatestURL, v.Notes = u.latest.Version, u.latest.URL, u.notes
 	}
+	v.UpdatedFrom, v.WhatsNew = u.updatedFrom, u.whatsNew
+	// The Config page shows them, so the top bar need not point to them
+	// any longer.
+	u.newsSeen = u.updatedFrom != ""
 	v.Restarting = v.Installed != "" && s.restart != nil
 	if !u.checked.IsZero() {
 		v.Checked = u.checked.Format("2006-01-02 15:04")
@@ -306,6 +394,9 @@ func (s *server) installUpdateConfigHandler(w http.ResponseWriter, r *http.Reque
 // waiting for it asks the same address, and reloads into the same folio.
 const (
 	restartAddrEnv = "FOLIO_RESTART_ADDR"
+	// restartFromEnv names the release the update came from, so that the
+	// restarted server can show what changed since.
+	restartFromEnv = "FOLIO_UPDATED_FROM"
 	restartRootEnv = "FOLIO_RESTART_ROOT"
 )
 
@@ -316,4 +407,11 @@ func takeRestartEnv() (addr, root string) {
 	os.Unsetenv(restartAddrEnv)
 	os.Unsetenv(restartRootEnv)
 	return addr, root
+}
+
+// takeUpdatedFrom reads the release a restart came from and clears it.
+func takeUpdatedFrom() string {
+	from := os.Getenv(restartFromEnv)
+	os.Unsetenv(restartFromEnv)
+	return from
 }

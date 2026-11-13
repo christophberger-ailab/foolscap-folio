@@ -24,6 +24,7 @@ History: I was looking for a tool that can produces websites and PDF/DOCX from t
 - **A three-axis render matrix.** A render is addressed by *topic* (what), *format* (how) and *audience* (for whom). One file, `folio.yml`, declares them; `folio render` builds any part of the matrix, and `folio web` does the same from a panel.
 - **Conditional content.** A block or span can be marked for a format (`explanation`) or an audience (`pol`); a render keeps only what the selection shows.
 - **Editing helpers.** A linter for unclosed block fences, and a local web UI for reordering pages by drag and drop, editing them, copyediting them with an LLM, and rendering.
+- **Migration.** `folio migrate` writes `folio.yml` from an older Quarto setup (`_quarto.yml` and its profiles).
 
 ## About the Name
 
@@ -71,6 +72,7 @@ Global flags apply to every command:
 | ------------------------------------------ | --------------------------------------------------------------------------------------------------- |
 | `folio render [<topic>…]`                  | render the project's topic × format × audience matrix                                               |
 | `folio init`                               | write a starter `folio.yml` into a Markdown tree that has none                                      |
+| `folio migrate`                            | write `folio.yml` from the project's old `_quarto*.yml` files                                       |
 | `folio lint [<topic>]`                     | check the `.qmd` sources (currently: unclosed `:::` fences)                                         |
 | `folio web [<path>]`                       | serve the local sorting, editing and rendering UI                                                   |
 | `folio preview [<path>]`                   | serve the website and update it live as pages change                                                |
@@ -121,7 +123,7 @@ The third is **GitHub Copilot**, which is not an endpoint at all: folio runs the
 
 The tasks and the connections are stored in the settings file (below), readable by its owner alone since it holds the keys, and a stored key is never sent back to the browser.
 
-The top bar names the open project by the `title` in its folio.yml, or by its folder name. The Open button beside it shows a folder dialog that starts where the last project was opened from (the current directory the first time), marks the folders that are projects, offers the ten projects opened before, and takes a typed or pasted path. Reload, to the right of Open, reads the open page and the tree from disk again. Beside the editor, a dock holds the panes as tabs: Preview, Copyedit, Comments, Render, Git, and Help. Drag a tab onto another group's tabs to move it, or onto a group's edge to put the panes side by side or stacked, as with editor tabs in VS Code; a tab's ✕ closes a pane and the Panes menu in the top bar brings it back. The layout is remembered. The Comments pane lists the page's comments with their replies and jumps to each in the editor. The Git pane lists the changes since the last commit, stages and unstages them file by file or all at once, commits them, and pushes the branch. Sync fetches from the remote, fast-forwards over its new commits, and pushes the branch's own; it never merges or rebases, so a branch that has diverged is reported and left for a terminal, and it never overwrites an uncommitted edit. Refresh only reads the working tree again and does not contact the remote. Clicking a path shows that file's diff, coloured line by line, with a button that opens the file in the editor. The pane covers the whole repository, so a project kept in a subdirectory of a larger one is managed just the same. It runs the `git` command, so the repository's hooks, credential helpers and config apply as they do in a terminal.
+The top bar names the open project by the `title` in its folio.yml, or by its folder name. The Open button beside it shows a folder dialog that starts where the last project was opened from (the current directory the first time), marks the folders that are projects, offers the ten projects opened before, and takes a typed or pasted path. Reload, to the right of Open, reads the open page and the tree from disk again. Beside the editor, a dock holds the panes as tabs: Preview, Copyedit, Comments, Render, Git, and Help. Drag a tab onto another group's tabs to move it, or onto a group's edge to put the panes side by side or stacked, as with editor tabs in VS Code; a tab's ✕ closes a pane and the Panes menu in the top bar brings it back. The layout is remembered. The Comments pane lists the page's comments with their replies and jumps to each in the editor; your own comments and replies are edited right in the pane, and new replies written there, without touching the markers in the page. The Git pane lists the changes since the last commit, stages and unstages them file by file or all at once, commits them, and pushes the branch. Sync fetches from the remote, fast-forwards over its new commits, and pushes the branch's own; it never merges or rebases, so a branch that has diverged is reported and left for a terminal, and it never overwrites an uncommitted edit. Refresh only reads the working tree again and does not contact the remote. Clicking a path shows that file's diff, coloured line by line, with a button that opens the file in the editor. The pane covers the whole repository, so a project kept in a subdirectory of a larger one is managed just the same. It runs the `git` command, so the repository's hooks, credential helpers and config apply as they do in a terminal.
 
 The Editor button opens the project, and the page open in the app, in an external editor — for `folio.yml`, stylesheets, and whatever else the app does not edit. *Config → External editor* sets the command line it runs, with `{root}` for the project directory and `{file}` for the page; the default is VS Code's `code {root} --goto {file}`, and the page offers ready-made lines for VSCodium and a few others. With no page open, the `{file}` argument and an option right before it are left out.
 
@@ -156,6 +158,8 @@ folio upgrade --yes     # install without asking
 ```
 
 Before anything is installed, `SHA256SUMS.txt` is checked against its [Sigstore](https://www.sigstore.dev) signature, which must come from folio's release workflow on `main`, and the archive for your platform is then checked against the SHA-256 the signed list gives for it. Every download goes over HTTPS, and the new binary is renamed over the old one, so a failed update leaves the old one in place. `folio web` looks for a new release once a day and shows an **Update** button at the right end of the top bar when it finds one; after the update `folio web` restarts itself on the new binary, at the same address with the same project open, and the page reloads.
+
+An update shows what it brings: `folio upgrade` prints the release notes of every release between the running one and the new one, newest first, before it asks, and the Config page lists them under the Update button. After `folio web` has restarted with an update, a **What's new** button in the top bar leads to the notes of everything the update brought.
 
 To check a release you downloaded by hand, verify the checksums with [cosign](https://docs.sigstore.dev/cosign/system_config/installation/) and the archive against them:
 
@@ -291,7 +295,7 @@ topics:
 
 (`suffix` is an example variable: it means something only because `template`, `file` and `cover` use it. The project-level default keeps `{suffix}` defined for the audience `std`, which sets none.)
 
-A minimal project needs no `folio.yml` at all. Without one, every top-level content folder (one holding a `.qmd` or `.md` file, and not starting with `_` or `.`) is a topic, the only format is `web` (HTML), and there is one audience, `all`. `_quarto*.yml` files are not read and play no role: a project without `folio.yml` renders on the defaults even if they exist. A `folio.yml` states only what differs:
+A minimal project needs no `folio.yml` at all. Without one, every top-level content folder (one holding a `.qmd` or `.md` file, and not starting with `_` or `.`) is a topic, the only format is `web` (HTML), and there is one audience, `all`. A project that has no `folio.yml` but still has `_quarto.yml` or `_quarto-*.yml` files is an error rather than a render on the defaults: run `folio migrate` first (see below). A `folio.yml` states only what differs:
 
 ```yaml
 title: Handbook
@@ -360,6 +364,15 @@ audiences:
   all: {show: [fw, pol]}
 ```
 
+A page lists its subpages where it holds a `subpages` block:
+
+```markdown
+::: {.subpages title="Topics:"}
+:::
+```
+
+The block becomes a table with one row per subpage, each the page's title linking to it, as a Quarto `listing` of `type: table` with the `title` field does; `title` is the text of the table's header, and without it the table has none. The subpages of a folder's index page are the pages beside it and the folders that have an index page of their own -- `./<name>.md` and `./<name>/index.md` are the same level -- in the order of the sidebar. On the site's home page, the block lists the topics. A page without subpages shows no table, and documents (DOCX, PDF) show none either, since there the subpages follow as chapters anyway.
+
 The kept divs and spans keep their classes (`<div class="pol">`), but the site's own stylesheet does not style them; a format's `css:` adds the stylesheets that do. They are copied verbatim to `_site/css/` and linked after the site's own: a `.scss` file is not compiled, so it has to be plain CSS, and `url()` references in it are not rewritten.
 
 ### Documents: DOCX and PDF
@@ -410,7 +423,21 @@ folio init               # write it
 folio init --force       # overwrite an existing folio.yml
 ```
 
-`folio init` writes a starter `folio.yml` into a tree of `.md` or `.qmd` pages that has none yet. It takes the title from the root `index.qmd` or `index.md` (its `title:`, else its first heading), else from the first heading of `README.md`, else from the folder's name; lists every content folder as a topic; adds the `web` format; and spells out where `folio web` and `folio preview` listen. Commented examples show a document format, audiences and `lang`. It refuses to overwrite an existing `folio.yml` (or `qm.yml`) without `--force`, refuses a tree without content folders, and checks that the result loads.
+`folio init` writes a starter `folio.yml` into a tree of `.md` or `.qmd` pages that has none yet. It takes the title from the root `index.qmd` or `index.md` (its `title:`, else its first heading), else from the first heading of `README.md`, else from the folder's name; lists every content folder as a topic; adds the `web` format; and spells out where `folio web` and `folio preview` listen. Commented examples show a document format, audiences and `lang`. It refuses to overwrite an existing `folio.yml` (or `qm.yml`) without `--force`, refuses a tree without content folders, sends a tree that still has `_quarto*.yml` files to `folio migrate`, and checks that the result loads.
+
+### Migrating an existing project
+
+Foolscap Folio is the offspring of Quarto Manager. Quarto isn't ideal for this use case; it is a tools for writing scientific documentation. The `migrate` command turns the overly complex set of Quarto yaml files that the latest Quarto Manager version needed into a single config file.
+
+```sh
+folio migrate --dry-run     # print the folio.yml that would be written
+folio migrate               # write it
+folio migrate --force       # overwrite an existing folio.yml
+```
+
+`folio migrate` reads `_quarto.yml` and the profile files `_quarto-topic-<t>.yml`, `_quarto-format-<f>.yml` and `_quarto-audience-<a>.yml` and writes the equivalent `folio.yml`: `folio:` keys such as `folder`, `formats`, `audiences` and `cover`, the `make:` flags that are true, the `_quarto-vars`, and the output directories. It refuses to overwrite an existing `folio.yml` without `--force`, checks that the result loads, and prints a warning for everything it could not carry over: a title that contains a variable, an output directory outside the common output directory, a template generated into `_build/`, a slide deck format (skipped) or a PPTX output (dropped).
+
+The old `_quarto*.yml` files are **not read anymore** by `folio` itself. Delete them once you no longer render with Quarto; the `project: pre-render` and `post-render` hooks (`folio prepare`, `folio finalize`) no longer exist and must go from `_quarto.yml` if you keep the file for other tools.
 
 ### Known differences from Quarto
 
@@ -441,7 +468,7 @@ folio init --force       # overwrite an existing folio.yml
 main.go                 command wiring: flags, registration
 internal/cli/           the exit-status guard every command body is wrapped in
 internal/config/        folio.yml: formats, audiences, topics, the render matrix, selections
-internal/foliocore/        front matter, page scans, ordering
+internal/foliocore/        front matter, page scans, ordering, and the old Quarto profiles, for migrate
 internal/bookmaker/     folder tree → one flat document, headings demoted by depth
 internal/markdown/      the Markdown parser (goldmark plus divs, spans, attributes, callouts) and the conditional filter
 internal/shortcode/     include, var, pagebreak
@@ -453,7 +480,7 @@ internal/project/       the editable page tree behind the web UI
 internal/gitrepo/       the `git` command behind the web UI's Git pane
 internal/selfupdate/    finding, checking and installing a new release
 web/                    the local web UI: server, settings (CUE), copyediting
-lint/ render/ initialize/ web/ preview/ upgrade/   the leaf commands (initialize/ is `folio init`)
+lint/ render/ migrate/ initialize/ web/ preview/ upgrade/   the leaf commands (initialize/ is `folio init`)
 spec.yaml, spec-*.yaml  the specification each package implements
 testdata/               a miniature project and the flattener's golden files
 ```

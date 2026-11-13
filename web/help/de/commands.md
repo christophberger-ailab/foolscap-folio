@@ -17,6 +17,7 @@ folio <object> <subcommand> [flags] [args]
 | Befehl                                     | Was er tut                                                                                                                |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
 | `folio render [<topic>…]`                  | rendert die Matrix aus Thema × Format × Zielgruppe des Projekts                                                           |
+| `folio migrate`                            | schreibt `folio.yml` aus den alten `_quarto*.yml`-Dateien des Projekts (`--dry-run` gibt sie aus, `--force` überschreibt) |
 | `folio lint [<topic>]`                     | prüft die `.md`- und `.qmd`-Quellen (derzeit: nicht geschlossene `:::`-Fences)                                                       |
 | `folio web [<path>]`                       | startet die lokale Oberfläche zum Sortieren, Bearbeiten und Rendern                                                       |
 | `folio upgrade` | installiert die neueste Version von folio (Alias `folio update`; `--check` meldet nur, `--yes` fragt nicht) |

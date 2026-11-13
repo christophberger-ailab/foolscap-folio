@@ -1,6 +1,7 @@
 package render
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"slices"
@@ -206,5 +207,29 @@ func TestRunUsesPlaceholderForMissingCover(t *testing.T) {
 		if fi, err := os.Stat(filepath.Join(root, "_output", "handout", name)); err != nil || fi.Size() == 0 {
 			t.Errorf("%s: %v", name, err)
 		}
+	}
+}
+
+// Every selection gets the user's callout titles, from the settings file
+// the command was registered with.
+func TestBuildOptionsCarriesTheUsersCalloutTitles(t *testing.T) {
+	root := fixture(t)
+	titles := map[string]map[string]string{"fr": {"note": "Remarque"}}
+	defer func(f func() (map[string]map[string]string, error)) { calloutTitles = f }(calloutTitles)
+	calloutTitles = func() (map[string]map[string]string, error) { return titles, nil }
+
+	opts, err := BuildOptions(root, config.Request{}, false, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, sel := range opts.Selections {
+		if sel.Config.CalloutTitles["fr"]["note"] != "Remarque" {
+			t.Errorf("%s: callout titles = %v", sel, sel.Config.CalloutTitles)
+		}
+	}
+
+	calloutTitles = func() (map[string]map[string]string, error) { return nil, errors.New("config.cue:3: bad") }
+	if _, err := BuildOptions(root, config.Request{}, false, false); err == nil || !strings.Contains(err.Error(), "config.cue:3") {
+		t.Errorf("a broken settings file was not reported: %v", err)
 	}
 }

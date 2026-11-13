@@ -137,6 +137,42 @@ body {
   font-weight: 600;
 }
 
+/* Release notes on the Config page: one article per release, newest
+   first, in a scrolling box so a long run of skipped releases stays
+   compact. */
+.release-notes {
+  margin: 0.75rem 0;
+  max-height: 24rem;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+}
+
+.release-notes summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.release-note {
+  overflow-wrap: anywhere;
+}
+
+.release-note h4 {
+  margin: 0.75rem 0 0.25rem;
+}
+
+.release-note h2,
+.release-note h3 {
+  font-size: 0.95rem;
+  margin: 0.5rem 0 0.25rem;
+}
+
+.update-news {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .update-done {
   color: var(--accent);
   white-space: nowrap;
@@ -2597,6 +2633,10 @@ mark.folio-todo-hidden {
 }
 
 .comments-byline {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.4rem;
   font-size: 0.75rem;
   color: var(--muted);
 }
@@ -2623,6 +2663,35 @@ mark.folio-todo-hidden {
 
 .comments-replies li + li {
   margin-top: 0.3rem;
+}
+
+.comments-edit,
+.comments-form button {
+  font-size: 0.72rem;
+}
+
+.comments-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.2rem 0;
+  cursor: default;
+}
+
+.comments-form textarea {
+  flex: 1 0 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  font: inherit;
+  color: inherit;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.3rem 0.4rem;
+}
+
+.comments-replies:empty {
+  display: none;
 }
 
 .comments-actions {

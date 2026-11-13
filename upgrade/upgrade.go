@@ -84,9 +84,7 @@ func Run(ctx context.Context, o Options) error {
 	default:
 		fmt.Fprintf(o.Out, "folio %s is available (you have %s).\n", rel.Version, o.Current)
 	}
-	if rel.URL != "" {
-		fmt.Fprintf(o.Out, "Release notes: %s\n", rel.URL)
-	}
+	printChanges(ctx, o, rel)
 	if o.CheckOnly {
 		return nil
 	}
@@ -99,6 +97,31 @@ func Run(ctx context.Context, o Options) error {
 	}
 	fmt.Fprintf(o.Out, "Updated to %s.\n", rel.Version)
 	return nil
+}
+
+// printChanges shows what the update brings: the notes of every release
+// after the running one, newest first. When they cannot be listed, the
+// newest release's link has to do.
+func printChanges(ctx context.Context, o Options, rel selfupdate.Release) {
+	changes, err := selfupdate.Changes(ctx, o.Client, o.Source, o.Current, rel.Version)
+	if err != nil || len(changes) == 0 {
+		if rel.URL != "" {
+			fmt.Fprintf(o.Out, "Release notes: %s\n", rel.URL)
+		}
+		return
+	}
+	fmt.Fprintf(o.Out, "\nChanges since %s:\n", o.Current)
+	for _, r := range changes {
+		fmt.Fprintf(o.Out, "\n=== %s", r.Version)
+		if r.URL != "" {
+			fmt.Fprintf(o.Out, "  %s", r.URL)
+		}
+		fmt.Fprintln(o.Out)
+		if notes := strings.TrimSpace(r.Notes); notes != "" {
+			fmt.Fprintf(o.Out, "\n%s\n", notes)
+		}
+	}
+	fmt.Fprintln(o.Out)
 }
 
 // confirm asks "Update now?" and reports whether the answer was yes. No

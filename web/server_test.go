@@ -124,7 +124,7 @@ func TestTreeMarksDrafts(t *testing.T) {
 }
 
 // A page flagged by its `folio:` frontmatter, or by a ==TODO== anywhere in
-// it, carries each flag's emoji once in the tree.
+// it, carries each flag's emoji once in the tree, with a tooltip naming it.
 func TestTreeShowsPageFlags(t *testing.T) {
 	srv, root := testServer(t)
 	page := "---\ntitle: Sketch\norder: 4\nfolio:\n  todo: true\n  review: true\n---\n# Sketch\n<!-- ==TODO== -->\n==TODO==\n<!-- << Why? -->a<!-- >> --> <!-- << And? -->b<!-- >> -->\n"
@@ -132,13 +132,13 @@ func TestTreeShowsPageFlags(t *testing.T) {
 		t.Fatal(err)
 	}
 	body := get(t, srv, "/tree").Body.String()
-	if n := strings.Count(body, `<span class="marker flag">🚧</span>`); n != 1 {
+	if n := strings.Count(body, `<span class="marker flag" title="Contains todos">🚧</span>`); n != 1 {
 		t.Errorf("🚧 shown %d times, want 1:\n%s", n, body)
 	}
-	if n := strings.Count(body, `<span class="marker flag">👀</span>`); n != 1 {
+	if n := strings.Count(body, `<span class="marker flag" title="Needs review">👀</span>`); n != 1 {
 		t.Errorf("👀 shown %d times, want 1:\n%s", n, body)
 	}
-	if n := strings.Count(body, `<span class="marker flag">💬</span>`); n != 1 {
+	if n := strings.Count(body, `<span class="marker flag" title="Contains comments">💬</span>`); n != 1 {
 		t.Errorf("💬 shown %d times, want 1:\n%s", n, body)
 	}
 }
@@ -242,11 +242,37 @@ func TestPreviewWrapsATargetGroupPage(t *testing.T) {
 	for _, want := range []string{
 		"var groupSuffix = /_(fw|pol)$/i;",
 		"function targetGroupOf(pagePath)",
-		`'<div class="quarto ' + escapeHTML(group) + '">'`,
+		`'<div class="' + divClass + " " + escapeHTML(group) + '">'`,
 	} {
 		if !assetContains("assets/static/preview.js", string(preview), want) {
 			t.Errorf("preview.js does not wrap a target group's page, missing %q", want)
 		}
+	}
+}
+
+// Every fenced div and bracketed span is marked with one class, the one the
+// stylesheets draw by (`.folio.pol`) and the one buildCallouts picks the
+// callouts out by. A div marked with any other class is left as plain text
+// by both -- which is how `::: {.callout-note}` lost its box when the class
+// was renamed in some places and not in others (issue #50). So the class is
+// named once, and every place reads it from there.
+func TestPreviewMarksDivsWithTheClassItDrawsBy(t *testing.T) {
+	preview, err := assets.ReadFile("assets/static/preview.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	src := string(preview)
+	for _, want := range []string{
+		`var divClass = "folio";`,
+		"var classes = [divClass];",
+		`root.querySelectorAll("div." + divClass)`,
+	} {
+		if !assetContains("assets/static/preview.js", src, want) {
+			t.Errorf("preview.js does not mark and find its divs by one class, missing %q", want)
+		}
+	}
+	if jsContains(src, `"quarto"`) || jsContains(src, `class="quarto`) {
+		t.Error(`preview.js still marks divs with the old "quarto" class`)
 	}
 }
 
@@ -570,9 +596,13 @@ func TestPreviewDrawsCalloutsLikeQuarto(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, want := range []string{
-		"function buildCallouts(root)",
+		"function buildCallouts(root, titles)",
 		"var calloutKeys = ['title', 'appearance', 'icon', 'collapse'];",
-		"buildCallouts(el);",
+		"buildCallouts(el, titles || {});",
+		// A bare `::: {.callout}` is Quarto's untyped callout: a grey box
+		// without an icon or a title of its own, but laid out all the same.
+		`none: ""`,
+		`el.classList.contains("callout") ? "none" : ""`,
 	} {
 		if !assetContains("assets/static/preview.js", string(preview), want) {
 			t.Errorf("preview.js does not lay out callouts, missing %q", want)
@@ -965,7 +995,7 @@ func TestCreateAndDelete(t *testing.T) {
 	srv, root := testServer(t)
 	before := configs(t, root)
 	rec := post(t, srv, "/create", url.Values{
-		"parent": {""}, "name": {"about"}, "title": {"About"},
+		"parent": {""}, "name": {"about"},
 	})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("create: status %d: %s", rec.Code, rec.Body)
@@ -973,6 +1003,19 @@ func TestCreateAndDelete(t *testing.T) {
 	// A new page is created as name/index.md.
 	if !strings.Contains(rec.Body.String(), `data-path="about/index.md"`) {
 		t.Errorf("tree missing created page:\n%s", rec.Body)
+	}
+	// It carries no `title:`, which would override the page's level-1
+	// heading (issue #58), and the create form asks for none.
+	page, err := os.ReadFile(filepath.Join(root, "about", "index.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(page), "title:") {
+		t.Errorf("new page has a title:\n%s", page)
+	}
+	form := get(t, srv, "/").Body.String()
+	if i := strings.Index(form, `class="new-file-form"`); i < 0 || strings.Contains(form[i:i+strings.Index(form[i:], "</form>")], `name="title"`) {
+		t.Errorf("create form missing or still asks for a title")
 	}
 	assertConfigsUnchanged(t, root, before)
 
@@ -995,7 +1038,7 @@ func TestCreateAfter(t *testing.T) {
 	srv, _ := testServer(t)
 	rec := post(t, srv, "/create", url.Values{
 		"parent": {""}, "after": {"chapter2/second.qmd"},
-		"name": {"inserted"}, "title": {"Inserted"},
+		"name": {"inserted"},
 	})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("create: status %d: %s", rec.Code, rec.Body)
@@ -1450,5 +1493,30 @@ func TestTopbarShowsLogo(t *testing.T) {
 	}
 	if strings.Contains(string(src), "<h1>Foolscap Folio</h1>") {
 		t.Error("a page's top bar names the app without the logo")
+	}
+}
+
+// The preview titles a callout from the titles the page carries for the
+// project's language, and falls back to English where it carries none.
+func TestPreviewTitlesCalloutsInThePagesLanguage(t *testing.T) {
+	preview, err := assets.ReadFile("assets/static/preview.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		"function renderPreview(el, text, pagePath, titles)",
+		"buildCallouts(el, titles || {});",
+		"title.textContent = titles[type] || calloutTypes[type];",
+	} {
+		if !assetContains("assets/static/preview.js", string(preview), want) {
+			t.Errorf("preview.js does not translate callout titles, missing %q", want)
+		}
+	}
+	app, err := assets.ReadFile("assets/static/app.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !assetContains("assets/static/app.js", string(app), "calloutTitles()") {
+		t.Error("app.js does not hand the page's callout titles to the preview")
 	}
 }

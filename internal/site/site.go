@@ -31,13 +31,16 @@ type Topic struct {
 
 // Options configure Build.
 type Options struct {
-	Root    string // project root, absolute
-	OutDir  string // output directory, absolute
-	Title   string // site title; "" = name of the root folder
-	Lang    string // html lang attribute
-	Topics  []Topic
-	Keep    markdown.Keep
-	Formats []string
+	Root   string // project root, absolute
+	OutDir string // output directory, absolute
+	Title  string // site title; "" = name of the root folder
+	Lang   string // html lang attribute
+	// CalloutTitles are the user's own callout titles by language and
+	// type (see markdown.CalloutTitles).
+	CalloutTitles map[string]map[string]string
+	Topics        []Topic
+	Keep          markdown.Keep
+	Formats       []string
 	// CSS are stylesheets, absolute paths, that every page links after the
 	// site's own. They are copied verbatim into OutDir/_site/css.
 	CSS []string
@@ -264,8 +267,9 @@ func (b *builder) renderPage(p *pageInfo) error {
 			}
 		}
 		doc := markdown.Parse([]byte(md))
-		doc.Prepare(markdown.Options{Keep: b.o.Keep, Formats: b.o.Formats, Lang: b.o.Lang})
+		doc.Prepare(markdown.Options{Keep: b.o.Keep, Formats: b.o.Formats, Lang: b.o.Lang, CalloutTitles: b.o.CalloutTitles})
 		b.rewriteLinks(doc, p)
+		b.expandSubpages(doc, p)
 		toc = tocOf(doc)
 		s, err := markdown.HTML(doc)
 		if err != nil {

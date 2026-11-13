@@ -298,3 +298,70 @@ func TestARestartKeepsTheAddressAndProject(t *testing.T) {
 		t.Error("the restart variables are left for the next process")
 	}
 }
+
+// notesServer is a repository with three releases and their notes, listed
+// beside the latest one.
+func notesServer(t *testing.T) *httptest.Server {
+	t.Helper()
+	all := []map[string]any{
+		{"tag_name": "v0.4.0", "body": "## What's Changed\n* **Four** is here <script>alert(1)</script>", "html_url": "https://example.com/v0.4.0"},
+		{"tag_name": "v0.3.2", "body": "* three-two fix"},
+		{"tag_name": "v0.3.1", "body": "* three-one"},
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /releases/latest", func(w http.ResponseWriter, r *http.Request) { json.NewEncoder(w).Encode(all[0]) })
+	mux.HandleFunc("GET /releases", func(w http.ResponseWriter, r *http.Request) { json.NewEncoder(w).Encode(all) })
+	srv := httptest.NewTLSServer(mux)
+	t.Cleanup(srv.Close)
+	return srv
+}
+
+func TestTheConfigPageShowsTheNotesOfEveryReleaseAnUpdateBrings(t *testing.T) {
+	src := notesServer(t)
+	s := updatingServer(t, "v0.3.1", src)
+	s.cfg.Update.Source = src.URL + "/releases/latest"
+	if err := s.checkRelease(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	body := get(t, s, "/config").Body.String()
+	four, threeTwo := strings.Index(body, "<strong>Four</strong>"), strings.Index(body, "three-two fix")
+	if four < 0 || threeTwo < 0 || four > threeTwo {
+		t.Errorf("the notes are missing or out of order:\n%s", body)
+	}
+	if strings.Contains(body, "three-one") {
+		t.Errorf("the running release's own notes are shown:\n%s", body)
+	}
+	if strings.Contains(body, "<script>alert") {
+		t.Errorf("raw HTML from the notes reaches the page:\n%s", body)
+	}
+	if !strings.Contains(body, "What's new since v0.3.1") && !strings.Contains(body, "What&#39;s new since v0.3.1") {
+		t.Errorf("no heading for the notes:\n%s", body)
+	}
+}
+
+// After an update has restarted folio web, the top bar points to what the
+// update brought until the Config page has been looked at.
+func TestAfterARestartTheChangesAreShownOnce(t *testing.T) {
+	src := notesServer(t)
+	s := updatingServer(t, "v0.4.0", src)
+	s.cfg.Update.Source = src.URL + "/releases/latest"
+	s.showChangesSince(context.Background(), "v0.3.1")
+	slot := get(t, s, "/update").Body.String()
+	if !strings.Contains(slot, `href="/config#whats-new"`) || !strings.Contains(slot, "v0.4.0") {
+		t.Errorf("the top bar does not point to the changes:\n%s", slot)
+	}
+	body := get(t, s, "/config").Body.String()
+	if !strings.Contains(body, "Updated from v0.3.1 to v0.4.0") || !strings.Contains(body, "three-two fix") || !strings.Contains(body, `id="whats-new"`) {
+		t.Errorf("the Config page does not show what the update brought:\n%s", body)
+	}
+	if slot := get(t, s, "/update").Body.String(); strings.Contains(slot, "whats-new") {
+		t.Errorf("the pointer stays after the changes were seen:\n%s", slot)
+	}
+}
+
+func TestARestartHandsOverTheReleaseItCameFrom(t *testing.T) {
+	t.Setenv(restartFromEnv, "v0.3.1")
+	if got := takeUpdatedFrom(); got != "v0.3.1" || os.Getenv(restartFromEnv) != "" {
+		t.Errorf("takeUpdatedFrom = %q, env left %q", got, os.Getenv(restartFromEnv))
+	}
+}

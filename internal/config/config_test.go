@@ -211,11 +211,17 @@ topics:
 	}
 }
 
-// Quarto's configuration files mean nothing to folio: a project without
-// folio.yml renders on the defaults whatever _quarto*.yml files it has.
-func TestQuartoConfigIsIgnored(t *testing.T) {
+// A project still configured for Quarto must not be rendered on the
+// defaults: that would silently produce something else.
+func TestOldQuartoConfigWithoutQmYmlIsAnError(t *testing.T) {
 	root := project(t, "", "a")
 	os.WriteFile(filepath.Join(root, "_quarto-topic-a.yml"), []byte("{}\n"), 0o644)
+	_, err := Load(root)
+	if err == nil || !strings.Contains(err.Error(), "folio migrate") || !strings.Contains(err.Error(), "_quarto-topic-a.yml") {
+		t.Fatalf("err = %v", err)
+	}
+	// Once folio.yml exists, the old files no longer matter.
+	os.WriteFile(filepath.Join(root, FileName), []byte("title: x\n"), 0o644)
 	if _, err := Load(root); err != nil {
 		t.Fatal(err)
 	}

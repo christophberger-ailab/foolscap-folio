@@ -2,7 +2,7 @@
 
 ## The Config button
 
-`Config` at the far right of the top bar opens a page listing the configuration areas. Use the `App` button at the top to return. Above the areas, a `Release` box names the folio release you are running and has a `Check for updates` button (see [The settings file](#the-settings-file) for the automatic checks). When a newer release is found, the box says so and offers an **Update to …** button, which installs it just like the top bar's **Update** button. After an update, folio web restarts itself with the new release and the page reloads. A development build is offered the newest release, whatever it is. The areas are:
+`Config` at the far right of the top bar opens a page listing the configuration areas. Use the `App` button at the top to return. Above the areas, a `Release` box names the folio release you are running and has a `Check for updates` button (see [The settings file](#the-settings-file) for the automatic checks). When a newer release is found, the box says so and offers an **Update to …** button, which installs it just like the top bar's **Update** button. Below the button, the release notes of every release the update brings are listed, newest first, including the ones in between when you skipped some. After an update, folio web restarts itself with the new release and the page reloads; a **What's new in …** button in the top bar then leads back here to the notes of everything the update brought. A development build is offered the newest release, whatever it is. The areas are:
 
 - `Preview: Custom CSS`: the stylesheet for the [preview](preview.md).
 - `Copyedit: Editing tasks` and `Copyedit: API connections`: see [copyediting](copyedit.md).
@@ -45,6 +45,13 @@ Everything `folio web` remembers lives in one file: `<user config dir>/folio/con
 - the external editor command lines,
 - the name your comments are signed with (`user: name:`).
 - where and how often to look for a new folio release (`update: source:` and `update: check:`, which is `daily`, `weekly` or `never`). When `folio web` finds one, an **Update** button appears at the right end of the top bar; it installs the release, which is used from the next start of `folio web`.
+- the titles of callouts that have no title of their own, per language (`callouts:`). The language is the project's `lang` in `folio.yml`; `folio render`, `folio preview` and the preview in `folio web` all use them. English and German come filled in; add a language like this, and leave out any type you want in English:
+
+  ```
+  callouts: fr: {note: "Remarque", tip: "Astuce", warning: "Avertissement", important: "Important", caution: "Attention"}
+  ```
+
+  A regional `lang` such as `fr-CA` uses `fr` unless it has an entry of its own.
 
 It is readable by you alone because of the keys. The file is created with defaults on the first run. Older JSON settings files are carried over once and renamed to `*.migrated`.
 

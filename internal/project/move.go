@@ -6,7 +6,6 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -161,9 +160,9 @@ func shiftHeadingsBelow(abs string, delta int) error {
 }
 
 // CreatePage creates a new page as name/index.md under parent ("" for
-// root) with the given title, ordered after the last ordered sibling. It
-// returns the new page's path.
-func (t *Tree) CreatePage(parent, name, title string) (string, error) {
+// root), ordered after the last ordered sibling. It returns the new page's
+// path.
+func (t *Tree) CreatePage(parent, name string) (string, error) {
 	destDir, siblings, _, err := t.resolveParent(parent)
 	if err != nil {
 		return "", err
@@ -174,20 +173,20 @@ func (t *Tree) CreatePage(parent, name, title string) (string, error) {
 			order = *p.Order
 		}
 	}
-	return t.newPageFile(destDir, name, title, order+1)
+	return t.newPageFile(destDir, name, order+1)
 }
 
 // CreatePageAfter creates a new page as name/index.md in the sibling
 // group of the page at after, immediately following it. Like Move, it
 // renumbers the whole group sequentially, so previously unordered
 // siblings become ordered. It returns the new page's path.
-func (t *Tree) CreatePageAfter(after, name, title string) (string, error) {
+func (t *Tree) CreatePageAfter(after, name string) (string, error) {
 	ap := t.Find(after)
 	if ap == nil {
 		return "", fmt.Errorf("page %s not found", after)
 	}
 	dir := groupDir(after)
-	rel, err := t.newPageFile(dir, name, title, 0)
+	rel, err := t.newPageFile(dir, name, 0)
 	if err != nil {
 		return "", err
 	}
@@ -207,9 +206,10 @@ func (t *Tree) CreatePageAfter(after, name, title string) (string, error) {
 	return rel, nil
 }
 
-// newPageFile writes destDir/name/index.md with title and order
-// frontmatter and returns its path.
-func (t *Tree) newPageFile(destDir, name, title string, order int) (string, error) {
+// newPageFile writes destDir/name/index.md with order frontmatter and
+// returns its path. It writes no title: a `title:` would override the
+// level-1 heading the page is given later.
+func (t *Tree) newPageFile(destDir, name string, order int) (string, error) {
 	name = stem(strings.ReplaceAll(strings.TrimSpace(name), " ", "-"))
 	if name == "" || strings.ContainsAny(name, `/\`) || strings.HasPrefix(name, "_") || strings.HasPrefix(name, ".") {
 		return "", fmt.Errorf("invalid page name %q", name)
@@ -221,7 +221,7 @@ func (t *Tree) newPageFile(destDir, name, title string, order int) (string, erro
 		}
 	}
 	rel := dir + "/index.md"
-	content := fmt.Sprintf("---\ntitle: %s\norder: %d\n---\n\n", strconv.Quote(title), order)
+	content := fmt.Sprintf("---\norder: %d\n---\n\n", order)
 	if err := os.MkdirAll(filepath.Dir(t.abs(rel)), 0o755); err != nil {
 		return "", err
 	}
