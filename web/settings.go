@@ -34,6 +34,8 @@ import (
 	"cuelang.org/go/cue/cuecontext"
 	cueerrors "cuelang.org/go/cue/errors"
 	"cuelang.org/go/cue/format"
+
+	"github.com/christophberger-ailab/foolscap-folio/internal/selfupdate"
 )
 
 // storedConfig is the whole of what qm remembers. The field names are the
@@ -49,6 +51,7 @@ type storedConfig struct {
 	Copyedit copyeditConfig          `json:"copyedit"`
 	Editor   editorConfig            `json:"editor"`
 	User     userConfig              `json:"user"`
+	Update   updateConfig            `json:"update"`
 }
 
 // previewConfig is the Markdown preview's own settings. The stylesheets
@@ -82,6 +85,7 @@ const configSchema = `// -------------------------------------------------------
 	copyedit: #Copyedit
 	editor:   #Editor
 	user:     #User
+	update:   #Update
 
 	// Where folio web listens is the project's to say, in folio.yml.
 	// Older versions kept it here; what is left of that is ignored.
@@ -122,6 +126,18 @@ const configSchema = `// -------------------------------------------------------
 	// The name the comments you write in the editor are signed with.
 	// Left empty, the name you are logged in to the computer with is used.
 	name: string | *""
+}
+
+#Update: {
+	// Where folio looks for new releases: the URL of the newest release's
+	// description in the shape GitHub's REST API gives it, which Gitea and
+	// Forgejo give too. Only https is accepted.
+	source: (string & =~"^https://") | *"` + selfupdate.DefaultSource + `"
+
+	// How often folio web looks for a new release and, when it finds one,
+	// shows an Update button in the top bar. "folio upgrade" looks
+	// whenever it is run.
+	check: *"daily" | "weekly" | "never"
 }
 
 #Copyedit: {
@@ -260,6 +276,7 @@ func defaultConfig() storedConfig {
 			Selected:    []string{},
 		},
 		Editor: editorConfig{Command: defaultEditorCommand, Image: defaultImageEditorCommand()},
+		Update: updateConfig{Source: selfupdate.DefaultSource, Check: checkDaily},
 	}
 }
 
@@ -289,6 +306,12 @@ func (c *storedConfig) normalize() {
 	}
 	if c.Editor.Image == "" {
 		c.Editor.Image = defaultImageEditorCommand()
+	}
+	if c.Update.Source == "" {
+		c.Update.Source = selfupdate.DefaultSource
+	}
+	if c.Update.Check == "" {
+		c.Update.Check = checkDaily
 	}
 	if c.Copyedit.Selected == nil {
 		c.Copyedit.Selected = []string{}

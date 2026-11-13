@@ -34,6 +34,7 @@ Everything `folio web` remembers lives in one file: `<user config dir>/folio/con
 - the copyediting tasks and connections (including API keys),
 - the external editor command lines,
 - the name your comments are signed with (`user: name:`).
+- where and how often to look for a new folio release (`update: source:` and `update: check:`, which is `daily`, `weekly` or `never`). When `folio web` finds one, an **Update** button appears at the right end of the top bar; it installs the release, which is used from the next start of `folio web`.
 
 It is readable by you alone because of the keys. The file is created with defaults on the first run. Older JSON settings files are carried over once and renamed to `*.migrated`.
 

@@ -24,7 +24,7 @@ constraints:
       carries the schema it is checked against.
     requirements:
       1: 'The settings are one file: `<user config dir>/folio/config.cue`. Nothing else is written beside it but the preview stylesheets, which are CSS rather than settings'
-      2: The file holds the recently opened projects, the per-project render selection and last open page, the active preview stylesheet, the copyediting setup, the external editors' command lines, and the name comments are signed with. Where the UI listens is the project's to say, in folio.yml
+      2: The file holds the recently opened projects, the per-project render selection and last open page, the active preview stylesheet, the copyediting setup, the external editors' command lines, the name comments are signed with, and where and how often to look for updates. Where the UI listens is the project's to say, in folio.yml
       3: The file is written for its owner alone, since the copyediting setup holds API keys
       4: 'The file carries its own schema: the CUE definitions the settings are checked against are written into it above them, so the file says what belongs in it and in what shape'
       4-1: The schema is written by the app and rewritten with every save, so the schema in the file is always the one the running binary checks against
@@ -37,6 +37,19 @@ constraints:
       6-1: The settings the older JSON files held -- render.json, recent.json, copyedit.json, and the custom-css/.active marker -- are carried over into it the first time the app runs without one
       6-2: Those files are then kept beside the new one under a `.migrated` name: they are no longer read, and a mistake in carrying them over is recoverable
       7: Hand-edited values are read back as they stand; comments written among the settings are not kept, the app replacing them whenever a setting changes in the UI
+      8: 'The `update` section names where releases are looked for (`source`, an https URL; default folio''s GitHub releases) and how often folio web looks (`check`: daily, weekly or never; default daily). `folio upgrade` reads the same source (see spec-upgrade.yaml)'
+
+  UPDATE:
+    description: The top bar offers an update when a newer release of folio is out.
+    requirements:
+      1: While folio web runs, it looks for a newer release at the update source as often as SETTINGS 8 says, first right after it starts; a development build never looks
+      1-1: A change of the interval in the settings file takes effect within the hour, without a restart
+      1-2: A failed check is reported on the console only; the next one is tried as usual
+      2: 'When a newer release is found, an Update button appears at the right end of the top bar, with the tooltip "Update to <release>. Your current release is <release>."'
+      2-1: The page asks for the button when it loads and every hour after, so a release found while the page is open still shows up
+      3: The button asks for confirmation, then installs the release the way `folio upgrade` does (spec-upgrade.yaml SECURITY)
+      3-1: Once installed, the button gives way to "Restart folio web to use <release>"; the running server keeps running the old version until it is restarted
+      3-2: A failed install leaves the binary as it was, shows the reason beside the button, and keeps the button for another try
 
   ORIGIN:
     description: The command is the quarto-sorter tool (github.com/christophberger-ailab/quarto-sorter) merged into folio.

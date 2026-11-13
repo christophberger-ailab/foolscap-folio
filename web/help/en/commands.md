@@ -19,6 +19,7 @@ folio <object> <subcommand> [flags] [args]
 | `folio render [<topic>…]` | render the project's topic × format × audience matrix |
 | `folio lint [<topic>]` | check the `.md` and `.qmd` sources (currently: unclosed `:::` fences) |
 | `folio web [<path>]` | serve the local sorting, editing and rendering UI |
+| `folio upgrade` | install the newest release of folio (alias `folio update`; `--check` only reports, `--yes` does not ask) |
 
 Every command takes `--help`, which lists its flags and arguments.
 

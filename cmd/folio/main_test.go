@@ -38,7 +38,7 @@ func TestHelpIsTheSameWithAndWithoutFlag(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("folio exits %d", code)
 	}
-	for _, want := range []string{"init", "lint", "render", "web", "preview", "Available global flags:", "--project"} {
+	for _, want := range []string{"init", "lint", "render", "web", "preview", "upgrade", "update", "Available global flags:", "--project"} {
 		if !strings.Contains(plain, want) {
 			t.Errorf("folio's help lacks %q:\n%s", want, plain)
 		}

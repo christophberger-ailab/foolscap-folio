@@ -1,0 +1,32 @@
+feature:
+  name: upgrade
+  description: Update folio to its newest release
+
+components:
+  COMMAND:
+    description: folio upgrade [--check] [--yes]
+    requirements:
+      1: Object name is "upgrade"; "update" is an alias that behaves the same
+      2: No subcommand
+      3: Parameters
+      3-1: Flag --check only reports whether a newer release exists and installs nothing. Defaults to false
+      3-2: Flag --yes installs a newer release without asking. Defaults to false
+
+constraints:
+  STANDARD: See the constraints in spec.yaml.
+
+  PROCESS:
+    requirements:
+      1: 'The newest release is read from the update source in the web settings file, config.cue (see spec-web.yaml SETTINGS 8); without a settings file it is folio''s GitHub releases'
+      1-1: The source is the URL of a release description in the shape of GitHub's REST API (`tag_name`, `html_url`, `assets[].name`, `assets[].browser_download_url`), which Gitea, Forgejo and a static JSON file can give as well
+      2: A release is newer when its tag is a higher vMAJOR.MINOR.PATCH than the running version; a development build or a pre-release tag is never compared, and upgrade on a development build is an error
+      3: When a newer release exists, its version, the running version and its release notes URL are printed; without --check and --yes the user is asked "Update now? [y/N]", and anything but y or yes leaves the binary as it is
+      4: When no newer release exists, that is said and nothing changes
+
+  SECURITY:
+    requirements:
+      1: Every request goes over https, redirects included; a source or download URL that is not https is an error
+      2: The archive for the running OS and architecture (`folio_<version>_<os>_<arch>.tar.gz`, `.zip` on Windows; `qm_` in releases made before the rename) is checked against the SHA-256 the release's SHA256SUMS.txt lists for it before it is unpacked; a release without that file, or without the archive in it, is not installed
+      3: Every download and the unpacked binary are size-limited
+      4: The new binary is written beside the running one and renamed over it, so a failure leaves the old binary in place; a symlinked binary is replaced at the link's target
+      5: On Windows, where a running binary cannot be overwritten, the old one is renamed to `<name>.old` first and removed on a later start

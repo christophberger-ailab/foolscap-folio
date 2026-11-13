@@ -58,13 +58,17 @@ const maxPortTries = 100
 var (
 	projectPath *string
 	addr        *string
+	// version is the running release, which the Update button compares
+	// new releases against.
+	version string
 )
 
 // Register wires the top-level `web` command into start. Like `lint` and
 // `render`, `web` carries no sub-commands and is registered as a leaf
 // (SUBCOMMANDS.3 does not apply when there is nothing to dispatch to).
-func Register(projectFlag *string) {
+func Register(projectFlag *string, release string) {
 	projectPath = projectFlag
+	version = release
 	addr = flag.String("addr", "",
 		"Address to listen on, as host:port; without it, the baseurl and the first free port from port up in the project's folio.yml, under web: for folio web (localhost, 8199) and preview: for folio preview (localhost, 8198)")
 
@@ -112,6 +116,7 @@ func Serve(flagAddr string, root string) error {
 			return fmt.Errorf("web: cannot open %s: %w", root, err)
 		}
 	}
+	srv.startUpdateChecks(version)
 	listenAddr, searchPort, err := listenTarget(flagAddr, root)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "folio web: %v; listening on the default address\n", err)

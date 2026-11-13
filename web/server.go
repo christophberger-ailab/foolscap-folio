@@ -71,6 +71,9 @@ type server struct {
 	// index is the word index the search field is answered from. Like the
 	// render, it is built in the background and locked separately.
 	index searchIndex
+
+	// update is what the top bar's Update button knows (see update.go).
+	update updateState
 }
 
 func newServer(configFile string) (*server, error) {
@@ -162,6 +165,8 @@ func newServer(configFile string) (*server, error) {
 	s.mux.HandleFunc("POST /git/commit", s.gitCommitHandler)
 	s.mux.HandleFunc("POST /git/push", s.gitPushHandler)
 	s.mux.HandleFunc("POST /git/sync", s.gitSyncHandler)
+	s.mux.HandleFunc("GET /update", s.updateHandler)
+	s.mux.HandleFunc("POST /update", s.installUpdateHandler)
 	return s, nil
 }
 
