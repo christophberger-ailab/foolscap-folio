@@ -244,7 +244,7 @@ func TestPreviewWrapsATargetGroupPage(t *testing.T) {
 		"function targetGroupOf(pagePath)",
 		`'<div class="quarto ' + escapeHTML(group) + '">'`,
 	} {
-		if !strings.Contains(string(preview), want) {
+		if !assetContains("assets/static/preview.js", string(preview), want) {
 			t.Errorf("preview.js does not wrap a target group's page, missing %q", want)
 		}
 	}
@@ -462,7 +462,7 @@ func TestEditorOptsOutOfBrowserFormRestore(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(editor), "area.value = area.defaultValue") {
+	if !assetContains("assets/static/editor.js", string(editor), "area.value = area.defaultValue") {
 		t.Error("editor.js does not reset the textarea to the text the server sent")
 	}
 }
@@ -529,7 +529,7 @@ func TestPreviewShowsImagePathOnHover(t *testing.T) {
 		"tip += '\\nDouble-click to open it in the image editor';",
 		"img.setAttribute('title', tip);",
 	} {
-		if !strings.Contains(string(preview), want) {
+		if !assetContains("assets/static/preview.js", string(preview), want) {
 			t.Errorf("preview.js does not show the image path as a tooltip, missing %q", want)
 		}
 	}
@@ -547,7 +547,7 @@ func TestPreviewCaptionsAStandaloneImage(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, want := range []string{`'p > img:only-child'`, `createElement('figcaption')`} {
-		if !strings.Contains(string(preview), want) {
+		if !assetContains("assets/static/preview.js", string(preview), want) {
 			t.Errorf("preview.js does not caption a standalone image, missing %q", want)
 		}
 	}
@@ -574,7 +574,7 @@ func TestPreviewDrawsCalloutsLikeQuarto(t *testing.T) {
 		"var calloutKeys = ['title', 'appearance', 'icon', 'collapse'];",
 		"buildCallouts(el);",
 	} {
-		if !strings.Contains(string(preview), want) {
+		if !assetContains("assets/static/preview.js", string(preview), want) {
 			t.Errorf("preview.js does not lay out callouts, missing %q", want)
 		}
 	}
@@ -906,7 +906,7 @@ func TestPreviewFallsBackToPlaceholder(t *testing.T) {
 		"img.addEventListener('error', showPlaceholder);",
 		"var placeholderURL = '/static/placeholder.svg';",
 	} {
-		if !strings.Contains(string(preview), want) {
+		if !assetContains("assets/static/preview.js", string(preview), want) {
 			t.Errorf("preview.js does not fall back to the placeholder, missing %q", want)
 		}
 	}
