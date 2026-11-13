@@ -116,12 +116,15 @@ function targetGroupOf(pagePath) {
 // Key/value attributes are collected in keys, a value in quotes keeping its
 // spaces (`title="Mind the gap"`); the preview styles by the classes and
 // reads only the few keys a callout takes (see calloutAttrs).
-// Every match gets the `quarto` class, marking it as one of these
+// Every match gets the divClass class, marking it as one of these
 // Quarto-specific constructs regardless of which named class(es) follow.
+// The stylesheets draw by it (`.folio.pol`) and buildCallouts finds the
+// callouts by it, so it is named here once.
+var divClass = "folio";
 var attrToken = /([^\s=]+)=(?:"([^"]*)"|'([^']*)'|(\S*))|(\S+)/g;
 
 function parseAttrs(attrs) {
-  var classes = ["quarto"];
+  var classes = [divClass];
   var id = "";
   var keys = {};
   var text = attrs.replace(/^\{|\}$/g, "");
@@ -1061,17 +1064,18 @@ var calloutTypes = {
   warning: "Warning",
   important: "Important",
   caution: "Caution",
+  none: "", // a bare `.callout`: no icon, and no title unless one is given
 };
 
-// calloutType returns the type of the callout el, or "" when el is no
-// callout.
+// calloutType returns the type of the callout el, "none" for a callout
+// without a type, or "" when el is no callout.
 function calloutType(el) {
   for (var type in calloutTypes) {
     if (el.classList.contains("callout-" + type)) {
       return type;
     }
   }
-  return "";
+  return el.classList.contains("callout") ? "none" : "";
 }
 
 // buildCallouts lays out every callout in root as Quarto does: the div
@@ -1079,7 +1083,7 @@ function calloutType(el) {
 // The innermost callouts go first, so an outer one moves finished boxes.
 function buildCallouts(root) {
   var divs = Array.prototype.slice
-    .call(root.querySelectorAll("div.folio"))
+    .call(root.querySelectorAll("div." + divClass))
     .reverse();
   divs.forEach(function (div) {
     var type = calloutType(div);
@@ -1091,6 +1095,7 @@ function buildCallouts(root) {
       appearance = "default";
     }
     var icon =
+      type !== "none" &&
       appearance !== "minimal" &&
       div.getAttribute("data-callout-icon") !== "false";
     var collapse = div.getAttribute("data-callout-collapse");
@@ -1114,7 +1119,10 @@ function buildCallouts(root) {
         title.appendChild(first.firstChild);
       }
       first.remove();
-    } else if (appearance === "default" || foldable) {
+    } else if (
+      foldable ||
+      (appearance === "default" && calloutTypes[type] !== "")
+    ) {
       title.textContent = calloutTypes[type];
     } else {
       title = null;
@@ -1329,7 +1337,8 @@ function renderPreview(el, text, pagePath) {
   if (group !== "") {
     // The frontmatter stays outside the wrapper: it directs the render, it
     // is not content the group's div would hold.
-    body = '<div class="quarto ' + escapeHTML(group) + '">' + body + "</div>";
+    body =
+      '<div class="' + divClass + " " + escapeHTML(group) + '">' + body + "</div>";
   }
   var folds = foldStates(el);
   el.innerHTML = html + body;

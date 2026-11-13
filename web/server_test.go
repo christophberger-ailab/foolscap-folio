@@ -242,11 +242,37 @@ func TestPreviewWrapsATargetGroupPage(t *testing.T) {
 	for _, want := range []string{
 		"var groupSuffix = /_(fw|pol)$/i;",
 		"function targetGroupOf(pagePath)",
-		`'<div class="quarto ' + escapeHTML(group) + '">'`,
+		`'<div class="' + divClass + " " + escapeHTML(group) + '">'`,
 	} {
 		if !assetContains("assets/static/preview.js", string(preview), want) {
 			t.Errorf("preview.js does not wrap a target group's page, missing %q", want)
 		}
+	}
+}
+
+// Every fenced div and bracketed span is marked with one class, the one the
+// stylesheets draw by (`.folio.pol`) and the one buildCallouts picks the
+// callouts out by. A div marked with any other class is left as plain text
+// by both -- which is how `::: {.callout-note}` lost its box when the class
+// was renamed in some places and not in others (issue #50). So the class is
+// named once, and every place reads it from there.
+func TestPreviewMarksDivsWithTheClassItDrawsBy(t *testing.T) {
+	preview, err := assets.ReadFile("assets/static/preview.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	src := string(preview)
+	for _, want := range []string{
+		`var divClass = "folio";`,
+		"var classes = [divClass];",
+		`root.querySelectorAll("div." + divClass)`,
+	} {
+		if !assetContains("assets/static/preview.js", src, want) {
+			t.Errorf("preview.js does not mark and find its divs by one class, missing %q", want)
+		}
+	}
+	if jsContains(src, `"quarto"`) || jsContains(src, `class="quarto`) {
+		t.Error(`preview.js still marks divs with the old "quarto" class`)
 	}
 }
 
@@ -573,6 +599,10 @@ func TestPreviewDrawsCalloutsLikeQuarto(t *testing.T) {
 		"function buildCallouts(root)",
 		"var calloutKeys = ['title', 'appearance', 'icon', 'collapse'];",
 		"buildCallouts(el);",
+		// A bare `::: {.callout}` is Quarto's untyped callout: a grey box
+		// without an icon or a title of its own, but laid out all the same.
+		`none: ""`,
+		`el.classList.contains("callout") ? "none" : ""`,
 	} {
 		if !assetContains("assets/static/preview.js", string(preview), want) {
 			t.Errorf("preview.js does not lay out callouts, missing %q", want)
