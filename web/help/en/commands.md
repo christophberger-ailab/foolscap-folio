@@ -17,6 +17,7 @@ folio <object> <subcommand> [flags] [args]
 | command | what it does |
 | --- | --- |
 | `folio render [<topic>…]` | render the project's topic × format × audience matrix |
+| `folio migrate` | write `folio.yml` from the project's old `_quarto*.yml` files (`--dry-run` prints it, `--force` overwrites) |
 | `folio lint [<topic>]` | check the `.md` and `.qmd` sources (currently: unclosed `:::` fences) |
 | `folio web [<path>]` | serve the local sorting, editing and rendering UI |
 | `folio upgrade` | install the newest release of folio (alias `folio update`; `--check` only reports, `--yes` does not ask) |

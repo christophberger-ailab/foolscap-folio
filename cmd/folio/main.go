@@ -2,14 +2,15 @@
 //
 // Usage: folio <command> [flags] [args]
 //
-// The commands "lint", "render", "init", "web" and "preview" have no
-// subcommands.
+// The commands "lint", "render", "migrate", "init", "web", "preview" and
+// "upgrade" have no subcommands.
 package main
 
 import (
 	"github.com/christophberger-ailab/foolscap-folio/initialize"
 	"github.com/christophberger-ailab/foolscap-folio/internal/selfupdate"
 	"github.com/christophberger-ailab/foolscap-folio/lint"
+	"github.com/christophberger-ailab/foolscap-folio/migrate"
 	"github.com/christophberger-ailab/foolscap-folio/preview"
 	"github.com/christophberger-ailab/foolscap-folio/render"
 	"github.com/christophberger-ailab/foolscap-folio/upgrade"
@@ -38,7 +39,11 @@ func main() {
 	// `render` builds the project's topic × format × audience matrix.
 	render.Register(projectFlag)
 
-	// `init` writes a starter folio.yml into a tree that has none.
+	// `migrate` writes folio.yml from a project's old Quarto configuration.
+	migrate.Register(projectFlag)
+
+	// `init` writes a starter folio.yml into a tree that has none; it
+	// shares --force and --dry-run with `migrate`.
 	initialize.Register(projectFlag)
 
 	// The `web` object serves the sorter UI; no sub-commands either.

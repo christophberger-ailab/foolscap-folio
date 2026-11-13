@@ -110,8 +110,13 @@ The project's vocabulary for rendering. Read this before `build`.
 
 The package holds what both the bookmaker and the web UI need to read a page:
 `SplitFrontMatter`, `ProjectPath`, the page scans and the exclude rules
-(`DefaultExcludePattern`, `ShouldExcludeChapter`). The Quarto profile vocabulary
-it once held is gone; `internal/config` replaced it.
+(`DefaultExcludePattern`, `ShouldExcludeChapter`). It also still holds the
+Quarto profile vocabulary -- axes, `ParseSelection`, `LoadProfile`,
+`BuildMatrix`, in `selection.go`, `profile.go`, `profileconfig.go` and
+`matrix.go`. Rendering no longer uses any of it; `internal/config` replaced
+it. It stays only because `folio migrate` reads the old profile files with it
+(`LoadSelection`, `AxisValues`), and can go once migrating is no longer
+needed.
 
 ### 3.1 Front matter, on disk — `scan.go`, `frontmatter.go`, `types.go`
 
@@ -387,6 +392,17 @@ to `Run`. `BuildOptions` loads `folio.yml`, expands the request with
 `Config.Expand` and returns the `build.Options`; `Run` calls `build.Run` with a
 logger that prints to stdout. That is all `folio render` is. `folio web` builds the same
 `build.Options` through `server.selections` and runs them in its background `job`.
+
+### 6.2 `folio migrate`
+
+`migrate/migrate.go`. The old setup was one `_quarto.yml` plus one profile file
+per axis value. `Run` reads them with `foliocore` (and `rawQuarto` for the keys foliocore
+does not know), builds the equivalent `folio.yml` as a `yaml.Node` tree so that key
+order and comments survive, turns `{{< var x >}}` into `{x}`, collects warnings
+for everything it cannot carry over (slide formats, variables in titles, a
+template generated into `_build/`, output directories outside the common
+parent), and verifies the result with `config.Load` before writing it. It refuses
+to overwrite an existing `folio.yml` without `--force`; `--dry-run` prints it.
 
 ---
 
@@ -754,7 +770,7 @@ Run everything with `go test ./...`; the release workflow additionally runs
 | 5   | `internal/shortcode/`, `internal/markdown/`               | shortcodes, the parser, the conditional filter    |
 | 6   | `internal/build/build.go`                                 | one render: flatten, parse, filter, write         |
 | 7   | `internal/site/`, `internal/docx/`, `internal/docrender/` | the three writers                                 |
-| 8   | `render/`, `lint/`                                        | the commands                                      |
+| 8   | `render/`, `migrate/`, `lint/`                            | the commands                                      |
 | 9   | `web/`, `internal/project/`                               | the local UI                                      |
 
 If you only read four files, read `internal/config/config.go`,
