@@ -26,7 +26,7 @@ constraints:
   SECURITY:
     requirements:
       1: Every request goes over https, redirects included; a source or download URL that is not https is an error
-      2: The archive for the running OS and architecture (`qm_<version>_<os>_<arch>.tar.gz`, `.zip` on Windows) is checked against the SHA-256 the release's SHA256SUMS.txt lists for it before it is unpacked; a release without that file, or without the archive in it, is not installed
+      2: The archive for the running OS and architecture (`folio_<version>_<os>_<arch>.tar.gz`, `.zip` on Windows; `qm_` in releases made before the rename) is checked against the SHA-256 the release's SHA256SUMS.txt lists for it before it is unpacked; a release without that file, or without the archive in it, is not installed
       3: Every download and the unpacked binary are size-limited
       4: The new binary is written beside the running one and renamed over it, so a failure leaves the old binary in place; a symlinked binary is replaced at the link's target
       5: On Windows, where a running binary cannot be overwritten, the old one is renamed to `<name>.old` first and removed on a later start

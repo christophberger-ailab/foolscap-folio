@@ -177,11 +177,21 @@ func parse(v string) ([3]int, bool) {
 
 // AssetName is the archive the release workflow publishes for a platform.
 func AssetName(version, goos, goarch string) string {
+	return assetName("folio", version, goos, goarch)
+}
+
+// legacyAssetName is what the archives were called in releases made before
+// the tool was named folio.
+func legacyAssetName(version, goos, goarch string) string {
+	return assetName("qm", version, goos, goarch)
+}
+
+func assetName(prefix, version, goos, goarch string) string {
 	ext := ".tar.gz"
 	if goos == "windows" {
 		ext = ".zip"
 	}
-	return fmt.Sprintf("qm_%s_%s_%s%s", version, goos, goarch, ext)
+	return fmt.Sprintf("%s_%s_%s_%s%s", prefix, version, goos, goarch, ext)
 }
 
 // binaryName is the file the archive for goos holds.
@@ -217,6 +227,10 @@ func oldName(exe string) string { return exe + ".old" }
 func Install(ctx context.Context, c *http.Client, rel Release, exe string) error {
 	name := AssetName(rel.Version, runtime.GOOS, runtime.GOARCH)
 	archive, sums := rel.asset(name), rel.asset(checksumsName)
+	if archive == nil {
+		name = legacyAssetName(rel.Version, runtime.GOOS, runtime.GOARCH)
+		archive = rel.asset(name)
+	}
 	if archive == nil {
 		return fmt.Errorf("release %s has no build for %s/%s", rel.Version, runtime.GOOS, runtime.GOARCH)
 	}

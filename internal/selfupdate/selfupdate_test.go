@@ -51,7 +51,11 @@ func TestIsRelease(t *testing.T) {
 // checksum was taken.
 func fakeRelease(t *testing.T, version, binary string, tamper bool) *httptest.Server {
 	t.Helper()
-	name := AssetName(version, runtime.GOOS, runtime.GOARCH)
+	return fakeReleaseNamed(t, AssetName(version, runtime.GOOS, runtime.GOARCH), version, binary, tamper)
+}
+
+func fakeReleaseNamed(t *testing.T, name, version, binary string, tamper bool) *httptest.Server {
+	t.Helper()
 	archive := packArchive(t, name, binary)
 	sum := sha256.Sum256(archive)
 	sums := hex.EncodeToString(sum[:]) + "  " + name + "\nffff  other.zip\n"
@@ -174,6 +178,23 @@ func TestInstallReplacesTheBinary(t *testing.T) {
 	}
 }
 
+// Releases made before the archives were renamed call them qm_*.
+func TestInstallFindsALegacyArchive(t *testing.T) {
+	srv := fakeReleaseNamed(t, legacyAssetName("v0.1.3", runtime.GOOS, runtime.GOARCH), "v0.1.3", "new", false)
+	ctx := context.Background()
+	rel, err := Latest(ctx, srv.Client(), srv.URL+"/latest")
+	if err != nil {
+		t.Fatal(err)
+	}
+	exe := exeFile(t)
+	if err := Install(ctx, srv.Client(), rel, exe); err != nil {
+		t.Fatal(err)
+	}
+	if b, _ := os.ReadFile(exe); string(b) != "new" {
+		t.Errorf("binary holds %q after the update", b)
+	}
+}
+
 func TestInstallRefusesABadChecksum(t *testing.T) {
 	srv := fakeRelease(t, "v0.5.0", "evil", true)
 	ctx := context.Background()
@@ -218,10 +239,10 @@ func TestChecksumFor(t *testing.T) {
 }
 
 func TestAssetName(t *testing.T) {
-	if got := AssetName("v0.5.0", "linux", "amd64"); got != "qm_v0.5.0_linux_amd64.tar.gz" {
+	if got := AssetName("v0.5.0", "linux", "amd64"); got != "folio_v0.5.0_linux_amd64.tar.gz" {
 		t.Errorf("linux asset: %s", got)
 	}
-	if got := AssetName("v0.5.0", "windows", "arm64"); got != "qm_v0.5.0_windows_arm64.zip" {
+	if got := AssetName("v0.5.0", "windows", "arm64"); got != "folio_v0.5.0_windows_arm64.zip" {
 		t.Errorf("windows asset: %s", got)
 	}
 }
