@@ -19,6 +19,7 @@ folio <object> <subcommand> [flags] [args]
 | `folio render [<topic>…]`                  | rendert die Matrix aus Thema × Format × Zielgruppe des Projekts                                                           |
 | `folio lint [<topic>]`                     | prüft die `.md`- und `.qmd`-Quellen (derzeit: nicht geschlossene `:::`-Fences)                                                       |
 | `folio web [<path>]`                       | startet die lokale Oberfläche zum Sortieren, Bearbeiten und Rendern                                                       |
+| `folio upgrade` | installiert die neueste Version von folio (Alias `folio update`; `--check` meldet nur, `--yes` fragt nicht) |
 
 Jeder Befehl kennt `--help`, das seine Flags und Argumente auflistet.
 

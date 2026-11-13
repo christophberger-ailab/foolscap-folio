@@ -76,6 +76,9 @@
       </div>
     </div>
     <a class="button topbar-config" href="/config">Config</a>
+    {{/* Filled with the Update button once folio web has found a newer
+         release (see update.go); asked again every hour. */}}
+    <div class="topbar-update" id="update-slot" hx-get="/update" hx-trigger="load, every 3600s"></div>
   </header>
   <main class="panes" id="main">
     {{template "main" .}}
@@ -83,6 +86,13 @@
   <dialog class="open-dialog" id="open-dialog" aria-label="Open a folio"><div id="open-dialog-body"></div></dialog>
 </body>
 </html>{{end}}
+
+{{/* The top bar's update slot: the Update button while a newer release
+     waits, a note once it is installed, nothing otherwise. */}}
+{{define "update"}}{{if .Installed}}<span class="update-done" title="The new binary is in place; it is used from the next start.">Restart folio web to use {{.Installed}}</span>
+{{- else if .Latest}}<button type="button" class="update-button" hx-post="/update" hx-target="#update-slot" hx-confirm="Update folio from {{.Current}} to {{.Latest}}?" hx-disabled-elt="this"
+        title="Update to {{.Latest}}. Your current release is {{.Current}}.">Update</button>
+{{- with .Error}}<span class="update-error" title="{{.}}">Update failed: {{.}}</span>{{end}}{{end}}{{end}}
 
 {{/* The open folio's title, the Open button, and Reload. Open fetches the
      folder dialog into #open-dialog (app.js shows it). Reload reads the page

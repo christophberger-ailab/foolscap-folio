@@ -8,9 +8,11 @@ package main
 
 import (
 	"github.com/christophberger-ailab/foolscap-folio/initialize"
+	"github.com/christophberger-ailab/foolscap-folio/internal/selfupdate"
 	"github.com/christophberger-ailab/foolscap-folio/lint"
 	"github.com/christophberger-ailab/foolscap-folio/preview"
 	"github.com/christophberger-ailab/foolscap-folio/render"
+	"github.com/christophberger-ailab/foolscap-folio/upgrade"
 	"github.com/christophberger-ailab/foolscap-folio/web"
 
 	"github.com/christophberger/start"
@@ -40,11 +42,17 @@ func main() {
 	initialize.Register(projectFlag)
 
 	// The `web` object serves the sorter UI; no sub-commands either.
-	web.Register(projectFlag)
+	web.Register(projectFlag, version)
 
 	// `preview` serves the website live; it shares --addr with `web` and
 	// the selection flags with `render`, so it comes after both.
 	preview.Register(projectFlag)
+
+	// `upgrade` (alias `update`) replaces the binary with the newest
+	// release, found where the web settings say. An update on Windows
+	// leaves the old binary beside the new one; it goes on the next start.
+	upgrade.Register(version, web.UpdateSource)
+	selfupdate.Tidy()
 
 	// start.Up() answers `folio`, `folio help` and `--help` with the same
 	// help, and exits with status 1 when the command line is wrong or the

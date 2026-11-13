@@ -118,6 +118,38 @@ body {
   gap: 0.4rem;
 }
 
+/* The Update button, right of Config, while a newer release waits. The
+   slot takes no room while it is empty. */
+.topbar-update {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.topbar-update:empty {
+  display: none;
+}
+
+.update-button {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.update-done {
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.update-error {
+  color: var(--danger);
+  max-width: 20rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .panes-toggle {
   min-width: 2rem;
   justify-content: center;

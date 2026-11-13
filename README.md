@@ -74,6 +74,7 @@ Global flags apply to every command:
 | `folio lint [<topic>]`                     | check the `.qmd` sources (currently: unclosed `:::` fences)                                         |
 | `folio web [<path>]`                       | serve the local sorting, editing and rendering UI                                                   |
 | `folio preview [<path>]`                   | serve the website and update it live as pages change                                                |
+| `folio upgrade` (alias `folio update`)     | install the newest release of folio in place of the running binary                                  |
 
 Every command takes `--help`.
 
@@ -144,9 +145,32 @@ The site is rendered into a temporary directory, never into the project's output
 
 Every render is a full one, on purpose: the navigation, the previous/next links and the search index of every page depend on all the other pages, so a page rendered on its own would be stale as soon as a page is added, moved or retitled. A full site render takes milliseconds for a typical project. Watching is done by polling, about three times a second, so it works on every file system and with editors that save by renaming; hidden files and folders, `_build` and the output directory are ignored.
 
+### Updates
+
+`folio upgrade` (or `folio update`) looks for a newer release and asks before it installs one:
+
+```sh
+folio upgrade           # ask, then install
+folio upgrade --check   # only report
+folio upgrade --yes     # install without asking
+```
+
+The archive for your platform is checked against the SHA-256 the release lists in `SHA256SUMS.txt` before it is unpacked, every download goes over HTTPS, and the new binary is renamed over the old one, so a failed update leaves the old one in place. `folio web` looks for a new release once a day and shows an **Update** button at the right end of the top bar when it finds one; the update takes effect when `folio web` is started again.
+
+Where releases come from and how often `folio web` looks is the `update` section of the settings file (below):
+
+```cue
+update: {
+    source: "https://api.github.com/repos/christophberger-ailab/foolscap-folio/releases/latest"
+    check:  "daily" // or "weekly" or "never"
+}
+```
+
+`source` is any https URL that describes a release the way GitHub's REST API does, so a Gitea or Forgejo instance (`/api/v1/repos/<owner>/<repo>/releases/latest`) or a static JSON file works too. A development build (`folio version` says `dev`) neither looks nor updates.
+
 ### Settings
 
-Everything the UI remembers between runs lives in one file, `<user config dir>/folio/config.cue`: the projects opened before, the render selection and last open page per project, which preview stylesheet is active, the copyediting setup, and the external editors' command lines. The stylesheets themselves stay beside it in `custom-css/`, being CSS rather than settings. A settings directory from before the rename, `<user config dir>/qm/`, is moved to `folio/` on the first start.
+Everything the UI remembers between runs lives in one file, `<user config dir>/folio/config.cue`: the projects opened before, the render selection and last open page per project, which preview stylesheet is active, the copyediting setup, the external editors' command lines, and where to look for updates. The stylesheets themselves stay beside it in `custom-css/`, being CSS rather than settings. A settings directory from before the rename, `<user config dir>/qm/`, is moved to `folio/` on the first start.
 
 The file is CUE because it carries its own schema. The definitions are written into it above the settings, so the file says what belongs in it and in what shape, and every read is checked against them:
 
@@ -417,8 +441,9 @@ internal/docx/          the DOCX writer
 internal/docrender/     PDF layout, covers, and the Markdown → PDF input
 internal/project/       the editable page tree behind the web UI
 internal/gitrepo/       the `git` command behind the web UI's Git pane
+internal/selfupdate/    finding, checking and installing a new release
 web/                    the local web UI: server, settings (CUE), copyediting
-lint/ render/ initialize/ web/ preview/   the leaf commands (initialize/ is `folio init`)
+lint/ render/ initialize/ web/ preview/ upgrade/   the leaf commands (initialize/ is `folio init`)
 spec.yaml, spec-*.yaml  the specification each package implements
 testdata/               a miniature project and the flattener's golden files
 ```
