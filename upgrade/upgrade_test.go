@@ -117,3 +117,34 @@ func TestADevelopmentBuildWithCheckInstallsNothing(t *testing.T) {
 		t.Errorf("--check asked to update: %s", out)
 	}
 }
+
+// An update that skips releases shows the notes of each one it brings,
+// newest first, before it asks.
+func TestTheNotesOfEveryReleaseInBetweenAreShown(t *testing.T) {
+	all := []map[string]any{
+		{"tag_name": "v0.5.0", "body": "notes of five", "html_url": "https://example.com/v0.5.0"},
+		{"tag_name": "v0.4.1", "body": "notes of four-one"},
+		{"tag_name": "v0.4.0", "body": "notes of four"},
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /releases/latest", func(w http.ResponseWriter, r *http.Request) { json.NewEncoder(w).Encode(all[0]) })
+	mux.HandleFunc("GET /releases", func(w http.ResponseWriter, r *http.Request) { json.NewEncoder(w).Encode(all) })
+	srv := httptest.NewTLSServer(mux)
+	t.Cleanup(srv.Close)
+	o, out := opts(t, "v0.4.0", "v0.5.0", "n\n")
+	o.Source, o.Client = srv.URL+"/releases/latest", srv.Client()
+	if err := Run(context.Background(), o); err != nil {
+		t.Fatal(err)
+	}
+	text := out.String()
+	five, fourOne, ask := strings.Index(text, "notes of five"), strings.Index(text, "notes of four-one"), strings.Index(text, "Update now?")
+	if five < 0 || fourOne < 0 || five > fourOne || fourOne > ask {
+		t.Errorf("the notes are missing, out of order, or after the question:\n%s", text)
+	}
+	if strings.Contains(text, "notes of four\n") {
+		t.Errorf("the running release's own notes are shown:\n%s", text)
+	}
+	if !strings.Contains(text, "Changes since v0.4.0") {
+		t.Errorf("no heading for the changes:\n%s", text)
+	}
+}

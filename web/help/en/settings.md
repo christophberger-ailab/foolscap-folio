@@ -2,7 +2,7 @@
 
 ## The Config button
 
-`Config` at the far right of the top bar opens a page listing the configuration areas. Use the `App` button at the top to return. Above the areas, a `Release` box names the folio release you are running and has a `Check for updates` button (see [The settings file](#the-settings-file) for the automatic checks). When a newer release is found, the box says so and offers an **Update to …** button, which installs it just like the top bar's **Update** button. After an update, folio web restarts itself with the new release and the page reloads. A development build is offered the newest release, whatever it is. The areas are:
+`Config` at the far right of the top bar opens a page listing the configuration areas. Use the `App` button at the top to return. Above the areas, a `Release` box names the folio release you are running and has a `Check for updates` button (see [The settings file](#the-settings-file) for the automatic checks). When a newer release is found, the box says so and offers an **Update to …** button, which installs it just like the top bar's **Update** button. Below the button, the release notes of every release the update brings are listed, newest first, including the ones in between when you skipped some. After an update, folio web restarts itself with the new release and the page reloads; a **What's new in …** button in the top bar then leads back here to the notes of everything the update brought. A development build is offered the newest release, whatever it is. The areas are:
 
 - `Preview: Custom CSS`: the stylesheet for the [preview](preview.md).
 - `Copyedit: Editing tasks` and `Copyedit: API connections`: see [copyediting](copyedit.md).

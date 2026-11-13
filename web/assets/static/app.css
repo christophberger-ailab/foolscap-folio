@@ -137,6 +137,42 @@ body {
   font-weight: 600;
 }
 
+/* Release notes on the Config page: one article per release, newest
+   first, in a scrolling box so a long run of skipped releases stays
+   compact. */
+.release-notes {
+  margin: 0.75rem 0;
+  max-height: 24rem;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+}
+
+.release-notes summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.release-note {
+  overflow-wrap: anywhere;
+}
+
+.release-note h4 {
+  margin: 0.75rem 0 0.25rem;
+}
+
+.release-note h2,
+.release-note h3 {
+  font-size: 0.95rem;
+  margin: 0.5rem 0 0.25rem;
+}
+
+.update-news {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .update-done {
   color: var(--accent);
   white-space: nowrap;

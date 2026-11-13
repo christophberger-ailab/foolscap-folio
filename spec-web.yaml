@@ -51,6 +51,8 @@ constraints:
       3-1: Once installed, folio web restarts itself on the new binary -- in the same process on Linux and macOS, as a new process in the same console on Windows -- listening at the same address and with the same project open; the button gives way to "Restarting folio web with <release>…" and the page reloads as soon as the new release answers at /version
       3-2: A failed install leaves the binary as it was, shows the reason beside the button, and keeps the button for another try
       4: The Config page's Release box offers the same update with a button of its own, "Update to <release>", which asks for confirmation and installs it like the top bar's; once installed, folio web restarts as in 3-1 and the Config page reloads
+      6: 'The Config page''s Release box shows the release notes of every release a waiting update brings (as spec-upgrade.yaml PROCESS 5), newest first, rendered from Markdown with raw HTML dropped'
+      6-1: 'After an update has restarted folio web, the top bar shows "What''s new in <release>", linking to the Config page, which says "Updated from <old> to <new>" with the notes of every release in between; the top bar link goes once the Config page has been shown'
       5: When the restart does not happen -- the new binary cannot be run, or does not answer within a minute -- the page says to restart folio web by hand; a server not started by `folio web` (a test) does not restart and says so at once
 
   ORIGIN:
