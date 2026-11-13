@@ -163,7 +163,7 @@ jobs:
       - name: Package
         run: |
           set -euo pipefail
-          NAME="qm_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}"
+          NAME="folio_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}"
           mkdir -p out
           cd dist
           if [ "${{ matrix.goos }}" = "windows" ]; then
@@ -174,7 +174,7 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: qm_${{ matrix.goos }}_${{ matrix.goarch }}
+          name: folio_${{ matrix.goos }}_${{ matrix.goarch }}
           path: out/*
           retention-days: 7
           if-no-files-found: error
@@ -193,7 +193,7 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           path: out
-          pattern: qm_*
+          pattern: folio_*
           merge-multiple: true
 
       - name: Checksums
@@ -202,7 +202,7 @@ jobs:
           cd out
           # Match the archives explicitly rather than ./* so the redirect
           # target can never end up hashing itself.
-          sha256sum qm_* > SHA256SUMS.txt
+          sha256sum folio_* > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
       # gh is preinstalled on GitHub-hosted runners, so this needs no
