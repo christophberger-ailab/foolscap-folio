@@ -43,9 +43,18 @@ type Options struct {
 	// Look is the brand's look, for a document without a Template; a
 	// template's styles are its own.
 	Look Look
+	// Headings are the fonts of headings by level, from _brand.yml; a
+	// zero name or size keeps the heading style's.
+	Headings [6]Font
 	// Warn, if set, receives the problems that do not stop the render,
 	// such as an image that is not there.
 	Warn func(format string, args ...any)
+}
+
+// Font is a font family and size in pt.
+type Font struct {
+	Name string
+	Size float64
 }
 
 // Write writes the prepared document d to a DOCX file at path.

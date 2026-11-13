@@ -201,7 +201,7 @@ func (w *writer) heading(n *ast.Heading, c ctx) {
 	if id != "" {
 		content.WriteString(w.bookmarkStart(id))
 	}
-	w.inlines(&content, n, runProps{}, c)
+	w.inlines(&content, n, runProps{font: w.opt.Headings[level-1]}, c)
 	if id != "" {
 		fmt.Fprintf(&content, `<w:bookmarkEnd w:id="%d"/>`, w.bmID)
 	}

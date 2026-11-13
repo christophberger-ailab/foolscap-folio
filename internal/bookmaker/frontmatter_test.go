@@ -75,12 +75,15 @@ func TestSplitFrontMatter(t *testing.T) {
 }
 
 func TestParseFrontMatter(t *testing.T) {
-	fm, body, err := parseFrontMatter("---\ntitle: \"Die Wartenwand\"\norder: 7\nlisting:\n  type: table\n---\n\ntext\n")
+	fm, body, err := parseFrontMatter("---\ntitle: \"Die Wartenwand\"\nsubtitle: \" Für {audience-label} \"\norder: 7\nlisting:\n  type: table\n---\n\ntext\n")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if fm.Title != "Die Wartenwand" {
 		t.Errorf("Title = %q", fm.Title)
+	}
+	if fm.Subtitle != "Für {audience-label}" {
+		t.Errorf("Subtitle = %q", fm.Subtitle)
 	}
 	if !fm.HasOrder || fm.Order != 7 {
 		t.Errorf("Order = %d, HasOrder = %v", fm.Order, fm.HasOrder)

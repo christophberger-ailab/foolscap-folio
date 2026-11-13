@@ -335,8 +335,11 @@ surviving headings are counted). `Demote` shifts heading levels.
 `Render` (`build.go`) produces one selection. For a website it calls
 `renderSite`. For a document it checks the cover and the template, then
 `Document` — `Flatten` (load the topic tree, `bookmaker.Flatten`, expand
-shortcodes) followed by `markdown.Parse` and `Prepare` — and writes one file per
-type of the format: `docx.Write` plus `docrender.CoverDOCX`, or
+shortcodes) followed by `markdown.Parse` and `Prepare`, the book's title
+heading taken out — and `coverPage` (`cover.go`), which builds the cover: the
+topic's PNG, or the title and subtitle, put in place of the placeholders of the
+brand's cover template when there is one (`svgimage.Cut` finds them). It writes
+one file per type of the format: `docx.Write` plus `docrender.CoverDOCX`, or
 `docrender.RunPDF` with the parsed document as input. `loadBrand` (`brand.go`)
 reads the project's `_brand.yml`, or else the user's, and hands each writer its
 share: the site a stylesheet and font files, the PDF fonts and colors, the DOCX
@@ -381,7 +384,8 @@ patches the relationships, content types and settings.
 The PDF layout (gopdf) and the DOCX cover. The layout works on its own
 `Block`/`Run` model; `FromMarkdown` (`markdown.go`) converts the parsed tree into
 it, so the PDF is fed from the same document as the DOCX. `fonts.go` loads the Go
-fonts and the `_brand.yml` fonts, `cover.go` puts the cover PNG in front of
+fonts and the `_brand.yml` fonts, `cover.go` puts the cover (an image, the
+title and the subtitle) in front of
 either file.
 
 ---

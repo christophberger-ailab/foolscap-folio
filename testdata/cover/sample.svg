@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 595.276 841.89">
+  <defs>
+    <style>
+      .cls-1{font-family:&apos;Source Sans 3&apos;, sans-serif;font-size:36px;fill:#fabb55}
+      .cls-2{font-family:&apos;Source Sans 3&apos;, sans-serif;font-size:15.5px;fill:#fabb55}
+      .cls-3{fill:#fabb55}
+    </style>
+  </defs>
+  <title>Artboard 1</title>
+  <g id="Layer_1" data-name="Layer 1">
+    <text id="title" transform="matrix(1 0 0 1 172.123 91.154)" x="0" y="36" xml:space="preserve" class="cls-1"><tspan x="0" y="36">Lorem Ipsum</tspan></text>
+    <text id="subtitle" transform="matrix(1 0 0 1 172.123 249.805)" x="0" y="15.5" xml:space="preserve" class="cls-2"><tspan x="0" y="15.5">Dolor blabla</tspan></text>
+    <path d="M184.123 403.358 L533.527 403.358 C540.155 403.358 545.527 408.731 545.527 415.358 L545.527 777.265 C545.527 783.892 540.155 789.265 533.527 789.265 L184.123 789.265 C177.495 789.265 172.123 783.892 172.123 777.265 L172.123 415.358 C172.123 408.731 177.495 403.358 184.123 403.358 Z" class="cls-3"/>
+  </g>
+</svg>
