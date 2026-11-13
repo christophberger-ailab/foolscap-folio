@@ -72,6 +72,7 @@ constraints:
       1-6-1: Each mark is shown at most once per page, however many reasons the page gives for it; a page with several shows them all, in the order 🚧, 👀, 💬
       1-6-2: Saving a page that gains or loses a mark refreshes the tree at once
       1-6-3: A comment marker in a code block or a code span does not mark the page, as it is code, not a comment (3-8-4)
+      1-6-4: 'Each mark has a tooltip saying what it means: 🚧 "Contains todos", 👀 "Needs review", 💬 "Contains comments"'
       1-7: 'A page whose frontmatter sets `folio: {hide: true}` is left out of the tree; a section page takes its whole branch with it, and a folder without a section page goes once all its pages are hidden. The default is `false`'
       1-7-1: A hidden page is still part of the project -- it renders, keeps its place in the order a move renumbers, and is found by the search, which lists it under its path
       1-7-2: Saving a page that is hidden or shown again refreshes the tree at once
