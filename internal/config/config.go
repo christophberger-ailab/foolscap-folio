@@ -85,6 +85,11 @@ type Config struct {
 
 	Title string `yaml:"title"`
 	Lang  string `yaml:"lang"`
+	// CalloutTitles are the user's own callout titles by language and
+	// type. They are not the project's but the user's: they come from
+	// folio's settings file (config.cue), which whoever loads the
+	// project puts here.
+	CalloutTitles map[string]map[string]string `yaml:"-"`
 	// Output is the directory every format writes below, project-relative.
 	// Default "_output".
 	Output string `yaml:"output"`

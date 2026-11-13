@@ -51,6 +51,10 @@ const livePath = "/_folio/live"
 
 var projectPath *string
 
+// calloutTitles returns the user's callout titles by language and type,
+// from folio's settings file.
+var calloutTitles = web.CalloutTitles
+
 // Register wires the `preview` command into start. It shares --addr with
 // `web` and --topic, --format and --audience with `render`, which register
 // them; it must therefore be registered after both.
@@ -197,6 +201,9 @@ func (s *Server) Build() error {
 func (s *Server) render() (string, config.Selection, error) {
 	cfg, err := config.Load(s.root)
 	if err != nil {
+		return "", config.Selection{}, err
+	}
+	if cfg.CalloutTitles, err = calloutTitles(); err != nil {
 		return "", config.Selection{}, err
 	}
 	sel, others, err := selectSite(cfg, s.req)

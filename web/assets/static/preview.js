@@ -1081,7 +1081,9 @@ function calloutType(el) {
 // buildCallouts lays out every callout in root as Quarto does: the div
 // gets a header and a body, and the classes the stylesheet draws it by.
 // The innermost callouts go first, so an outer one moves finished boxes.
-function buildCallouts(root) {
+// titles are the types' titles in the page's language; a type they leave
+// out is titled in English.
+function buildCallouts(root, titles) {
   var divs = Array.prototype.slice
     .call(root.querySelectorAll("div." + divClass))
     .reverse();
@@ -1123,7 +1125,7 @@ function buildCallouts(root) {
       foldable ||
       (appearance === "default" && calloutTypes[type] !== "")
     ) {
-      title.textContent = calloutTypes[type];
+      title.textContent = titles[type] || calloutTypes[type];
     } else {
       title = null;
     }
@@ -1310,8 +1312,9 @@ function markTodos(root) {
 // renderPreview fills el with the preview of the Quarto Markdown in text.
 // pagePath is the edited page's path relative to the project root: it is
 // what the image paths resolve against, and what says which target group
-// the page belongs to.
-function renderPreview(el, text, pagePath) {
+// the page belongs to. titles, if given, are the callout titles in the
+// page's language, by type.
+function renderPreview(el, text, pagePath, titles) {
   if (typeof marked === "undefined") {
     // asset missing: show the source
     el.textContent = text;
@@ -1352,6 +1355,6 @@ function renderPreview(el, text, pagePath) {
   markTodos(el);
   // After the source lines, so that the line marks are attributes that
   // move along with the blocks into a callout's body.
-  buildCallouts(el);
+  buildCallouts(el, titles || {});
   restoreFolds(el, folds);
 }

@@ -291,3 +291,17 @@ func TestSearch(t *testing.T) {
 		`<button type="button" class="search-clear" aria-label="Suche löschen" hidden>`)
 	has(t, "home", read(t, out, "index.html"), `class="search" data-base=""`)
 }
+
+// The site titles a callout without a title of its own from the user's
+// translations for the site's language.
+func TestCalloutTitlesAreTranslated(t *testing.T) {
+	root, out := project(t)
+	write(t, root, "x/page.qmd", "---\ntitle: X Page\n---\n\n::: {.callout-note}\nBody\n:::\n")
+	o := opts(root, out)
+	o.Lang = "fr"
+	o.CalloutTitles = map[string]map[string]string{"fr": {"note": "Remarque"}}
+	if err := Build(o); err != nil {
+		t.Fatal(err)
+	}
+	has(t, "x/page", read(t, out, "x/page.html"), `<div class="callout-title">Remarque</div>`)
+}

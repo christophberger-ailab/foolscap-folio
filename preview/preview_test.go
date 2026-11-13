@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"io"
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -307,5 +308,34 @@ func TestTheListenAddressComesFromTheFlagOrTheProject(t *testing.T) {
 		if addr != c.want || search != c.search || (err != nil) != c.warn {
 			t.Errorf("%s: listenTarget = %q, %v, %v; want %q, %v, warning %v", c.name, addr, search, err, c.want, c.search, c.warn)
 		}
+	}
+}
+
+// The previewed site titles callouts from the user's own titles for the
+// project's language.
+func TestCalloutTitlesComeFromTheSettings(t *testing.T) {
+	root := fixture(t)
+	write(t, root, "folio.yml", "lang: fr\n"+folioYML)
+	write(t, root, "guide/index.qmd", "---\ntitle: Guide\n---\n# Guide\n\n::: {.callout-note}\nBody\n:::\n")
+	defer func(f func() (map[string]map[string]string, error)) { calloutTitles = f }(calloutTitles)
+	calloutTitles = func() (map[string]map[string]string, error) {
+		return map[string]map[string]string{"fr": {"note": "Remarque"}}, nil
+	}
+	s := newServer(t, root, config.Request{})
+	dir, _, err := s.render()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+	var found bool
+	_ = filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
+		if err == nil && strings.HasSuffix(p, ".html") {
+			b, _ := os.ReadFile(p)
+			found = found || strings.Contains(string(b), `<div class="callout-title">Remarque</div>`)
+		}
+		return nil
+	})
+	if !found {
+		t.Error("no page titles the callout in French")
 	}
 }

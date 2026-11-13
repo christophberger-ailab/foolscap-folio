@@ -93,6 +93,9 @@ type Options struct {
 	Formats []string
 	// Lang is the document language, for default callout titles.
 	Lang string
+	// CalloutTitles are the user's own callout titles per language and
+	// type, which win over DefaultCalloutTitles (see CalloutTitles).
+	CalloutTitles map[string]map[string]string
 	// Demote is added to every heading level.
 	Demote int
 }
@@ -111,14 +114,14 @@ func (d *Document) Prepare(o Options) {
 	}
 	filter(d, o.Keep, formats)
 	Demote(d, o.Demote)
-	settleCallouts(d, o.Lang)
+	settleCallouts(d, CalloutTitles(o.CalloutTitles, o.Lang))
 	AssignIDs(d)
 }
 
 // settleCallouts gives every callout its title attribute: the one it
 // declares, else its first heading (removed from the body), else the
-// type's default title.
-func settleCallouts(d *Document, lang string) {
+// type's title in titles.
+func settleCallouts(d *Document, titles map[string]string) {
 	_ = ast.Walk(d.Root, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		div, ok := n.(*Div)
 		if !entering || !ok {
@@ -137,7 +140,7 @@ func settleCallouts(d *Document, lang string) {
 			div.RemoveChild(div, h)
 		}
 		if title == "" && c.Type != "" {
-			title = CalloutTitle(c.Type, lang)
+			title = titles[c.Type]
 		}
 		if title != "" {
 			div.Attrs.KV = append(div.Attrs.KV, [2]string{"title", title})
@@ -228,13 +231,35 @@ func CalloutOf(d *Div) (Callout, bool) {
 	return c, true
 }
 
-// CalloutTitle is a callout type's default title in the document language
-// (German or English).
-func CalloutTitle(typ, lang string) string {
-	de := map[string]string{"note": "Hinweis", "tip": "Tipp", "warning": "Warnung", "important": "Wichtig", "caution": "Vorsicht"}
-	en := map[string]string{"note": "Note", "tip": "Tip", "warning": "Warning", "important": "Important", "caution": "Caution"}
-	if strings.HasPrefix(strings.ToLower(lang), "de") {
-		return de[typ]
+// DefaultCalloutTitles are the callout titles folio ships with, by
+// language and type. English is the last resort for every language.
+var DefaultCalloutTitles = map[string]map[string]string{
+	"en": {"note": "Note", "tip": "Tip", "warning": "Warning", "important": "Important", "caution": "Caution"},
+	"de": {"note": "Hinweis", "tip": "Tipp", "warning": "Warnung", "important": "Wichtig", "caution": "Vorsicht"},
+}
+
+// CalloutTitles returns the title of every callout type in lang: the one
+// own names, else the one DefaultCalloutTitles names, else the English
+// one. Within either table a language tag falls back to its primary
+// language, so "de-AT" finds "de".
+func CalloutTitles(own map[string]map[string]string, lang string) map[string]string {
+	lang = strings.ToLower(lang)
+	primary, _, _ := strings.Cut(strings.ReplaceAll(lang, "_", "-"), "-")
+	lower := map[string]map[string]string{}
+	for k, v := range own {
+		lower[strings.ToLower(k)] = v
 	}
-	return en[typ]
+	own = lower
+	out := map[string]string{}
+	for _, typ := range calloutTypes {
+		for _, t := range []map[string]string{
+			own[lang], own[primary], DefaultCalloutTitles[lang], DefaultCalloutTitles[primary], DefaultCalloutTitles["en"],
+		} {
+			if title := t[typ]; title != "" {
+				out[typ] = title
+				break
+			}
+		}
+	}
+	return out
 }

@@ -207,7 +207,7 @@ func Document(sel config.Selection, log Logf) (*markdown.Document, string, error
 		return nil, "", err
 	}
 	doc := markdown.Parse([]byte(text))
-	doc.Prepare(markdown.Options{Keep: sel.Keep, Formats: sel.Types(), Lang: sel.Config.Lang})
+	doc.Prepare(markdown.Options{Keep: sel.Keep, Formats: sel.Types(), Lang: sel.Config.Lang, CalloutTitles: sel.Config.CalloutTitles})
 	return doc, title, nil
 }
 
@@ -289,16 +289,17 @@ func renderSite(sel config.Selection, dir string, dryRun bool, log Logf) error {
 	}
 	exp := Expander(sel, log)
 	err = site.Build(site.Options{
-		Root:    sel.Config.Root,
-		OutDir:  dir,
-		Title:   sel.Config.Title,
-		Lang:    sel.Config.Lang,
-		Topics:  topics,
-		Keep:    sel.Keep,
-		Formats: sel.Types(),
-		CSS:     css,
-		Expand:  exp.Expand,
-		Log:     log,
+		Root:          sel.Config.Root,
+		OutDir:        dir,
+		Title:         sel.Config.Title,
+		Lang:          sel.Config.Lang,
+		CalloutTitles: sel.Config.CalloutTitles,
+		Topics:        topics,
+		Keep:          sel.Keep,
+		Formats:       sel.Types(),
+		CSS:           css,
+		Expand:        exp.Expand,
+		Log:           log,
 	})
 	if err != nil {
 		return err

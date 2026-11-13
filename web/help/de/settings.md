@@ -45,6 +45,13 @@ Alles, was sich `folio web` merkt, steht in einer einzigen Datei: `<user config 
 - die Kommandozeilen des externen Editors,
 - der Name, mit dem deine Kommentare gezeichnet werden (`user: name:`).
 - wo und wie oft nach einer neuen folio-Version gesucht wird (`update: source:` und `update: check:`, das `daily`, `weekly` oder `never` ist). Findet `folio web` eine, erscheint rechts in der oberen Leiste ein **Update**-Knopf; er installiert die Version, die ab dem nächsten Start von `folio web` gilt.
+- die Titel von Callouts ohne eigenen Titel, je Sprache (`callouts:`). Die Sprache ist `lang` aus der `folio.yml` des Projekts; `folio render`, `folio preview` und die Vorschau in `folio web` verwenden sie alle. Englisch und Deutsch sind vorbelegt; eine weitere Sprache kommt so hinzu, und ein weggelassener Typ bleibt englisch:
+
+  ```
+  callouts: fr: {note: "Remarque", tip: "Astuce", warning: "Avertissement", important: "Important", caution: "Attention"}
+  ```
+
+  Ein regionales `lang` wie `fr-CA` nimmt `fr`, solange es keinen eigenen Eintrag hat.
 
 Wegen der Schlüssel ist sie nur für dich lesbar. Die Datei wird beim ersten Start mit Standardwerten angelegt. Ältere JSON-Einstellungsdateien werden einmalig übernommen und in `*.migrated` umbenannt.
 
