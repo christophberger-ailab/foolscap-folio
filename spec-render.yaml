@@ -75,6 +75,7 @@ constraints:
       2-1: An image alone in its paragraph with alt text is a `<figure>` with that text as its `<figcaption>`, as Pandoc writes an implicit figure; an image among text or without alt text stays in its paragraph
       2-2: 'A `::: {.subpages title="..."}` block is replaced, at its position, by a table of the page''s subpages, one row each with the subpage''s title linking to it, the row under the pointer highlighted, as a Quarto listing of type table showing the title field; the `title` attribute is the text of the table''s one header cell, and without it the table has no header'
       2-2-1: The subpages of a folder's index page are the pages in that folder and the subfolders with an index page of their own, as one level, in sidebar order; a subfolder without an index page is not listed, nor is anything further down
+      2-2-1-1: A page is named by the `title` of its front matter, else by its first heading of any level outside `::: slide` blocks, without its markup, else by its file or folder name; the table, the sidebar, the previous/next links and a document's title name it alike
       2-2-2: On the site's home page the block lists the topics; on a page without subpages it renders nothing, and whatever the block contains is dropped
       2-2-3: A document format renders nothing for the block, as the subpages follow the page as its chapters
       3: All links in the output are relative, so the site works from file:// and below any URL prefix; links between pages of a topic are rewritten to the generated pages, raw HTML links are not

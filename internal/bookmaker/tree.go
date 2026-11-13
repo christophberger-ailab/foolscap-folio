@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/christophberger-ailab/foolscap-folio/internal/config"
+	"github.com/christophberger-ailab/foolscap-folio/internal/markdown"
 )
 
 // audienceSuffix matches the agency markers that Quarto projects use on
@@ -72,16 +73,36 @@ func (n *Node) sortKey() int {
 }
 
 // Title returns the node's display title: an explicit override if one was
-// given, otherwise the `title:` front-matter field, otherwise a title
-// derived from the directory or file name.
+// given, otherwise the `title:` front-matter field, otherwise the page's
+// first heading, otherwise a title derived from the directory or file name.
 func (n *Node) Title() string {
 	if n.titleOverride != "" {
 		return n.titleOverride
 	}
-	if n.Page != nil && n.Page.Title != "" {
-		return n.Page.Title
+	if n.Page != nil {
+		if n.Page.Title != "" {
+			return n.Page.Title
+		}
+		if t := firstHeading(n.Page.Body); t != "" {
+			return t
+		}
 	}
 	return humanise(n.Name)
+}
+
+// firstHeading returns the text of a page's first heading of any level,
+// without its markup, or "". Headings on slides do not count: a slide is
+// not part of the page.
+func firstHeading(body string) string {
+	lines, _ := balanceFences(strings.Split(body, "\n"))
+	lines, _, _ = splitSlides(lines)
+	for _, h := range findHeadings(lines) {
+		src := []byte("# " + h.Text())
+		if t := strings.TrimSpace(markdown.PlainText(markdown.Parse(src).Root, src)); t != "" {
+			return t
+		}
+	}
+	return ""
 }
 
 // Walk visits the node and all of its descendants in render order.
