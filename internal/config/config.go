@@ -211,6 +211,13 @@ func Load(root string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	switch {
 	case errors.Is(err, os.ErrNotExist):
+		// Defaults only -- unless the project is still configured for
+		// Quarto, whose files folio does not read. Rendering it on the
+		// defaults would quietly produce something else than it used to.
+		if old := legacyConfig(abs); len(old) > 0 {
+			return nil, fmt.Errorf("%s has no %s but still has the old Quarto configuration (%s), "+
+				"which folio does not read; run `folio migrate` to convert it", abs, FileName, strings.Join(old, ", "))
+		}
 		c := &Config{Root: abs} // defaults only
 		if err := c.complete(); err != nil {
 			return nil, err
@@ -572,4 +579,17 @@ func Interpolate(s string, vars map[string]string) (string, error) {
 		return "", fmt.Errorf("undefined variable %s in %q", strings.Join(missing, ", "), s)
 	}
 	return out, nil
+}
+
+// legacyConfig lists the project's old Quarto configuration files:
+// `_quarto.yml` and the `_quarto-<axis>-<value>.yml` profiles.
+func legacyConfig(root string) []string {
+	var out []string
+	for _, pattern := range []string{"_quarto.yml", "_quarto.yaml", "_quarto-*.yml", "_quarto-*.yaml"} {
+		matches, _ := filepath.Glob(filepath.Join(root, pattern))
+		for _, m := range matches {
+			out = append(out, filepath.Base(m))
+		}
+	}
+	return out
 }

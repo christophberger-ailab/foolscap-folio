@@ -20,8 +20,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Register wires the `init` command into start. It shares --dry-run with
-// `render`, whichever of the two is registered first.
+// Register wires the `init` command into start. It shares --force and
+// --dry-run with `migrate`, whichever of the two is registered first.
 func Register(projectFlag *string) {
 	force := boolFlag("force", "Overwrite an existing folio.yml")
 	dryRun := boolFlag("dry-run", "Print the folio.yml instead of writing it")
@@ -32,7 +32,8 @@ func Register(projectFlag *string) {
 			"the title (from the root index page, README.md or the folder name), " +
 			"every content folder as a topic, a website format, and the web and " +
 			"preview addresses. Use --dry-run to print it instead, --force to " +
-			"overwrite an existing folio.yml.",
+			"overwrite an existing folio.yml. A project with old _quarto*.yml " +
+			"files needs `folio migrate` instead.",
 		Flags: []string{"force", "dry-run"},
 		Cmd: func(*start.Command) error {
 			root, err := filepath.Abs(*projectFlag)
@@ -81,6 +82,10 @@ type Result struct {
 func Run(root string, opts Options) (*Result, error) {
 	if existing := config.Find(root); existing != "" && !opts.DryRun && !opts.Force {
 		return nil, fmt.Errorf("%s exists; use --force to overwrite it", existing)
+	}
+	if old, _ := filepath.Glob(filepath.Join(root, "_quarto*.y*ml")); len(old) > 0 {
+		return nil, fmt.Errorf("%s still has the old Quarto configuration (%s); run `folio migrate` to convert it",
+			root, filepath.Base(old[0]))
 	}
 	topics, err := config.ContentFolders(root)
 	if err != nil {
