@@ -153,6 +153,14 @@ func Render(sel config.Selection, dryRun bool, log Logf) error {
 			if err == nil && cover != "" {
 				err = docrender.CoverDOCX(out, cover)
 			}
+			if err == nil && sel.Format.TOC {
+				// The cover is a page too, so the pages are counted last.
+				if filled, perr := docx.Paginate(out); perr != nil {
+					log("note: %s: the contents have no page numbers yet, the word processor fills them in: %v", rel(sel.Config.Root, out), perr)
+				} else if filled {
+					log("%s: page numbers of the contents from LibreOffice", rel(sel.Config.Root, out))
+				}
+			}
 		case config.TypePDF:
 			var fonts map[string]string
 			var notes []string
