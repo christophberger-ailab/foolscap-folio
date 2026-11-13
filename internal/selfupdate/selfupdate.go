@@ -10,6 +10,9 @@
 // What makes an update safe to apply:
 //
 //   - Every request goes over HTTPS, redirects included.
+//   - SHA256SUMS.txt must carry a Sigstore signature made by folio's release
+//     workflow on main (see signature.go); an unsigned release, or one signed
+//     by anyone else, is not installed.
 //   - The archive is checked against the SHA-256 the release lists for it in
 //     SHA256SUMS.txt before anything is unpacked; a release without that
 //     file, or without the archive in it, is not installed.
@@ -222,11 +225,12 @@ func Tidy() {
 
 func oldName(exe string) string { return exe + ".old" }
 
-// Install downloads rel's build for this platform, checks it against the
-// release's checksums, and puts it in place of the binary at exe.
+// Install downloads rel's build for this platform, checks the release's
+// checksums against their signature and the build against the checksums,
+// and puts it in place of the binary at exe.
 func Install(ctx context.Context, c *http.Client, rel Release, exe string) error {
 	name := AssetName(rel.Version, runtime.GOOS, runtime.GOARCH)
-	archive, sums := rel.asset(name), rel.asset(checksumsName)
+	archive, sums, sig := rel.asset(name), rel.asset(checksumsName), rel.asset(bundleName)
 	if archive == nil {
 		name = legacyAssetName(rel.Version, runtime.GOOS, runtime.GOARCH)
 		archive = rel.asset(name)
@@ -237,9 +241,19 @@ func Install(ctx context.Context, c *http.Client, rel Release, exe string) error
 	if sums == nil {
 		return fmt.Errorf("release %s has no %s to check the download against", rel.Version, checksumsName)
 	}
+	if sig == nil {
+		return fmt.Errorf("release %s is not signed (it has no %s); it was not installed", rel.Version, bundleName)
+	}
 	list, err := get(ctx, c, sums.URL, maxSums)
 	if err != nil {
 		return err
+	}
+	bundle, err := get(ctx, c, sig.URL, maxBundle)
+	if err != nil {
+		return err
+	}
+	if err := verifySums(ctx, list, bundle); err != nil {
+		return fmt.Errorf("release %s: %w; it was not installed", rel.Version, err)
 	}
 	want, err := checksumFor(list, name)
 	if err != nil {
