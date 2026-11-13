@@ -2,12 +2,14 @@ package docx
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/xml"
 	"fmt"
 	"io"
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/yuin/goldmark/ast"
 	east "github.com/yuin/goldmark/extension/ast"
@@ -213,14 +215,17 @@ func (w *writer) bookmarkStart(id string) string {
 	return fmt.Sprintf(`<w:bookmarkStart w:id="%d" w:name="%s"/>`, w.bmID, esc(bookmarkName(id)))
 }
 
-// bookmarkName is the bookmark for an identifier; Word limits names to 40
-// characters.
+// bookmarkName is the bookmark for an identifier. Word takes names of up
+// to 40 characters that start with a letter; any other identifier is cut
+// and gets a checksum, so that two long identifiers with the same
+// beginning keep bookmarks of their own.
 func bookmarkName(id string) string {
 	r := []rune(id)
-	if len(r) > 40 {
-		r = r[:40]
+	if len(r) > 0 && len(r) <= 40 && unicode.IsLetter(r[0]) {
+		return id
 	}
-	return string(r)
+	sum := sha256.Sum256([]byte(id))
+	return fmt.Sprintf("bm_%s_%x", string(r[:min(len(r), 28)]), sum[:4])
 }
 
 func (w *writer) paragraph(n ast.Node, c ctx) {

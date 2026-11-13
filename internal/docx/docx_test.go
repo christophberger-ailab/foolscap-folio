@@ -566,3 +566,32 @@ func TestImageCaptionStyleAdded(t *testing.T) {
 	}
 	has(t, strings.Join(s.added, ""), `w:styleId="ImageCaption"`, `<w:name w:val="Image Caption"/>`, `<w:i/>`)
 }
+
+// Word takes bookmark names of up to 40 characters. Longer identifiers
+// must not be cut to a shared beginning: every heading keeps a bookmark
+// of its own, and the contents and the links point to it.
+func TestLongBookmarks(t *testing.T) {
+	long := "bm-handbuch-leitstelle-betriebszustaende-und-sonderlagen-"
+	md := "# One {#" + long + "eins}\n\n# Two {#" + long + "zwei}\n\n# Short {#short}\n\n[go](#" + long + "zwei)\n"
+	doc := build(t, md, Options{TOC: true})["word/document.xml"]
+	names := regexp.MustCompile(`<w:bookmarkStart w:id="\d+" w:name="([^"]+)"`).FindAllStringSubmatch(doc, -1)
+	if len(names) != 3 {
+		t.Fatalf("%d bookmarks, want 3", len(names))
+	}
+	one, two := names[0][1], names[1][1]
+	if one == two {
+		t.Errorf("two headings share the bookmark %q", one)
+	}
+	for _, n := range []string{one, two} {
+		if len(n) > 40 || n[0] < 'A' || n[0] > 'z' {
+			t.Errorf("bookmark %q is not a name Word takes", n)
+		}
+		if c := strings.Count(doc, `w:anchor="`+n+`"`); c < 1 {
+			t.Errorf("nothing links to bookmark %q", n)
+		}
+	}
+	if c := strings.Count(doc, `w:anchor="`+two+`"`); c != 2 {
+		t.Errorf("%d links to the second heading, want the contents entry and the link", c)
+	}
+	has(t, doc, `w:name="short"`, `w:anchor="short"`)
+}
