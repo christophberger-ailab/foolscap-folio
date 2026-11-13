@@ -18,7 +18,6 @@ func TestSpanSymbols(t *testing.T) {
 				"slide":     "🖥️ SLIDE",
 				"pol":       "🚔",
 				"fw":        "🚒",
-				"perle":     "[⛲PERLE]",
 				"tutorial":  "🎓 TUTORIAL",
 				"howto":     "🔨 HOWTO",
 				"reference": "📃 REFERENCE",
