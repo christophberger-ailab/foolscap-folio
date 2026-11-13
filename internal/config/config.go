@@ -29,6 +29,7 @@
 package config
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -203,7 +204,6 @@ func Load(root string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	c := &Config{Root: abs}
 	path := Find(abs)
 	if path == "" {
 		path = filepath.Join(abs, FileName)
@@ -211,22 +211,29 @@ func Load(root string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	switch {
 	case errors.Is(err, os.ErrNotExist):
-		// Defaults only.
+		c := &Config{Root: abs} // defaults only
+		if err := c.complete(); err != nil {
+			return nil, err
+		}
+		return c, nil
 	case err != nil:
 		return nil, err
-	default:
-		c.Path = path
-		dec := yaml.NewDecoder(strings.NewReader(string(data)))
-		dec.KnownFields(true)
-		if err := dec.Decode(c); err != nil && !errors.Is(err, io.EOF) {
-			return nil, fmt.Errorf("%s: %w", path, err)
-		}
+	}
+	return Parse(abs, path, data)
+}
+
+// Parse reads data as the configuration file at path of the project in
+// root, checking it the way Load does. It is what lets a configuration
+// be checked before it is written.
+func Parse(root, path string, data []byte) (*Config, error) {
+	c := &Config{Root: root, Path: path}
+	dec := yaml.NewDecoder(bytes.NewReader(data))
+	dec.KnownFields(true)
+	if err := dec.Decode(c); err != nil && !errors.Is(err, io.EOF) {
+		return nil, fmt.Errorf("%s: %w", path, err)
 	}
 	if err := c.complete(); err != nil {
-		if c.Path != "" {
-			return nil, fmt.Errorf("%s: %w", c.Path, err)
-		}
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", path, err)
 	}
 	return c, nil
 }

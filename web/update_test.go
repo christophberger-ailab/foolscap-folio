@@ -156,3 +156,58 @@ func TestUpdateSourceReadsTheSettingsFile(t *testing.T) {
 		t.Errorf("from the file: %q, %v", got, err)
 	}
 }
+
+func TestConfigPageShowsReleaseInfoFirst(t *testing.T) {
+	s := updatingServer(t, "v0.3.1", releaseServer(t, "v0.4.0"))
+	body := get(t, s, "/config").Body.String()
+	box := strings.Index(body, `class="release-info"`)
+	first := strings.Index(body, `class="config-list"`)
+	if box < 0 || first < 0 || box > first {
+		t.Fatalf("release info is missing or not above the settings:\n%s", body)
+	}
+	for _, want := range []string{"v0.3.1", `action="/config/check-update"`, ">Check for updates</button>"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("release info lacks %q:\n%s", want, body)
+		}
+	}
+}
+
+func TestCheckForUpdatesFromTheConfigPage(t *testing.T) {
+	s := updatingServer(t, "v0.3.1", releaseServer(t, "v0.4.0"))
+	body := post(t, s, "/config/check-update", nil).Body.String()
+	if !strings.Contains(body, "v0.4.0 is available") {
+		t.Errorf("the newer release is not reported:\n%s", body)
+	}
+	if !strings.Contains(get(t, s, "/update").Body.String(), `hx-post="/update"`) {
+		t.Error("the top bar does not offer the release the check found")
+	}
+
+	s = updatingServer(t, "v0.3.1", releaseServer(t, "v0.3.1"))
+	if body := post(t, s, "/config/check-update", nil).Body.String(); !strings.Contains(body, "up to date") {
+		t.Errorf("no up-to-date notice:\n%s", body)
+	}
+}
+
+func TestCheckForUpdatesReportsAFailure(t *testing.T) {
+	src := httptest.NewTLSServer(http.NotFoundHandler())
+	t.Cleanup(src.Close)
+	s := updatingServer(t, "v0.3.1", src)
+	if body := post(t, s, "/config/check-update", nil).Body.String(); !strings.Contains(body, "Could not check for updates") {
+		t.Errorf("the failure is not reported:\n%s", body)
+	}
+}
+
+func TestADevelopmentBuildCannotCheckForUpdates(t *testing.T) {
+	s, err := newServer("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.startUpdateChecks("dev")
+	body := get(t, s, "/config").Body.String()
+	if !strings.Contains(body, "development build") || !strings.Contains(body, "disabled") {
+		t.Errorf("a development build offers an update check:\n%s", body)
+	}
+	if body := post(t, s, "/config/check-update", nil).Body.String(); !strings.Contains(body, "development build") {
+		t.Errorf("check accepted on a development build:\n%s", body)
+	}
+}
