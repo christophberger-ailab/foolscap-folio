@@ -23,7 +23,7 @@ While you drag, the part of the group the pane would take is shaded. A group who
 
 ## Closing and opening panes
 
-The `×` on a tab closes its pane; so does a middle click on the tab. When the last pane is closed, the editor takes the whole width.
+Tabs have no close button, so a click on a tab never closes its pane by accident. Close a pane from the `Panes ▾` menu, or with a middle click on its tab. When the last pane is closed, the editor takes the whole width.
 
 The `Panes ▾` menu in the top bar lists every pane, with a tick beside the open ones. Pick a closed pane to open it, an open one to close it. `Reset layout` puts every pane back in one group.
 
