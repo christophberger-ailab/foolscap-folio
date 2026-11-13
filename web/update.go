@@ -73,11 +73,15 @@ type updateState struct {
 	// effect when folio web is started again.
 	installed string
 	busy      bool
+	// checked is when a check last got an answer.
+	checked time.Time
 }
 
 // updateView is the top bar's update slot.
 type updateView struct {
 	Current, Latest, Installed, Error string
+	// Restarting is an installed update the server restarts with.
+	Restarting bool
 }
 
 func (u *updateState) view() updateView {
@@ -89,15 +93,18 @@ func (u *updateState) view() updateView {
 }
 
 // startUpdateChecks sets the server up to update the binary of release
-// current, and starts looking for new releases -- unless this is a
-// development build, which has no release to compare against.
+// current, and starts looking for new releases. A development build looks
+// too: it has no release to compare against, so it is offered the newest.
 func (s *server) startUpdateChecks(current string) {
+	s.update.mu.Lock()
+	s.update.current = current
+	s.update.mu.Unlock()
 	exe, err := selfupdate.Executable()
-	if err != nil || !selfupdate.IsRelease(current) {
+	if err != nil {
 		return
 	}
 	s.update.mu.Lock()
-	s.update.current, s.update.client, s.update.exe = current, selfupdate.Client(), exe
+	s.update.client, s.update.exe = selfupdate.Client(), exe
 	s.update.mu.Unlock()
 	go s.watchReleases()
 }
@@ -113,70 +120,200 @@ func (s *server) watchReleases() {
 		s.mu.Unlock()
 		if every > 0 && time.Since(last) >= every {
 			last = time.Now()
-			s.checkRelease(context.Background())
+			if err := s.checkRelease(context.Background()); err != nil {
+				fmt.Fprintf(os.Stderr, "folio web: cannot check for updates: %v\n", err)
+			}
 		}
 	}
 }
 
 // checkRelease asks the configured source for the newest release and
-// remembers it when it is newer than the running one. A failed check is
-// only reported on the console: there is nothing the page could do about
-// it, and the next check may well succeed.
-func (s *server) checkRelease(ctx context.Context) {
+// remembers it when it is newer than the running one. The periodic checks
+// only report a failure on the console: there is nothing the page could do
+// about it, and the next check may well succeed.
+func (s *server) checkRelease(ctx context.Context) error {
 	s.mu.Lock()
 	source := s.cfg.Update.Source
 	s.mu.Unlock()
 	s.update.mu.Lock()
 	client, current := s.update.client, s.update.current
 	s.update.mu.Unlock()
+	if client == nil {
+		return errors.New("folio cannot find its own binary to update")
+	}
 
 	rel, err := selfupdate.Latest(ctx, client, source)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "folio web: cannot check for updates: %v\n", err)
-		return
+		return err
 	}
-	if selfupdate.Newer(current, rel.Version) {
-		s.update.mu.Lock()
+	s.update.mu.Lock()
+	defer s.update.mu.Unlock()
+	s.update.checked = time.Now()
+	if offered(current, rel.Version) {
 		s.update.latest = &rel
-		s.update.mu.Unlock()
 	}
+	return nil
+}
+
+// offered reports whether latest is worth installing over current: a newer
+// release, or any release over a development build, which cannot be
+// compared with one.
+func offered(current, latest string) bool {
+	return selfupdate.IsRelease(latest) && (!selfupdate.IsRelease(current) || selfupdate.Newer(current, latest))
+}
+
+// releaseView is the release box atop the Config overview.
+type releaseView struct {
+	Current, Latest, LatestURL, Installed string
+	// Dev is a development build, which is offered any release.
+	Dev bool
+	// Restarting is an installed update the server restarts with.
+	Restarting bool
+	// Checked is when a check last succeeded; Check how often they run.
+	Checked, Check string
+	Message, Error string
+}
+
+// releaseView describes the running release and what the checks found.
+// The caller must hold s.mu.
+func (s *server) releaseView() releaseView {
+	u := &s.update
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	v := releaseView{Current: u.current, Installed: u.installed, Dev: !selfupdate.IsRelease(u.current), Check: s.cfg.Update.Check}
+	if u.latest != nil {
+		v.Latest, v.LatestURL = u.latest.Version, u.latest.URL
+	}
+	v.Restarting = v.Installed != "" && s.restart != nil
+	if !u.checked.IsZero() {
+		v.Checked = u.checked.Format("2006-01-02 15:04")
+	}
+	return v
+}
+
+// checkUpdateHandler is the release box's Check for updates button.
+func (s *server) checkUpdateHandler(w http.ResponseWriter, r *http.Request) {
+	err := s.checkRelease(r.Context())
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	v := s.configView()
+	switch {
+	case err != nil:
+		v.Release.Error = "Could not check for updates: " + err.Error()
+	case v.Release.Latest == "":
+		v.Release.Message = "folio is up to date."
+	}
+	s.render(w, "config-page", v)
 }
 
 func (s *server) updateHandler(w http.ResponseWriter, r *http.Request) {
-	s.update.mu.Lock()
-	v := s.update.view()
-	s.update.mu.Unlock()
-	s.render(w, "update", v)
+	s.render(w, "update", s.updateView())
 }
 
-// installUpdateHandler puts the release the button offers in place of the
-// running binary.
-func (s *server) installUpdateHandler(w http.ResponseWriter, r *http.Request) {
+// updateView is the top bar's update slot as it stands.
+func (s *server) updateView() updateView {
+	s.update.mu.Lock()
+	defer s.update.mu.Unlock()
+	v := s.update.view()
+	v.Restarting = v.Installed != "" && s.restart != nil
+	return v
+}
+
+// versionHandler answers the running release: after an update, the page
+// asks it until the restarted server answers with the new one.
+func (s *server) versionHandler(w http.ResponseWriter, r *http.Request) {
+	s.update.mu.Lock()
+	defer s.update.mu.Unlock()
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	fmt.Fprint(w, s.update.current)
+}
+
+// restartDelay gives the response that reports an install the time to
+// reach the browser before the server goes away.
+const restartDelay = 500 * time.Millisecond
+
+// requestRestart asks Serve to restart on the new binary. A server that
+// Serve did not start (tests) has no one to ask; a second request while
+// one is pending is dropped.
+func (s *server) requestRestart() {
+	if s.restart == nil {
+		return
+	}
+	select {
+	case s.restart <- struct{}{}:
+	default:
+	}
+}
+
+// errNothingToInstall is an install asked for when there is no release
+// waiting, one is already installed, or one is being installed.
+var errNothingToInstall = errors.New("there is no update to install")
+
+// installUpdate puts the release a check found in place of the running
+// binary. The top bar's Update button and the Config page's both run it.
+func (s *server) installUpdate(ctx context.Context) error {
 	u := &s.update
 	u.mu.Lock()
 	if u.latest == nil || u.installed != "" || u.busy {
-		v := u.view()
 		u.mu.Unlock()
-		w.WriteHeader(http.StatusConflict)
-		s.render(w, "update", v)
-		return
+		return errNothingToInstall
 	}
 	u.busy = true
 	rel, client, exe := *u.latest, u.client, u.exe
 	u.mu.Unlock()
 
-	err := selfupdate.Install(r.Context(), client, rel, exe)
+	err := selfupdate.Install(ctx, client, rel, exe)
 
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	u.busy = false
 	if err == nil {
 		u.installed = rel.Version
-		fmt.Fprintf(os.Stderr, "folio web: updated to %s; restart folio web to use it\n", rel.Version)
+		fmt.Fprintf(os.Stderr, "folio web: updated to %s\n", rel.Version)
+		time.AfterFunc(restartDelay, s.requestRestart)
 	}
-	v := u.view()
-	if err != nil {
+	return err
+}
+
+// installUpdateHandler is the top bar's Update button.
+func (s *server) installUpdateHandler(w http.ResponseWriter, r *http.Request) {
+	err := s.installUpdate(r.Context())
+	v := s.updateView()
+	switch {
+	case errors.Is(err, errNothingToInstall):
+		w.WriteHeader(http.StatusConflict)
+	case err != nil:
 		v.Error = err.Error()
 	}
 	s.render(w, "update", v)
+}
+
+// installUpdateConfigHandler is the Config page's Update button.
+func (s *server) installUpdateConfigHandler(w http.ResponseWriter, r *http.Request) {
+	err := s.installUpdate(r.Context())
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	v := s.configView()
+	if err != nil {
+		v.Release.Error = "Not updated: " + err.Error()
+	}
+	s.render(w, "config-page", v)
+}
+
+// The restarted server listens where the old one did and opens the project
+// that was open, rather than the one its command line named: the page
+// waiting for it asks the same address, and reloads into the same folio.
+const (
+	restartAddrEnv = "FOLIO_RESTART_ADDR"
+	restartRootEnv = "FOLIO_RESTART_ROOT"
+)
+
+// takeRestartEnv reads what a restart handed over and clears it, so a
+// process folio web starts in turn does not inherit it.
+func takeRestartEnv() (addr, root string) {
+	addr, root = os.Getenv(restartAddrEnv), os.Getenv(restartRootEnv)
+	os.Unsetenv(restartAddrEnv)
+	os.Unsetenv(restartRootEnv)
+	return addr, root
 }

@@ -1,15 +1,21 @@
 name: Release
 
-# Fires when a pull request is closed against main; the `merged` guard on each
-# job drops the "closed without merging" case. workflow_dispatch is kept for
-# manual re-runs and for setting a version by hand.
+# Fires on every push to main; the version job skips a push that did not come
+# from a merged pull request, so only PR merges release. workflow_dispatch is
+# kept for manual re-runs and for setting a version by hand.
+#
+# The trigger is `push` rather than `pull_request: closed` because the release
+# is signed keylessly with cosign: the signing certificate names the workflow
+# and the ref it ran on, and on a push to main that is always
+# release.yml@refs/heads/main -- the exact identity `folio upgrade` and the
+# README's `cosign verify-blob` command check for. (On a pull_request event it
+# would be refs/pull/N/merge, different for every release.)
 #
 # Versions follow SemVer with the major version held at 0. The next version
 # is the newest v0.Y.Z tag bumped by the merged PR's label: semver:minor for a
 # new or improved feature, semver:patch (or no label) for fixes only.
 on:
-  pull_request:
-    types: [closed]
+  push:
     branches: [main]
   workflow_dispatch:
     inputs:
@@ -25,24 +31,26 @@ on:
 permissions:
   contents: write
 
-# One release at a time across all PRs: each run derives its version from the
-# tags the previous run created. (github.ref differs per PR on pull_request
-# events, so it cannot be part of the group.)
+# One release at a time: each run derives its version from the tags the
+# previous run created.
 concurrency:
   group: release
   cancel-in-progress: false
 
 env:
-  # On a `pull_request` event github.sha points at the ephemeral refs/pull/N/merge
-  # commit, not at the commit that landed on main. merge_commit_sha is the real
-  # one (and is also set correctly for squash and rebase merges).
-  BUILD_SHA: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
+  BUILD_SHA: ${{ github.sha }}
 
 jobs:
   version:
     name: Version
-    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
+    # A release from any other branch would be signed as that branch and
+    # fail verification, so a manual run must be started on main.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    # pull-requests: read is for finding the merged PR and its labels.
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
       version: ${{ steps.next.outputs.version }}
     steps:
@@ -56,7 +64,7 @@ jobs:
       - name: Next version
         id: next
         env:
-          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          GH_TOKEN: ${{ github.token }}
           INPUT_BUMP: ${{ inputs.bump }}
           INPUT_VERSION: ${{ inputs.version }}
         run: |
@@ -73,9 +81,17 @@ jobs:
             fi
           else
             bump=${INPUT_BUMP:-patch}
-            if [ "${{ github.event_name }}" = "pull_request" ]; then
+            if [ "${{ github.event_name }}" = "push" ]; then
+              # The merged pull request this commit belongs to, if any.
+              pr=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${BUILD_SHA}/pulls" \
+                --jq '[.[] | select(.merged_at != null and .base.ref == "main")][0] // empty')
+              if [ -z "$pr" ]; then
+                echo "No merged pull request for ${BUILD_SHA}; nothing to release."
+                echo "version=" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
               bump=patch
-              if printf '%s' "$LABELS" | jq -e 'index("semver:minor") != null' >/dev/null; then
+              if printf '%s' "$pr" | jq -e '[.labels[].name] | index("semver:minor") != null' >/dev/null; then
                 bump=minor
               fi
             fi
@@ -95,7 +111,8 @@ jobs:
 
   test:
     name: Test
-    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
+    needs: version
+    if: needs.version.outputs.version != ''
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -116,6 +133,7 @@ jobs:
   build:
     name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
     needs: [version, test]
+    if: needs.version.outputs.version != ''
     runs-on: ubuntu-latest
     env:
       VERSION: ${{ needs.version.outputs.version }}
@@ -182,7 +200,14 @@ jobs:
   release:
     name: Publish release
     needs: [version, build]
+    if: needs.version.outputs.version != ''
     runs-on: ubuntu-latest
+    # id-token lets cosign get a short-lived signing certificate from
+    # Sigstore for this workflow run; no key is stored anywhere. Job-level
+    # permissions replace the top-level ones, so contents: write is repeated.
+    permissions:
+      contents: write
+      id-token: write
     env:
       VERSION: ${{ needs.version.outputs.version }}
     steps:
@@ -204,6 +229,21 @@ jobs:
           # target can never end up hashing itself.
           sha256sum folio_* > SHA256SUMS.txt
           cat SHA256SUMS.txt
+
+      - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+        with:
+          cosign-release: v3.1.4
+
+      # SHA256SUMS.txt pins every archive, so signing it signs the release.
+      # The bundle holds the signature, the certificate naming this workflow
+      # and the transparency log entry: everything needed to verify offline.
+      - name: Sign checksums
+        run: |
+          set -euo pipefail
+          cd out
+          cosign sign-blob --yes \
+            --bundle SHA256SUMS.txt.sigstore.json \
+            SHA256SUMS.txt
 
       # gh is preinstalled on GitHub-hosted runners, so this needs no
       # third-party action. --target pins the tag to the merged commit.

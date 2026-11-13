@@ -74,6 +74,9 @@ type server struct {
 
 	// update is what the top bar's Update button knows (see update.go).
 	update updateState
+	// restart asks Serve to restart on an updated binary; nil when the
+	// server was not started by Serve.
+	restart chan struct{}
 }
 
 func newServer(configFile string) (*server, error) {
@@ -89,6 +92,7 @@ func newServer(configFile string) (*server, error) {
 		"renamable": func(p string) bool {
 			return p != "index.qmd" && p != "index.md"
 		},
+		"keyHidden": func() string { return keyHidden },
 	}
 	tmpl, err := template.New("").Funcs(funcs).ParseFS(assets, "assets/templates/*.tmpl")
 	if err != nil {
@@ -133,6 +137,12 @@ func newServer(configFile string) (*server, error) {
 	s.mux.HandleFunc("POST /config/editor", s.saveEditorHandler)
 	s.mux.HandleFunc("GET /config/user", s.userConfigPage)
 	s.mux.HandleFunc("POST /config/user", s.saveUserHandler)
+	s.mux.HandleFunc("GET /config/project-file", s.projectFilePage)
+	s.mux.HandleFunc("POST /config/project-file", s.saveProjectFileHandler)
+	s.mux.HandleFunc("GET /config/settings-file", s.settingsFilePage)
+	s.mux.HandleFunc("POST /config/settings-file", s.saveSettingsFileHandler)
+	s.mux.HandleFunc("POST /config/check-update", s.checkUpdateHandler)
+	s.mux.HandleFunc("POST /config/install-update", s.installUpdateConfigHandler)
 	s.mux.HandleFunc("POST /editor/open", s.openEditorHandler)
 	s.mux.HandleFunc("POST /editor/image", s.openImageEditorHandler)
 	s.mux.HandleFunc("POST /copyedit/active", s.activeConnectionHandler)
@@ -166,13 +176,24 @@ func newServer(configFile string) (*server, error) {
 	s.mux.HandleFunc("POST /git/push", s.gitPushHandler)
 	s.mux.HandleFunc("POST /git/sync", s.gitSyncHandler)
 	s.mux.HandleFunc("GET /update", s.updateHandler)
+	s.mux.HandleFunc("GET /version", s.versionHandler)
 	s.mux.HandleFunc("POST /update", s.installUpdateHandler)
 	return s, nil
 }
 
 func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// A page in another tab must not post to the app: the posts write the
+	// project's files and the settings, which name the commands it runs.
+	if err := crossOrigin.Check(r); err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
 	s.mux.ServeHTTP(w, r)
 }
+
+// crossOrigin refuses requests that change something when the browser says
+// they come from another site.
+var crossOrigin = http.NewCrossOriginProtection()
 
 // state bundles everything the page templates need.
 type state struct {
@@ -302,6 +323,7 @@ func (s *server) forgetBase() {
 
 // configView is the list of configuration entries shown by /config.
 type configView struct {
+	Release releaseView
 	Entries []configEntry
 }
 
@@ -506,7 +528,12 @@ func (s *server) page(w http.ResponseWriter, r *http.Request) {
 func (s *server) config(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.render(w, "config-page", configView{Entries: []configEntry{{
+	s.render(w, "config-page", s.configView())
+}
+
+// configView is the Config overview. The caller must hold s.mu.
+func (s *server) configView() configView {
+	return configView{Release: s.releaseView(), Entries: []configEntry{{
 		Title:       "Preview: Custom CSS",
 		Description: "Override the built-in Markdown preview styles.",
 		Href:        "/config/preview-css",
@@ -526,7 +553,15 @@ func (s *server) config(w http.ResponseWriter, r *http.Request) {
 		Title:       "Comments: Your name",
 		Description: "Set the name the comments and replies you write are signed with.",
 		Href:        "/config/user",
-	}}})
+	}, {
+		Title:       "Project: folio.yml",
+		Description: "Edit the open project's configuration file: its formats, audiences, topics, and web settings.",
+		Href:        "/config/project-file",
+	}, {
+		Title:       "folio: config.cue",
+		Description: "Edit folio's own settings file, with the schema it is checked against.",
+		Href:        "/config/settings-file",
+	}}}
 }
 
 func (s *server) previewCSSEditor(w http.ResponseWriter, r *http.Request) {

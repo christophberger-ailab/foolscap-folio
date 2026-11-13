@@ -19,7 +19,7 @@ constraints:
     requirements:
       1: 'The newest release is read from the update source in the web settings file, config.cue (see spec-web.yaml SETTINGS 8); without a settings file it is folio''s GitHub releases'
       1-1: The source is the URL of a release description in the shape of GitHub's REST API (`tag_name`, `html_url`, `assets[].name`, `assets[].browser_download_url`), which Gitea, Forgejo and a static JSON file can give as well
-      2: A release is newer when its tag is a higher vMAJOR.MINOR.PATCH than the running version; a development build or a pre-release tag is never compared, and upgrade on a development build is an error
+      2: A release is newer when its tag is a higher vMAJOR.MINOR.PATCH than the running version; a pre-release tag is never compared. A development build cannot be compared, so it is offered the newest release, whatever it is, and asked the same way (3)
       3: When a newer release exists, its version, the running version and its release notes URL are printed; without --check and --yes the user is asked "Update now? [y/N]", and anything but y or yes leaves the binary as it is
       4: When no newer release exists, that is said and nothing changes
 
@@ -30,3 +30,5 @@ constraints:
       3: Every download and the unpacked binary are size-limited
       4: The new binary is written beside the running one and renamed over it, so a failure leaves the old binary in place; a symlinked binary is replaced at the link's target
       5: On Windows, where a running binary cannot be overwritten, the old one is renamed to `<name>.old` first and removed on a later start
+      6: SHA256SUMS.txt is checked against the release's SHA256SUMS.txt.sigstore.json, a Sigstore bundle, before any checksum in it is used; the signing certificate must name the release workflow on main (`https://github.com/christophberger-ailab/foolscap-folio/.github/workflows/release.yml@refs/heads/main`, issuer `https://token.actions.githubusercontent.com`), and a release without the bundle, or signed by anyone else, is not installed
+      6-1: Sigstore's trusted root comes over TUF from its public instance, anchored in the TUF root built into folio, and is cached for a day in the user cache directory

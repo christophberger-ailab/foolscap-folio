@@ -36,6 +36,7 @@
   <script src="/static/editor.js" defer></script>
   <script src="/static/dock.js" defer></script>
   <script src="/static/app.js" defer></script>
+  <script src="/static/restart.js" defer></script>
 </head>
 <body data-user="{{.User}}">
   <header class="topbar">
@@ -89,8 +90,9 @@
 
 {{/* The top bar's update slot: the Update button while a newer release
      waits, a note once it is installed, nothing otherwise. */}}
-{{define "update"}}{{if .Installed}}<span class="update-done" title="The new binary is in place; it is used from the next start.">Restart folio web to use {{.Installed}}</span>
-{{- else if .Latest}}<button type="button" class="update-button" hx-post="/update" hx-target="#update-slot" hx-confirm="Update folio from {{.Current}} to {{.Latest}}?" hx-disabled-elt="this"
+{{define "update"}}{{if and .Installed .Restarting}}<span class="update-done" data-restart-to="{{.Installed}}">Restarting folio web with {{.Installed}}…</span>
+{{- else if .Installed}}<span class="update-done" title="The new binary is in place; it is used from the next start.">Restart folio web to use {{.Installed}}</span>
+{{- else if .Latest}}<button type="button" class="update-button" hx-post="/update" hx-target="#update-slot" hx-confirm="Update folio from {{.Current}} to {{.Latest}}? folio web restarts with it." hx-disabled-elt="this"
         title="Update to {{.Latest}}. Your current release is {{.Current}}.">Update</button>
 {{- with .Error}}<span class="update-error" title="{{.}}">Update failed: {{.}}</span>{{end}}{{end}}{{end}}
 
@@ -285,6 +287,8 @@
   <title>Foolscap Folio Config</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/config.js" defer></script>
+  <script src="/static/restart.js" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -293,6 +297,22 @@
   </header>
   <main class="config-main">
     <h2>Config</h2>
+    {{with .Release}}<section class="release-info" aria-label="Release">
+      <h3>Release</h3>
+      <p>{{if .Current}}You are running folio <strong>{{.Current}}</strong>{{if .Dev}}, a development build{{end}}.{{else}}You are running a development build of folio.{{end}}</p>
+      {{if and .Installed .Restarting}}<p class="notice" data-restart-to="{{.Installed}}">folio {{.Installed}} is installed. Restarting folio web with it…</p>
+      {{else if .Installed}}<p class="notice">folio {{.Installed}} is installed. Restart folio web to use it.</p>
+      {{else if .Latest}}<p class="notice">folio {{.Latest}} is available{{with .LatestURL}} (<a href="{{.}}" target="_blank" rel="noopener">release notes</a>){{end}}.</p>
+      <form method="post" action="/config/install-update">
+        <button type="submit" class="update-button" data-confirm="Update folio from {{.Current}} to {{.Latest}}? folio web restarts with it.">Update to {{.Latest}}</button>
+      </form>{{end}}
+      {{with .Message}}<p class="notice">{{.}}</p>{{end}}
+      {{with .Error}}<div class="error">{{.}}</div>{{end}}
+      <p class="config-intro">folio web checks for new releases {{if eq .Check "never"}}only when you ask{{else}}{{.Check}}{{end}} (the <code>update</code> settings in <code>config.cue</code>).{{if .Dev}} A development build cannot be compared with a release, so it is offered the newest release.{{end}}{{with .Checked}} Last checked {{.}}.{{end}}</p>
+      <form method="post" action="/config/check-update">
+        <button type="submit">Check for updates</button>
+      </form>
+    </section>{{end}}
     <p class="config-intro">Choose a configuration area.</p>
     <ul class="config-list">
       {{range .Entries}}<li>
@@ -346,7 +366,7 @@
       {{/* Same two rules as the page editor: no browser restore over the
            stylesheet the server just sent, and a leading newline in the
            file survives the round trip. */ -}}
-      <textarea name="css" class="preview-css-content" spellcheck="false" autocomplete="off">
+      <textarea name="css" class="preview-css-content" data-mode="css" spellcheck="false" autocomplete="off">
 {{.CSS}}</textarea>
       <div class="config-actions">
         <button type="submit">Save</button>
@@ -359,6 +379,58 @@
       <input type="text" name="name" id="css-new-name" placeholder="dark.css" required>
       <button type="submit">Add stylesheet</button>
     </form>
+  </main>
+</body>
+</html>{{end}}
+
+{{/* The editor for a configuration file as a whole: the project's
+     folio.yml or folio's own config.cue. */}}
+{{define "config-file-page"}}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{if eq .Kind "project"}}Project: folio.yml{{else}}folio: config.cue{{end}}</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/static/codemirror/codemirror.css">
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/codemirror/codemirror.js"></script>
+  {{if eq .Mode "yaml"}}<script src="/static/codemirror/yaml.js"></script>{{end}}
+  <script src="/static/config.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    {{template "brand"}}
+    <nav class="topbar-nav">
+      <a class="button" href="/config">Config</a>
+      <a class="button" href="/">App</a>
+    </nav>
+  </header>
+  <main class="config-main">
+    {{if eq .Kind "project"}}
+    <h2>Project: folio.yml</h2>
+    <p class="config-intro"><code>folio.yml</code> configures the open project: its title, output formats, audiences, topics, variables, and where <code>folio web</code> listens. A project without one gets the defaults; saving here creates it.</p>
+    <p class="config-intro">The file is checked the way a render reads it before it is saved — an unknown key or a type folio cannot write is refused, and the file stays as it was. Where <code>folio web</code> listens takes effect at its next start.</p>
+    {{else}}
+    <h2>folio: config.cue</h2>
+    <p class="config-intro"><code>config.cue</code> holds folio's own settings: the projects opened before, what is selected in each, the preview stylesheet, the copyedit tasks and connections, the external editors, your name, and the update checks. The schema at the top says what belongs in it; the settings come after <code>config: #Config &amp;</code>.</p>
+    <p class="config-intro">The settings are checked against the schema before they are saved, and take effect at once. folio writes the file itself, so comments you add are not kept, and the schema is always the one this version of folio checks against. API keys are not shown: leave <code>{{keyHidden}}</code> in place to keep a key, or type a new one over it.</p>
+    {{end}}
+    {{with .Path}}<p class="config-intro">File: <code>{{.}}</code></p>{{end}}
+    {{if .Error}}<div class="error"><pre>{{.Error}}</pre></div>{{end}}
+    {{if .Message}}<div class="notice">{{.Message}}</div>{{end}}
+    {{if .Unavailable}}<div class="notice">{{.Unavailable}}</div>
+    {{else}}
+    <form class="config-editor" method="post" action="{{.Action}}" autocomplete="off">
+      <textarea name="text" class="config-file-content" data-mode="{{.Mode}}" spellcheck="false" autocomplete="off">
+{{.Text}}</textarea>
+      <div class="config-actions">
+        <button type="submit">Save</button>
+        <a class="button" href="/config">Back to Config</a>
+        <a class="button" href="/">Back to App</a>
+      </div>
+    </form>
+    {{end}}
   </main>
 </body>
 </html>{{end}}

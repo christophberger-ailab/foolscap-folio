@@ -2,12 +2,22 @@
 
 ## The Config button
 
-`Config` at the far right of the top bar opens a page listing the configuration areas. Use the `App` button at the top to return. The areas are:
+`Config` at the far right of the top bar opens a page listing the configuration areas. Use the `App` button at the top to return. Above the areas, a `Release` box names the folio release you are running and has a `Check for updates` button (see [The settings file](#the-settings-file) for the automatic checks). When a newer release is found, the box says so and offers an **Update to …** button, which installs it just like the top bar's **Update** button. After an update, folio web restarts itself with the new release and the page reloads. A development build is offered the newest release, whatever it is. The areas are:
 
 - `Preview: Custom CSS`: the stylesheet for the [preview](preview.md).
 - `Copyedit: Editing tasks` and `Copyedit: API connections`: see [copyediting](copyedit.md).
 - `External editor`: see [other editors](external-editor.md).
 - `Comments: Your name`: the name your [comments](editor.md#comments) and replies are signed with.
+- `Project: folio.yml`: the open project's configuration file, as text.
+- `folio: config.cue`: the settings file below, as text.
+
+## Project: folio.yml
+
+Edits the open project's `folio.yml` (or its older `qm.yml`) in a text editor. `Save` checks the file the way a render reads it, so an unknown key or an output type folio cannot write is refused with the line it is on, and the file stays as it was. Saving creates `folio.yml` when the project has none. A changed listen address takes effect at the next start of `folio web`.
+
+## folio: config.cue
+
+Edits [the settings file](#the-settings-file) in a text editor. `Save` checks the settings against the schema and puts them in effect at once. API keys are never shown: leave `(stored key, not shown)` in place to keep a key, or type a new key over it. The same rules as for [editing by hand](#editing-by-hand) apply: comments among the settings are not kept.
 
 ## Comments: Your name
 

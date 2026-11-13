@@ -155,7 +155,17 @@ folio upgrade --check   # only report
 folio upgrade --yes     # install without asking
 ```
 
-The archive for your platform is checked against the SHA-256 the release lists in `SHA256SUMS.txt` before it is unpacked, every download goes over HTTPS, and the new binary is renamed over the old one, so a failed update leaves the old one in place. `folio web` looks for a new release once a day and shows an **Update** button at the right end of the top bar when it finds one; the update takes effect when `folio web` is started again.
+Before anything is installed, `SHA256SUMS.txt` is checked against its [Sigstore](https://www.sigstore.dev) signature, which must come from folio's release workflow on `main`, and the archive for your platform is then checked against the SHA-256 the signed list gives for it. Every download goes over HTTPS, and the new binary is renamed over the old one, so a failed update leaves the old one in place. `folio web` looks for a new release once a day and shows an **Update** button at the right end of the top bar when it finds one; after the update `folio web` restarts itself on the new binary, at the same address with the same project open, and the page reloads.
+
+To check a release you downloaded by hand, verify the checksums with [cosign](https://docs.sigstore.dev/cosign/system_config/installation/) and the archive against them:
+
+```sh
+cosign verify-blob SHA256SUMS.txt \
+  --bundle SHA256SUMS.txt.sigstore.json \
+  --certificate-identity https://github.com/christophberger-ailab/foolscap-folio/.github/workflows/release.yml@refs/heads/main \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+sha256sum --check --ignore-missing SHA256SUMS.txt
+```
 
 Where releases come from and how often `folio web` looks is the `update` section of the settings file (below):
 
@@ -166,7 +176,7 @@ update: {
 }
 ```
 
-`source` is any https URL that describes a release the way GitHub's REST API does, so a Gitea or Forgejo instance (`/api/v1/repos/<owner>/<repo>/releases/latest`) or a static JSON file works too. A development build (`folio version` says `dev`) neither looks nor updates.
+`source` is any https URL that describes a release the way GitHub's REST API does, so a Gitea or Forgejo instance (`/api/v1/repos/<owner>/<repo>/releases/latest`) or a static JSON file works too. A development build (`folio version` says `dev`) is offered the newest release, whatever it is, by `folio upgrade` and by `folio web` alike. The Config page's Release box has an Update button of its own besides the top bar's.
 
 ### Settings
 
@@ -465,8 +475,12 @@ repository. Code comments reference requirements by id, e.g. `BOOKS.2-1`. When
 behaviour changes, change the spec with it.
 
 Releases are cut by `.github/workflows/release.yml` when a pull request is
-merged into `main`: it vets, tests, cross-compiles the four targets, and
-publishes a release with checksums. Versions follow [SemVer](https://semver.org)
+merged into `main` (a push to `main` that is not a PR merge releases nothing):
+it vets, tests, cross-compiles the four targets, and publishes a release with
+checksums. `SHA256SUMS.txt` is signed keylessly with cosign through the
+workflow's GitHub OIDC token, so no signing key is stored anywhere; the
+signature is only accepted from `release.yml` on `main`, which is why a manual
+run must be started on `main`. Versions follow [SemVer](https://semver.org)
 with the major version held at 0: label a PR `semver:minor` when it adds or
 improves a feature, which bumps the minor version; a PR with only fixes
 (`semver:patch` or no label) bumps the patch level. A manual run of the

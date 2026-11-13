@@ -178,7 +178,7 @@ func TestPreviewStripsHeadingAttributes(t *testing.T) {
 		"function stripHeadingAttrs(body)",
 		"renderBlocks(convertDivs(stripHeadingAttrs(page.body), lineMap), lineMap, page.offset)",
 	} {
-		if !strings.Contains(string(preview), want) {
+		if !assetContains("assets/static/preview.js", string(preview), want) {
 			t.Errorf("preview.js does not strip heading attributes, missing %q", want)
 		}
 	}

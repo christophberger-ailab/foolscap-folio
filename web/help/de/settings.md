@@ -2,12 +2,22 @@
 
 ## Die Schaltfläche Config
 
-`Config` ganz rechts in der oberen Leiste öffnet eine Seite, die die Konfigurationsbereiche auflistet. Mit der Schaltfläche `App` oben kehrst du zurück. Die Bereiche sind:
+`Config` ganz rechts in der oberen Leiste öffnet eine Seite, die die Konfigurationsbereiche auflistet. Mit der Schaltfläche `App` oben kehrst du zurück. Über den Bereichen nennt ein Kasten `Release` die laufende folio-Version und bietet die Schaltfläche `Check for updates` (zu den automatischen Prüfungen siehe [Die Einstellungsdatei](#die-einstellungsdatei)). Gibt es eine neuere Version, sagt der Kasten es und bietet die Schaltfläche **Update to …**, die sie installiert wie die Schaltfläche **Update** in der oberen Leiste. Nach dem Update startet folio web mit der neuen Version neu, und die Seite lädt sich neu. Einem Entwicklungs-Build wird die neueste Version angeboten, welche es auch ist. Die Bereiche sind:
 
 - `Preview: Custom CSS`: das Stylesheet für die [Vorschau](preview.md).
 - `Copyedit: Editing tasks` und `Copyedit: API connections`: siehe [Lektorat](copyedit.md).
 - `External editor`: siehe [andere Editoren](external-editor.md).
 - `Comments: Your name`: der Name, mit dem deine [Kommentare](editor.md#kommentare) und Antworten gezeichnet werden.
+- `Project: folio.yml`: die Konfigurationsdatei des geöffneten Projekts, als Text.
+- `folio: config.cue`: die unten beschriebene Einstellungsdatei, als Text.
+
+## Project: folio.yml
+
+Bearbeitet die `folio.yml` (oder die ältere `qm.yml`) des geöffneten Projekts in einem Texteditor. `Save` prüft die Datei so, wie ein Rendern sie liest: Ein unbekannter Schlüssel oder ein Ausgabetyp, den folio nicht schreiben kann, wird mit seiner Zeile abgelehnt, und die Datei bleibt, wie sie war. Hat das Projekt keine, legt das Speichern `folio.yml` an. Eine geänderte Adresse, auf der `folio web` lauscht, gilt ab dem nächsten Start.
+
+## folio: config.cue
+
+Bearbeitet [die Einstellungsdatei](#die-einstellungsdatei) in einem Texteditor. `Save` prüft die Einstellungen gegen das Schema und setzt sie sofort in Kraft. API-Schlüssel werden nie angezeigt: Lass `(stored key, not shown)` stehen, um einen Schlüssel zu behalten, oder überschreibe es mit einem neuen. Es gilt dasselbe wie beim [Bearbeiten von Hand](#von-hand-bearbeiten): Kommentare zwischen den Einstellungen bleiben nicht erhalten.
 
 ## Comments: Your name
 

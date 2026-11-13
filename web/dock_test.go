@@ -147,3 +147,17 @@ func TestPanesToggle(t *testing.T) {
 		}
 	}
 }
+
+// UI.14-5: a tab carries no close button, so a click near its name never
+// closes the pane by accident; the Panes menu closes and opens panes.
+func TestDockTabsHaveNoCloseButton(t *testing.T) {
+	for _, file := range []string{"assets/static/dock.js", "assets/static/app.css"} {
+		src, err := assets.ReadFile(file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(string(src), "dock-tab-close") {
+			t.Errorf("%s still carries the tab close button", file)
+		}
+	}
+}

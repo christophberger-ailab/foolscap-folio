@@ -1,16 +1,18 @@
 // Foolscap Folio - configuration page behavior (plain ES6, no build step)
 
-// initPreviewCSSEditor mounts CodeMirror on the custom preview stylesheet
-// textarea. The textarea remains the form field, so submitting the form
-// keeps working even if CodeMirror failed to load.
-function initPreviewCSSEditor() {
-  var area = document.querySelector('textarea.preview-css-content');
+// initFileEditor mounts CodeMirror on a config page's file textarea: the
+// custom preview stylesheet, folio.yml, or config.cue. The textarea names
+// its CodeMirror mode in data-mode (none for config.cue, which has no mode
+// of its own) and remains the form field, so submitting the form keeps
+// working even if CodeMirror failed to load.
+function initFileEditor() {
+  var area = document.querySelector('textarea.preview-css-content, textarea.config-file-content');
   if (!area || typeof CodeMirror === 'undefined') {
     return;
   }
 
   var editor = CodeMirror.fromTextArea(area, {
-    mode: 'css',
+    mode: area.dataset.mode || null,
     lineWrapping: true
   });
 
@@ -73,6 +75,15 @@ document.addEventListener('click', function (evt) {
   }
 });
 
+// A button with data-confirm asks before its form posts: the Config page's
+// Update button replaces the folio binary.
+document.addEventListener('click', function (evt) {
+  var button = evt.target.closest('button[data-confirm]');
+  if (button && !window.confirm(button.dataset.confirm)) {
+    evt.preventDefault();
+  }
+});
+
 // The base URL and the key belong to the two HTTP kinds and to neither
 // the GitHub Copilot kind nor the user: Copilot is reached through the
 // CLI, which knows where GitHub is and who the user is. So both fields
@@ -111,7 +122,7 @@ document.addEventListener('click', function (evt) {
   }
 });
 
-document.addEventListener('DOMContentLoaded', initPreviewCSSEditor);
+document.addEventListener('DOMContentLoaded', initFileEditor);
 document.addEventListener('DOMContentLoaded', function () {
   document.querySelectorAll('select.connection-kind').forEach(showEndpointFieldsFor);
 });

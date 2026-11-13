@@ -1090,15 +1090,15 @@ button:hover,
   scrollbar-width: thin;
 }
 
-/* Tabs give up width before the bar has to scroll; the label is cut short
-   rather than the close button. */
+/* Tabs give up width before the bar has to scroll, cutting their labels
+   short. */
 .dock-tab {
   flex: 0 1 auto;
   min-width: 2.5rem;
   display: flex;
   align-items: center;
   gap: 0.1rem;
-  padding: 0.25rem 0.15rem 0.3rem 0.5rem;
+  padding: 0.25rem 0.5rem 0.3rem;
   font-size: 0.85rem;
   color: var(--muted);
   border-bottom: 2px solid transparent;
@@ -1135,27 +1135,6 @@ button:hover,
 
 .dock-tabs.drop-end {
   box-shadow: inset -2px 0 0 var(--accent);
-}
-
-.dock-tab-close {
-  flex: none;
-  border: none;
-  background: none;
-  padding: 0 0.2rem;
-  font-size: 0.9rem;
-  line-height: 1;
-  color: var(--muted);
-}
-
-/* Only the active tab, and the one under the pointer, offer their ✕, so
-   the others keep the width for their names. */
-.dock-tab:not(.active):not(:hover):not(:focus-visible) .dock-tab-close {
-  display: none;
-}
-
-.dock-tab-close:hover {
-  color: var(--fg);
-  background: var(--border);
 }
 
 .dock-body {
@@ -1616,7 +1595,8 @@ textarea.file-content {
   min-height: 12rem;
 }
 
-textarea.preview-css-content {
+textarea.preview-css-content,
+textarea.config-file-content {
   width: 100%;
   min-height: 24rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -2653,4 +2633,27 @@ mark.folio-todo-hidden {
 
 .comments-actions button {
   font-size: 0.78rem;
+}
+
+/* The release box atop the Config overview. */
+.release-info {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin: 0 0 1.5rem;
+}
+
+.release-info h3 {
+  margin: 0 0 0.5rem;
+}
+
+.release-info p {
+  margin: 0 0 0.5rem;
+}
+
+/* A config file editor's error is a parser's report, line breaks and all. */
+.error pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
 }

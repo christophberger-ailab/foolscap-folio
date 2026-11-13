@@ -23,7 +23,7 @@ Während du ziehst, ist der Teil der Gruppe schattiert, den der Bereich einnehme
 
 ## Bereiche schließen und öffnen
 
-Das `×` auf einem Tab schließt seinen Bereich, ebenso ein Klick mit der mittleren Maustaste auf den Tab. Ist der letzte Bereich geschlossen, nimmt der Editor die ganze Breite ein.
+Tabs haben keine Schließen-Schaltfläche, ein Klick auf einen Tab schließt seinen Bereich also nie versehentlich. Schließe einen Bereich über das Menü `Panes ▾` oder mit einem Klick der mittleren Maustaste auf seinen Tab. Ist der letzte Bereich geschlossen, nimmt der Editor die ganze Breite ein.
 
 Das Menü `Panes ▾` in der oberen Leiste listet alle Bereiche, die offenen mit einem Häkchen. Wähle einen geschlossenen, um ihn zu öffnen, einen offenen, um ihn zu schließen. `Reset layout` stellt alle Bereiche wieder in eine Gruppe.
 

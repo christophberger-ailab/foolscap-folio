@@ -42,14 +42,16 @@ constraints:
   UPDATE:
     description: The top bar offers an update when a newer release of folio is out.
     requirements:
-      1: While folio web runs, it looks for a newer release at the update source as often as SETTINGS 8 says, first right after it starts; a development build never looks
+      1: While folio web runs, it looks for a newer release at the update source as often as SETTINGS 8 says, first right after it starts; a development build looks too and is offered the newest release, whatever it is, since it has no version to compare
       1-1: A change of the interval in the settings file takes effect within the hour, without a restart
       1-2: A failed check is reported on the console only; the next one is tried as usual
       2: 'When a newer release is found, an Update button appears at the right end of the top bar, with the tooltip "Update to <release>. Your current release is <release>."'
       2-1: The page asks for the button when it loads and every hour after, so a release found while the page is open still shows up
       3: The button asks for confirmation, then installs the release the way `folio upgrade` does (spec-upgrade.yaml SECURITY)
-      3-1: Once installed, the button gives way to "Restart folio web to use <release>"; the running server keeps running the old version until it is restarted
+      3-1: Once installed, folio web restarts itself on the new binary -- in the same process on Linux and macOS, as a new process in the same console on Windows -- listening at the same address and with the same project open; the button gives way to "Restarting folio web with <release>…" and the page reloads as soon as the new release answers at /version
       3-2: A failed install leaves the binary as it was, shows the reason beside the button, and keeps the button for another try
+      4: The Config page's Release box offers the same update with a button of its own, "Update to <release>", which asks for confirmation and installs it like the top bar's; once installed, folio web restarts as in 3-1 and the Config page reloads
+      5: When the restart does not happen -- the new binary cannot be run, or does not answer within a minute -- the page says to restart folio web by hand; a server not started by `folio web` (a test) does not restart and says so at once
 
   ORIGIN:
     description: The command is the quarto-sorter tool (github.com/christophberger-ailab/quarto-sorter) merged into folio.
@@ -330,7 +332,7 @@ constraints:
       14-2: Opening a project brings its Render and Git panes anew; with no project open neither is offered, and their tabs say so
       14-3: Dragging a tab onto the tabs of a group moves the pane there, at the place it is dropped, which also reorders the tabs of one group; dropping it near the left, right, top, or bottom edge of a group puts it in a group of its own beside, above, or below that group, so groups stand side by side or stacked; while a tab is dragged, the part of the group it would take is shaded
       14-4: A group whose last tab is moved away or closed goes, and its room goes to its neighbours; with no pane open the editor takes the whole width
-      14-5: A tab's ✕, or a middle click on it, closes its pane; a Panes menu in the top bar lists every pane, ticked while open, opens or closes the one picked, and resets the layout to one group holding every pane
+      14-5: A tab carries no close button; a middle click on it closes its pane; a Panes menu in the top bar lists every pane, ticked while open, opens or closes the one picked, and resets the layout to one group holding every pane
       14-6: The divider between the editor and the dock trades width between them, and the sash between two parts of a split trades room between them
       14-7: The layout -- which panes are open, how they are grouped and split, the active tabs, and every size -- is remembered across page switches, reloads, and sessions; a layout saved by the side-by-side panes before the dock is carried over, each pane then open in a group of its own and the others as tabs of the last
       14-8: The Comments pane lists the comments of the page in the editor, in the order they stand, each with its author and date, its text, the commented passage, and its replies, and follows the editor's text as it changes; a page without comments says so
