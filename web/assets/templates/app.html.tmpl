@@ -36,6 +36,7 @@
   <script src="/static/editor.js" defer></script>
   <script src="/static/dock.js" defer></script>
   <script src="/static/app.js" defer></script>
+  <script src="/static/restart.js" defer></script>
 </head>
 <body data-user="{{.User}}">
   <header class="topbar">
@@ -89,8 +90,9 @@
 
 {{/* The top bar's update slot: the Update button while a newer release
      waits, a note once it is installed, nothing otherwise. */}}
-{{define "update"}}{{if .Installed}}<span class="update-done" title="The new binary is in place; it is used from the next start.">Restart folio web to use {{.Installed}}</span>
-{{- else if .Latest}}<button type="button" class="update-button" hx-post="/update" hx-target="#update-slot" hx-confirm="Update folio from {{.Current}} to {{.Latest}}?" hx-disabled-elt="this"
+{{define "update"}}{{if and .Installed .Restarting}}<span class="update-done" data-restart-to="{{.Installed}}">Restarting folio web with {{.Installed}}…</span>
+{{- else if .Installed}}<span class="update-done" title="The new binary is in place; it is used from the next start.">Restart folio web to use {{.Installed}}</span>
+{{- else if .Latest}}<button type="button" class="update-button" hx-post="/update" hx-target="#update-slot" hx-confirm="Update folio from {{.Current}} to {{.Latest}}? folio web restarts with it." hx-disabled-elt="this"
         title="Update to {{.Latest}}. Your current release is {{.Current}}.">Update</button>
 {{- with .Error}}<span class="update-error" title="{{.}}">Update failed: {{.}}</span>{{end}}{{end}}{{end}}
 
@@ -285,6 +287,8 @@
   <title>Foolscap Folio Config</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/config.js" defer></script>
+  <script src="/static/restart.js" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -296,14 +300,17 @@
     {{with .Release}}<section class="release-info" aria-label="Release">
       <h3>Release</h3>
       <p>{{if .Current}}You are running folio <strong>{{.Current}}</strong>{{if .Dev}}, a development build{{end}}.{{else}}You are running a development build of folio.{{end}}</p>
-      {{if .Installed}}<p class="notice">folio {{.Installed}} is installed. Restart folio web to use it.</p>
-      {{else if .Latest}}<p class="notice">folio {{.Latest}} is available{{with .LatestURL}} (<a href="{{.}}" target="_blank" rel="noopener">release notes</a>){{end}}. Install it with the <strong>Update</strong> button in the app's top bar.</p>{{end}}
+      {{if and .Installed .Restarting}}<p class="notice" data-restart-to="{{.Installed}}">folio {{.Installed}} is installed. Restarting folio web with it…</p>
+      {{else if .Installed}}<p class="notice">folio {{.Installed}} is installed. Restart folio web to use it.</p>
+      {{else if .Latest}}<p class="notice">folio {{.Latest}} is available{{with .LatestURL}} (<a href="{{.}}" target="_blank" rel="noopener">release notes</a>){{end}}.</p>
+      <form method="post" action="/config/install-update">
+        <button type="submit" class="update-button" data-confirm="Update folio from {{.Current}} to {{.Latest}}? folio web restarts with it.">Update to {{.Latest}}</button>
+      </form>{{end}}
       {{with .Message}}<p class="notice">{{.}}</p>{{end}}
       {{with .Error}}<div class="error">{{.}}</div>{{end}}
-      {{if .Dev}}<p class="config-intro">Update checks are disabled in a development build: there is no release to compare it with.</p>
-      {{else}}<p class="config-intro">folio web checks for new releases {{if eq .Check "never"}}only when you ask{{else}}{{.Check}}{{end}} (the <code>update</code> settings in <code>config.cue</code>).{{with .Checked}} Last checked {{.}}.{{end}}</p>{{end}}
+      <p class="config-intro">folio web checks for new releases {{if eq .Check "never"}}only when you ask{{else}}{{.Check}}{{end}} (the <code>update</code> settings in <code>config.cue</code>).{{if .Dev}} A development build cannot be compared with a release, so it is offered the newest release.{{end}}{{with .Checked}} Last checked {{.}}.{{end}}</p>
       <form method="post" action="/config/check-update">
-        <button type="submit"{{if .Dev}} disabled{{end}}>Check for updates</button>
+        <button type="submit">Check for updates</button>
       </form>
     </section>{{end}}
     <p class="config-intro">Choose a configuration area.</p>

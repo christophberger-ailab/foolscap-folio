@@ -74,6 +74,9 @@ type server struct {
 
 	// update is what the top bar's Update button knows (see update.go).
 	update updateState
+	// restart asks Serve to restart on an updated binary; nil when the
+	// server was not started by Serve.
+	restart chan struct{}
 }
 
 func newServer(configFile string) (*server, error) {
@@ -139,6 +142,7 @@ func newServer(configFile string) (*server, error) {
 	s.mux.HandleFunc("GET /config/settings-file", s.settingsFilePage)
 	s.mux.HandleFunc("POST /config/settings-file", s.saveSettingsFileHandler)
 	s.mux.HandleFunc("POST /config/check-update", s.checkUpdateHandler)
+	s.mux.HandleFunc("POST /config/install-update", s.installUpdateConfigHandler)
 	s.mux.HandleFunc("POST /editor/open", s.openEditorHandler)
 	s.mux.HandleFunc("POST /editor/image", s.openImageEditorHandler)
 	s.mux.HandleFunc("POST /copyedit/active", s.activeConnectionHandler)
@@ -172,6 +176,7 @@ func newServer(configFile string) (*server, error) {
 	s.mux.HandleFunc("POST /git/push", s.gitPushHandler)
 	s.mux.HandleFunc("POST /git/sync", s.gitSyncHandler)
 	s.mux.HandleFunc("GET /update", s.updateHandler)
+	s.mux.HandleFunc("GET /version", s.versionHandler)
 	s.mux.HandleFunc("POST /update", s.installUpdateHandler)
 	return s, nil
 }
