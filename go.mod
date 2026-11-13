@@ -1,6 +1,6 @@
 module github.com/christophberger-ailab/foolscap-folio
 
-go 1.27.0
+go 1.27.4
 
 require (
 	cuelang.org/go v0.17.1
