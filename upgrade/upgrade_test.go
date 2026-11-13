@@ -80,9 +80,40 @@ func TestAcceptingInstalls(t *testing.T) {
 	}
 }
 
-func TestADevelopmentBuildIsNotUpdated(t *testing.T) {
-	o, _ := opts(t, "dev", "v0.5.0", "y\n")
-	if err := Run(context.Background(), o); err == nil || !strings.Contains(err.Error(), "development build") {
-		t.Errorf("Run on dev: %v", err)
+// A development build has no version to compare, so the newest release is
+// offered whatever it is, after asking like any other update.
+func TestADevelopmentBuildIsOfferedTheNewestRelease(t *testing.T) {
+	o, out := opts(t, "dev", "v0.5.0", "y\n")
+	if err := Run(context.Background(), o); err == nil || !strings.Contains(err.Error(), "has no build for") {
+		t.Errorf("Run on dev with yes: %v, want the install to be attempted", err)
+	}
+	for _, want := range []string{"development build (dev)", "folio v0.5.0 is the newest release", "Update now? [y/N]"} {
+		if !strings.Contains(out.String(), want) {
+			t.Errorf("output lacks %q:\n%s", want, out)
+		}
+	}
+}
+
+func TestADevelopmentBuildCanDecline(t *testing.T) {
+	o, out := opts(t, "dev", "v0.5.0", "n\n")
+	if err := Run(context.Background(), o); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), "Not updated") {
+		t.Errorf("output: %s", out)
+	}
+	if b, _ := os.ReadFile(o.Exe); string(b) != "old" {
+		t.Errorf("binary changed: %q", b)
+	}
+}
+
+func TestADevelopmentBuildWithCheckInstallsNothing(t *testing.T) {
+	o, out := opts(t, "dev", "v0.5.0", "y\n")
+	o.CheckOnly = true
+	if err := Run(context.Background(), o); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(out.String(), "[y/N]") {
+		t.Errorf("--check asked to update: %s", out)
 	}
 }

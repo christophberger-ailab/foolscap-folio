@@ -19,7 +19,7 @@ constraints:
     requirements:
       1: 'The newest release is read from the update source in the web settings file, config.cue (see spec-web.yaml SETTINGS 8); without a settings file it is folio''s GitHub releases'
       1-1: The source is the URL of a release description in the shape of GitHub's REST API (`tag_name`, `html_url`, `assets[].name`, `assets[].browser_download_url`), which Gitea, Forgejo and a static JSON file can give as well
-      2: A release is newer when its tag is a higher vMAJOR.MINOR.PATCH than the running version; a development build or a pre-release tag is never compared, and upgrade on a development build is an error
+      2: A release is newer when its tag is a higher vMAJOR.MINOR.PATCH than the running version; a pre-release tag is never compared. A development build cannot be compared, so it is offered the newest release, whatever it is, and asked the same way (3)
       3: When a newer release exists, its version, the running version and its release notes URL are printed; without --check and --yes the user is asked "Update now? [y/N]", and anything but y or yes leaves the binary as it is
       4: When no newer release exists, that is said and nothing changes
 
