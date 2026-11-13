@@ -874,10 +874,6 @@ func (s *server) create(w http.ResponseWriter, r *http.Request) {
 	if name == "" {
 		name = r.Header.Get("HX-Prompt") // per-node ＋ button
 	}
-	title := r.FormValue("title")
-	if title == "" {
-		title = name
-	}
 	// The top-bar form inserts after the page selected in the tree (its
 	// path travels as "after"); the per-node ＋ button appends a child to
 	// its parent instead.
@@ -885,9 +881,9 @@ func (s *server) create(w http.ResponseWriter, r *http.Request) {
 	s.apply(w, func(t *project.Tree) error {
 		var err error
 		if parent == "" && after != "" {
-			_, err = t.CreatePageAfter(after, name, title)
+			_, err = t.CreatePageAfter(after, name)
 		} else {
-			_, err = t.CreatePage(parent, name, title)
+			_, err = t.CreatePage(parent, name)
 		}
 		return err
 	})

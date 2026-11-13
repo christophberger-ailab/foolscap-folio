@@ -59,7 +59,8 @@ Drag a page by its `⠿` handle.
 
 ## Creating pages
 
-- Type a file name (without `.md`) and an optional title at the top, then press `＋ Page`.
+- Type a file name (without `.md`) at the top, then press `＋ Page`.
+- A new page has no `title` in its frontmatter, only its `order`. The tree shows it under its file name until you give it a heading, which then becomes its title.
 - The `＋` button on a row adds a child page under that page. You are asked for the name.
 
 ## Deleting pages

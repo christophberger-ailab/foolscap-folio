@@ -163,7 +163,7 @@ func TestMoveIntoRootIndex(t *testing.T) {
 // last ordered sibling.
 func TestCreatePage(t *testing.T) {
 	root := writeFixture(t)
-	created, err := load(t, root).CreatePage("chapter2/index.qmd", "fifth", "Fifth")
+	created, err := load(t, root).CreatePage("chapter2/index.qmd", "fifth")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,7 +175,13 @@ func TestCreatePage(t *testing.T) {
 	if p == nil {
 		t.Fatal("created page not in tree")
 	}
-	if p.Title != "Fifth" {
+	// The page carries no title of its own (issue #58): a `title:` would
+	// override the level-1 heading the user writes, so the frontmatter is
+	// the order alone and the tree names the page by its folder.
+	if got, want := readFile(t, root, created), "---\norder: 3\n---\n\n"; got != want {
+		t.Errorf("content = %q, want %q", got, want)
+	}
+	if p.Title != "fifth" {
 		t.Errorf("title = %q", p.Title)
 	}
 	if order(t, p) != 3 { // after third (order 2), before unordered fourth
@@ -185,7 +191,7 @@ func TestCreatePage(t *testing.T) {
 
 func TestCreatePageAtRoot(t *testing.T) {
 	root := writeFixture(t)
-	created, err := load(t, root).CreatePage("", "about", "About")
+	created, err := load(t, root).CreatePage("", "about")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -201,7 +207,7 @@ func TestCreatePageAtRoot(t *testing.T) {
 // the whole group so previously unordered pages become ordered.
 func TestCreatePageAfter(t *testing.T) {
 	root := writeFixture(t)
-	created, err := load(t, root).CreatePageAfter("chapter2/second.qmd", "inserted", "Inserted")
+	created, err := load(t, root).CreatePageAfter("chapter2/second.qmd", "inserted")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -222,12 +228,15 @@ func TestCreatePageAfter(t *testing.T) {
 			t.Errorf("%s order = %d, want %d", c.Path, *c.Order, i+1)
 		}
 	}
+	if got, want := readFile(t, root, created), "---\norder: 2\n---\n\n"; got != want {
+		t.Errorf("content = %q, want %q", got, want)
+	}
 }
 
 // CreatePageAfter a root page inserts into the root group.
 func TestCreatePageAfterAtRoot(t *testing.T) {
 	root := writeFixture(t)
-	created, err := load(t, root).CreatePageAfter("index.qmd", "intro", "Intro")
+	created, err := load(t, root).CreatePageAfter("index.qmd", "intro")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -247,7 +256,7 @@ func TestCreatePageAfterAtRoot(t *testing.T) {
 func TestCreatePageExists(t *testing.T) {
 	root := writeFixture(t)
 	// chapter1/ already exists as a directory, so it is taken.
-	if _, err := load(t, root).CreatePage("", "chapter1", "X"); err == nil {
+	if _, err := load(t, root).CreatePage("", "chapter1"); err == nil {
 		t.Error("want error creating page whose folder exists")
 	}
 }
@@ -461,7 +470,7 @@ func TestRenamePageMarkdown(t *testing.T) {
 		t.Error("three.md missing")
 	}
 	// A name taken by a .md file blocks creating a page.
-	if _, err := load(t, root).CreatePage("", "three", "T"); err == nil {
+	if _, err := load(t, root).CreatePage("", "three"); err == nil {
 		t.Error("CreatePage over three.md accepted")
 	}
 }
