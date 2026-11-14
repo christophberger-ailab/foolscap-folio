@@ -248,4 +248,7 @@ func TestAssetName(t *testing.T) {
 	if got := AssetName("v0.5.0", "windows", "arm64"); got != "folio_v0.5.0_windows_arm64.zip" {
 		t.Errorf("windows asset: %s", got)
 	}
+	if got := AssetName("v0.5.0", "darwin", "arm64"); got != "folio_v0.5.0_darwin_arm64.tar.gz" {
+		t.Errorf("darwin asset: %s", got)
+	}
 }

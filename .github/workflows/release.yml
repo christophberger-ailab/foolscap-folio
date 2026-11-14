@@ -149,6 +149,10 @@ jobs:
             goarch: amd64
           - goos: windows
             goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
     steps:
       - uses: actions/checkout@v7
         with:
@@ -161,7 +165,10 @@ jobs:
 
       # folio is pure Go (the only embedded data comes from //go:embed in
       # web/server.go), so CGO_ENABLED=0 gives a static binary and lets all
-      # four targets cross-compile from the same ubuntu runner.
+      # six targets cross-compile from the same ubuntu runner. macOS on Apple
+      # silicon refuses to run unsigned arm64 code; Go's linker ad-hoc signs
+      # darwin/arm64 binaries itself, also when cross-compiling, so no macOS
+      # runner or codesign step is needed.
       - name: Build
         env:
           CGO_ENABLED: "0"

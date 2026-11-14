@@ -38,7 +38,15 @@ On the origin of the paper format, Wikipedia [writes](https://en.wikipedia.org/w
 
 ## Install
 
-Pre-built binaries for Linux and Windows (amd64 and arm64) are attached to each [release](../../releases). Download, unpack, put `folio` on your `PATH`.
+Pre-built binaries for Linux, macOS and Windows (amd64 and arm64) are attached to each [release](../../releases). Download, unpack, put `folio` on your `PATH`.
+
+On macOS, a binary downloaded with a browser is quarantined, and Gatekeeper refuses to start it because it is not notarized. Clear the flag once after unpacking:
+
+```sh
+xattr -d com.apple.quarantine folio
+```
+
+Archives fetched with `curl` and updates installed by `folio upgrade` are not quarantined.
 
 To build from source, with Go 1.27 or newer:
 
@@ -533,7 +541,8 @@ behaviour changes, change the spec with it.
 
 Releases are cut by `.github/workflows/release.yml` when a pull request is
 merged into `main` (a push to `main` that is not a PR merge releases nothing):
-it vets, tests, cross-compiles the four targets, and publishes a release with
+it vets, tests, cross-compiles the six targets (Linux, macOS and Windows,
+each for amd64 and arm64), and publishes a release with
 checksums. `SHA256SUMS.txt` is signed keylessly with cosign through the
 workflow's GitHub OIDC token, so no signing key is stored anywhere; the
 signature is only accepted from `release.yml` on `main`, which is why a manual
