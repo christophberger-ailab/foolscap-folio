@@ -65,6 +65,11 @@ func TestCheckFences(t *testing.T) {
 			wantLine: nil,
 		},
 		{
+			name:     "fences in HTML comments are skipped",
+			body:     "<!-- ::: {.x} -->\n<!--\n::: {.y}\n-->\n::: {.z}\n",
+			wantLine: []int{5},
+		},
+		{
 			name:     "bare ::: is a closer, not an opener",
 			body:     ":::\n",
 			wantLine: nil,

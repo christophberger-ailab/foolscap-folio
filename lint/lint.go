@@ -18,6 +18,7 @@ import (
 
 	"github.com/christophberger-ailab/foolscap-folio/internal/config"
 	"github.com/christophberger-ailab/foolscap-folio/internal/foliocore"
+	"github.com/christophberger-ailab/foolscap-folio/internal/project"
 	"github.com/christophberger/start"
 	flag "github.com/spf13/pflag"
 )
@@ -208,6 +209,7 @@ var (
 // CheckFences scans path and returns findings for every opening Quarto
 // div fence that lacks a matching closing fence. Nested fences are
 // tracked with a stack; each surplus opener is reported on its own line.
+// Fences inside HTML comments are skipped.
 func CheckFences(path string) ([]Finding, error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -220,10 +222,11 @@ func CheckFences(path string) ([]Finding, error) {
 
 	scanner := bufio.NewScanner(f)
 	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
-	lineNo := 0
+	lineNo, inComment := 0, false
 	for scanner.Scan() {
 		lineNo++
-		line := scanner.Text()
+		var line string
+		line, inComment = project.Uncomment(scanner.Text(), inComment)
 		switch {
 		case closeFenceRE.MatchString(line):
 			if len(openLines) > 0 {

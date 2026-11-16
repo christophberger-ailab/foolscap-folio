@@ -24,6 +24,12 @@ func TestBalancedFences(t *testing.T) {
 		{"fence in code block ignored", "```\n::: not a fence\n```\n", true},
 		{"colons in frontmatter ignored", "---\ntitle: \":::\"\n---\nbody\n", true},
 		{"two colons are not a fence", "::x\ntext\n", true},
+		{"fence in one-line comment ignored", "<!-- ::: {.x} -->\ntext\n", true},
+		{"fences in multi-line comment ignored", "<!--\n::: {.x}\ntext\n-->\n", true},
+		{"close in comment ignored", "::: {.x}\n<!--\n:::\n-->\n", false},
+		{"fence after a comment counts", "<!-- note -->\n::: {.x}\n", false},
+		{"fence after a comment's end counts", "<!-- note\n--> \n::: {.x}\ntext\n:::\n", true},
+		{"comment in code block is code", "```\n<!--\n```\n::: {.x}\n", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
