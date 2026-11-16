@@ -335,3 +335,19 @@ func TestBrandColorVariants(t *testing.T) {
 		t.Errorf("background %q", b.Color.Background)
 	}
 }
+
+// CheckBrand refuses what loading the brand file refuses (issue #79).
+func TestCheckBrand(t *testing.T) {
+	for text, ok := range map[string]bool{
+		"color:\n  primary: '#336699'\n":          true,
+		"meta:\n  coverpage: 'c{audience}.svg'\n": true,
+		"":                                       true,
+		"color: [\n":                             false,
+		"meta:\n  fonts:\n    h7: {size: 9pt}\n": false,
+		"meta:\n  fonts:\n    h1: {size: big}\n": false,
+	} {
+		if err := CheckBrand([]byte(text)); (err == nil) != ok {
+			t.Errorf("%q: %v", text, err)
+		}
+	}
+}

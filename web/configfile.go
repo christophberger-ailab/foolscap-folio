@@ -1,7 +1,8 @@
 package web
 
-// configfile.go — the Config area's editors for the two configuration
-// files themselves: the project's folio.yml and folio's own config.cue.
+// configfile.go — the Config area's editors for the configuration files
+// themselves: the project's folio.yml, its _brand.yml, and folio's own
+// config.cue.
 //
 // Both editors check what they are given the way the file is checked when
 // it is read, and write nothing that does not check out: a file the next
@@ -14,6 +15,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/christophberger-ailab/foolscap-folio/internal/build"
 	"github.com/christophberger-ailab/foolscap-folio/internal/config"
 )
 
@@ -24,7 +26,7 @@ const keyHidden = "(stored key, not shown)"
 
 // configFileView is the page data of a configuration file editor.
 type configFileView struct {
-	// Kind picks the page's explanation: "project" or "settings".
+	// Kind picks the page's explanation: "project", "brand" or "settings".
 	Kind string
 	// Action is where the form posts; Mode the CodeMirror mode.
 	Action, Mode string
@@ -94,6 +96,68 @@ func (s *server) saveProjectFileHandler(w http.ResponseWriter, r *http.Request) 
 		v.Error = err.Error()
 	} else {
 		v.Error, v.Message = "", "Saved."
+	}
+	s.render(w, "config-file-page", v)
+}
+
+// brandFileView describes the brand file in effect for the open project:
+// its own _brand.yml, or else the user's beside the settings file. With
+// neither, it is the project's, which saving creates. The caller must hold
+// s.mu.
+func (s *server) brandFileView() configFileView {
+	v := configFileView{Kind: "brand", Action: "/config/brand-file", Mode: "yaml"}
+	var candidates []string
+	if s.root != "" {
+		candidates = append(candidates, filepath.Join(s.root, build.BrandFile))
+	}
+	if user := userBrandIn(s.configFile); user != "" {
+		candidates = append(candidates, user)
+	}
+	if len(candidates) == 0 {
+		v.Unavailable = "Open a project in the app first: there is no brand file to edit."
+		return v
+	}
+	v.Path = candidates[0]
+	for _, p := range candidates {
+		b, err := os.ReadFile(p)
+		if os.IsNotExist(err) {
+			continue
+		}
+		v.Path = p
+		if err != nil {
+			v.Error = err.Error()
+		}
+		v.Text = string(b)
+		break
+	}
+	return v
+}
+
+func (s *server) brandFilePage(w http.ResponseWriter, r *http.Request) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.render(w, "config-file-page", s.brandFileView())
+}
+
+// saveBrandFileHandler writes _brand.yml once a render can read it.
+func (s *server) saveBrandFileHandler(w http.ResponseWriter, r *http.Request) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	v := s.brandFileView()
+	if v.Unavailable != "" {
+		s.render(w, "config-file-page", v)
+		return
+	}
+	text, err := formText(r)
+	if err == nil {
+		v.Text = text
+		if err = build.CheckBrand([]byte(text)); err == nil {
+			err = os.WriteFile(v.Path, []byte(text), 0o644)
+		}
+	}
+	v.Error, v.Message = "", "Saved."
+	if err != nil {
+		v.Error, v.Message = err.Error(), ""
 	}
 	s.render(w, "config-file-page", v)
 }

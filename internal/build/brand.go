@@ -16,6 +16,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/christophberger-ailab/foolscap-folio/internal/config"
 	"github.com/christophberger-ailab/foolscap-folio/internal/docrender"
 	"github.com/christophberger-ailab/foolscap-folio/internal/docx"
 	"github.com/christophberger-ailab/foolscap-folio/internal/foliocore"
@@ -78,6 +79,26 @@ func (b *brand) checkMeta() error {
 		if _, err := parseSize(f.Size); err != nil {
 			return fmt.Errorf("%s: meta: fonts: %s: %w", BrandFile, role, err)
 		}
+	}
+	return nil
+}
+
+// interpolate replaces the {name} placeholders of the meta fields by the
+// selection's variables from folio.yml, such as {audience-template} in
+// meta.coverpage. A placeholder without a variable is an error.
+func (b *brand) interpolate(vars map[string]string) error {
+	if b == nil {
+		return nil
+	}
+	var err error
+	if b.Meta.Coverpage, err = config.Interpolate(b.Meta.Coverpage, vars); err != nil {
+		return fmt.Errorf("%s: meta: coverpage: %w", BrandFile, err)
+	}
+	for role, f := range b.Meta.Fonts {
+		if f.Font, err = config.Interpolate(f.Font, vars); err != nil {
+			return fmt.Errorf("%s: meta: fonts: %s: %w", BrandFile, role, err)
+		}
+		b.Meta.Fonts[role] = f
 	}
 	return nil
 }
@@ -149,16 +170,27 @@ func loadBrand(root, user string) (*brand, error) {
 		} else if err != nil {
 			return nil, err
 		}
-		b := &brand{dir: filepath.Dir(file)}
-		if err = yaml.Unmarshal(data, b); err != nil {
-			return nil, fmt.Errorf("%s: %w", BrandFile, err)
-		}
-		if err = b.checkMeta(); err != nil {
-			return nil, err
-		}
-		return b, nil
+		return parseBrand(filepath.Dir(file), data)
 	}
 	return nil, nil
+}
+
+// parseBrand reads a brand file's content; dir is the file's directory.
+func parseBrand(dir string, data []byte) (*brand, error) {
+	b := &brand{dir: dir}
+	if err := yaml.Unmarshal(data, b); err != nil {
+		return nil, fmt.Errorf("%s: %w", BrandFile, err)
+	}
+	if err := b.checkMeta(); err != nil {
+		return nil, err
+	}
+	return b, nil
+}
+
+// CheckBrand reports what keeps a render from reading data as a brand file.
+func CheckBrand(data []byte) error {
+	_, err := parseBrand("", data)
+	return err
 }
 
 // brandLogo is a logo: a path or the name of an image, a path with its

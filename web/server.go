@@ -139,6 +139,8 @@ func newServer(configFile string) (*server, error) {
 	s.mux.HandleFunc("POST /config/user", s.saveUserHandler)
 	s.mux.HandleFunc("GET /config/project-file", s.projectFilePage)
 	s.mux.HandleFunc("POST /config/project-file", s.saveProjectFileHandler)
+	s.mux.HandleFunc("GET /config/brand-file", s.brandFilePage)
+	s.mux.HandleFunc("POST /config/brand-file", s.saveBrandFileHandler)
 	s.mux.HandleFunc("GET /config/settings-file", s.settingsFilePage)
 	s.mux.HandleFunc("POST /config/settings-file", s.saveSettingsFileHandler)
 	s.mux.HandleFunc("POST /config/check-update", s.checkUpdateHandler)
@@ -561,6 +563,10 @@ func (s *server) configView() configView {
 		Title:       "Project: folio.yml",
 		Description: "Edit the open project's configuration file: its formats, audiences, topics, and web settings.",
 		Href:        "/config/project-file",
+	}, {
+		Title:       "Brand: _brand.yml",
+		Description: "Edit the brand file that styles the open project's outputs: its colors, typography, logo, and cover page.",
+		Href:        "/config/brand-file",
 	}, {
 		Title:       "folio: config.cue",
 		Description: "Edit folio's own settings file, with the schema it is checked against.",

@@ -252,3 +252,60 @@ func TestCrossOriginPostsAreRefused(t *testing.T) {
 		t.Errorf("folio.yml changed to %q", got)
 	}
 }
+
+// _brand.yml has an editor of its own (issue #79).
+func TestConfigPageListsTheBrandFile(t *testing.T) {
+	srv, _ := configTestServer(t)
+	body := get(t, srv, "/config").Body.String()
+	if !strings.Contains(body, `href="/config/brand-file"`) || !strings.Contains(body, "Brand: _brand.yml") {
+		t.Errorf("config page does not list the brand file:\n%s", body)
+	}
+}
+
+func TestBrandFileEditorShowsAndSavesTheProjectsBrand(t *testing.T) {
+	srv, root := configTestServer(t)
+	file := filepath.Join(root, "_brand.yml")
+	os.WriteFile(file, []byte("color:\n  primary: '#336699'\n"), 0o644)
+	body := get(t, srv, "/config/brand-file").Body.String()
+	for _, want := range []string{
+		`data-mode="yaml"`, "primary: &#39;#336699&#39;", `action="/config/brand-file"`, file, "<title>Brand: _brand.yml</title>",
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("editor page missing %q:\n%s", want, body)
+		}
+	}
+
+	text := "meta:\n  coverpage: 'cover{audience-template}.svg'\n"
+	if rec := post(t, srv, "/config/brand-file", url.Values{"text": {text}}); !strings.Contains(rec.Body.String(), "Saved.") {
+		t.Fatalf("save not confirmed:\n%s", rec.Body)
+	}
+	if got, _ := os.ReadFile(file); string(got) != text {
+		t.Errorf("_brand.yml = %q, want %q", got, text)
+	}
+
+	bad := "meta:\n  fonts:\n    h9: {size: 9pt}\n"
+	body = post(t, srv, "/config/brand-file", url.Values{"text": {bad}}).Body.String()
+	if !strings.Contains(body, `class="error"`) || strings.Contains(body, "Saved.") || !strings.Contains(body, "h9") {
+		t.Errorf("not refused:\n%s", body)
+	}
+	if got, _ := os.ReadFile(file); string(got) != text {
+		t.Errorf("refused text written: %q", got)
+	}
+}
+
+// Without a brand file of its own, the project is styled by the user's,
+// so that is the one the editor shows; with neither, saving creates the
+// project's.
+func TestBrandFileEditorFallsBackToTheUsersBrand(t *testing.T) {
+	srv, root := configTestServer(t)
+	srv.mu.Lock()
+	user := userBrandIn(srv.configFile)
+	srv.mu.Unlock()
+	if body := get(t, srv, "/config/brand-file").Body.String(); !strings.Contains(body, filepath.Join(root, "_brand.yml")) {
+		t.Errorf("with no brand file, the editor does not offer the project's:\n%s", body)
+	}
+	os.WriteFile(user, []byte("color:\n  primary: red\n"), 0o644)
+	if body := get(t, srv, "/config/brand-file").Body.String(); !strings.Contains(body, user) || !strings.Contains(body, "primary: red") {
+		t.Errorf("editor does not show the user's brand file:\n%s", body)
+	}
+}

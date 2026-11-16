@@ -9,11 +9,16 @@
 - `External editor`: siehe [andere Editoren](external-editor.md).
 - `Comments: Your name`: der Name, mit dem deine [Kommentare](editor.md#kommentare) und Antworten gezeichnet werden.
 - `Project: folio.yml`: die Konfigurationsdatei des geöffneten Projekts, als Text.
+- `Brand: _brand.yml`: die Brand-Datei, die das geöffnete Projekt gestaltet, als Text.
 - `folio: config.cue`: die unten beschriebene Einstellungsdatei, als Text.
 
 ## Project: folio.yml
 
 Bearbeitet die `folio.yml` (oder die ältere `qm.yml`) des geöffneten Projekts in einem Texteditor. `Save` prüft die Datei so, wie ein Rendern sie liest: Ein unbekannter Schlüssel oder ein Ausgabetyp, den folio nicht schreiben kann, wird mit seiner Zeile abgelehnt, und die Datei bleibt, wie sie war. Hat das Projekt keine, legt das Speichern `folio.yml` an. Eine geänderte Adresse, auf der `folio web` lauscht, gilt ab dem nächsten Start.
+
+## Brand: _brand.yml
+
+Bearbeitet die Brand-Datei in einem Texteditor: die eigene `_brand.yml` des Projekts oder, wenn es keine hat, deine neben der Einstellungsdatei, die jedes Projekt ohne eigene gestaltet. Gibt es keine von beiden, legt das Speichern die des Projekts an. `Save` prüft die Datei so, wie ein Rendern sie liest: Ein unbekannter Eintrag unter `meta: fonts:` oder eine unlesbare Größe wird abgelehnt, und die Datei bleibt, wie sie war. Die `meta:`-Felder `coverpage` und die Schriftnamen dürfen `{name}`-Variablen aus `folio.yml` verwenden, etwa `{audience-template}`.
 
 ## folio: config.cue
 

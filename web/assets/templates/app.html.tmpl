@@ -400,13 +400,13 @@
 </html>{{end}}
 
 {{/* The editor for a configuration file as a whole: the project's
-     folio.yml or folio's own config.cue. */}}
+     folio.yml or _brand.yml, or folio's own config.cue. */}}
 {{define "config-file-page"}}<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{if eq .Kind "project"}}Project: folio.yml{{else}}folio: config.cue{{end}}</title>
+  <title>{{if eq .Kind "project"}}Project: folio.yml{{else if eq .Kind "brand"}}Brand: _brand.yml{{else}}folio: config.cue{{end}}</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/static/codemirror/codemirror.css">
   <link rel="stylesheet" href="/static/app.css">
@@ -427,6 +427,10 @@
     <h2>Project: folio.yml</h2>
     <p class="config-intro"><code>folio.yml</code> configures the open project: its title, output formats, audiences, topics, variables, and where <code>folio web</code> listens. A project without one gets the defaults; saving here creates it.</p>
     <p class="config-intro">The file is checked the way a render reads it before it is saved — an unknown key or a type folio cannot write is refused, and the file stays as it was. Where <code>folio web</code> listens takes effect at its next start.</p>
+    {{else if eq .Kind "brand"}}
+    <h2>Brand: _brand.yml</h2>
+    <p class="config-intro"><code>_brand.yml</code> is a <a href="https://posit-dev.github.io/brand-yml/">brand.yml</a> file: its colors, typography and logo style the website, the PDF and a DOCX without a template, and its <code>meta</code> section sets the cover's fonts and the cover page template. Its <code>meta</code> fields take the <code>{name}</code> variables of <code>folio.yml</code>, such as <code>coverpage: assets/templates/cover{audience-template}.svg</code>.</p>
+    <p class="config-intro">This edits the project's own <code>_brand.yml</code>, or, if it has none, yours beside folio's settings, which styles every project without one. With neither, saving creates the project's. The file is checked the way a render reads it before it is saved.</p>
     {{else}}
     <h2>folio: config.cue</h2>
     <p class="config-intro"><code>config.cue</code> holds folio's own settings: the projects opened before, what is selected in each, the preview stylesheet, the copyedit tasks and connections, the external editors, your name, and the update checks. The schema at the top says what belongs in it; the settings come after <code>config: #Config &amp;</code>.</p>
