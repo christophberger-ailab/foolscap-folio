@@ -1,0 +1,21 @@
+# The SVG renderer folio runs as WebAssembly: resvg behind a few exported
+# functions (see src/lib.rs). `go generate ./internal/svgimage` rebuilds
+# ../resvg.wasm.gz from it; a Go build needs only that file.
+[package]
+name = "folio-resvg"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+resvg = { version = "=0.49.0", default-features = false, features = ["text", "raster-images"] }
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

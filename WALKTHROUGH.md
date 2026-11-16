@@ -338,7 +338,9 @@ surviving headings are counted). `Demote` shifts heading levels.
 shortcodes) followed by `markdown.Parse` and `Prepare`, the book's title
 heading taken out — and `coverPage` (`cover.go`), which builds the cover: the
 topic's PNG, or the title and subtitle, put in place of the placeholders of the
-brand's cover template when there is one (`svgimage.Cut` finds them). It writes
+brand's cover template when there is one (`svgimage.Cut` finds them; the rest
+of the template becomes a PNG through `svgimage.PNG`, which runs resvg as
+WebAssembly under wazero — a whole SVG renderer without cgo). It writes
 one file per type of the format: `docx.Write` plus `docrender.CoverDOCX`, or
 `docrender.RunPDF` with the parsed document as input. `loadBrand` (`brand.go`)
 reads the project's `_brand.yml`, or else the user's, and hands each writer its
