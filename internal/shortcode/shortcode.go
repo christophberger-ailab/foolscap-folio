@@ -229,7 +229,7 @@ func (f *codeFence) step(line string) bool {
 		}
 		info := strings.TrimSpace(trimmed[n:])
 		f.open, f.char, f.width, f.opening = true, c, n, true
-		f.mermaid = strings.HasPrefix(info, "{mermaid}") || strings.HasPrefix(info, "{.mermaid}")
+		f.mermaid = strings.HasPrefix(info, "{mermaid}")
 		return true
 	}
 	n := 0
@@ -242,8 +242,8 @@ func (f *codeFence) step(line string) bool {
 	return true
 }
 
-// Mermaid is the number of Mermaid code blocks seen, which only Quarto
-// could draw; they stay code.
+// Mermaid is the number of Mermaid diagrams (```{mermaid}) seen, which
+// only a website draws; a document keeps them as code.
 func (s *Expander) Mermaid() int { return s.mermaid }
 
 // Includes is the number of files included.

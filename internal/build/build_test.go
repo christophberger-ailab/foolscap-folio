@@ -142,3 +142,36 @@ func TestUpdateTOCIsOptIn(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+// RENDER DOCUMENT 7: a document cannot draw a Mermaid diagram; it keeps the
+// code and says so.
+func TestDocumentWarnsOfMermaidDiagrams(t *testing.T) {
+	root := t.TempDir()
+	for name, body := range map[string]string{
+		"folio.yml":      "formats:\n  handout: {type: docx}\n",
+		"book/index.qmd": "---\ntitle: Book\n---\n\n```{mermaid}\ngraph LR\n```\n\n```mermaid\ngraph LR\n```\n",
+	} {
+		if err := os.MkdirAll(filepath.Dir(filepath.Join(root, name)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(root, name), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	cfg, err := config.Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sels, err := cfg.Expand(config.Request{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var logged []string
+	if _, _, err := Flatten(sels[0], func(f string, a ...any) { logged = append(logged, fmt.Sprintf(f, a...)) }); err != nil {
+		t.Fatal(err)
+	}
+	want := "book: warning: 1 Mermaid diagram stays a code block; only a website draws it"
+	if !strings.Contains(strings.Join(logged, "\n"), want) {
+		t.Errorf("log lacks %q:\n%s", want, strings.Join(logged, "\n"))
+	}
+}

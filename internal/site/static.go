@@ -5,7 +5,14 @@ import (
 	"path/filepath"
 )
 
-// writeStatic writes the stylesheet, the scripts and the search index to
+// MermaidJS is Mermaid, which draws a page's diagrams in the browser.
+func MermaidJS() []byte {
+	data, _ := assetFS.ReadFile("assets/mermaid.min.js")
+	return data
+}
+
+// writeStatic writes the stylesheet, the scripts (Mermaid only if a page
+// draws a diagram) and the search index to
 // OutDir/_site, and copies the extra stylesheets.
 func (b *builder) writeStatic() error {
 	dir := filepath.Join(b.outAbs, "_site")
@@ -18,6 +25,11 @@ func (b *builder) writeStatic() error {
 			return err
 		}
 		if err := os.WriteFile(filepath.Join(dir, name), data, 0o644); err != nil {
+			return err
+		}
+	}
+	if b.mermaid {
+		if err := os.WriteFile(filepath.Join(dir, "mermaid.min.js"), MermaidJS(), 0o644); err != nil {
 			return err
 		}
 	}

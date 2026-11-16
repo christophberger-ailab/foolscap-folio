@@ -122,6 +122,11 @@ func renderFencedCode(w util.BufWriter, src []byte, n ast.Node, entering bool) (
 		}
 		return ast.WalkSkipChildren, nil
 	}
+	if info.Cell && info.Lang == "mermaid" {
+		// Mermaid draws it in the browser, from the text of the <pre>.
+		w.WriteString(mermaidPre + html.EscapeString(body) + "</pre>\n")
+		return ast.WalkSkipChildren, nil
+	}
 	w.WriteString("<pre")
 	if info.Lang != "" {
 		w.WriteString(` class="sourceCode ` + html.EscapeString(info.Lang) + `"`)
@@ -135,6 +140,12 @@ func renderFencedCode(w util.BufWriter, src []byte, n ast.Node, entering bool) (
 	w.WriteString("</code></pre>\n")
 	return ast.WalkSkipChildren, nil
 }
+
+// mermaidPre opens a Mermaid diagram in the HTML.
+const mermaidPre = `<pre class="mermaid-diagram">`
+
+// HasMermaid reports whether an HTML fragment holds a Mermaid diagram.
+func HasMermaid(html string) bool { return strings.Contains(html, mermaidPre) }
 
 func codeLines(cb ast.Node, src []byte) string {
 	var b strings.Builder
@@ -154,7 +165,10 @@ type CodeBlockInfo struct {
 	// Lang is the language, from ```go, ```{python} or ```{.python}.
 	Lang string
 	// Raw is the target format of a raw block, ```{=html}.
-	Raw   string
+	Raw string
+	// Cell is true for ```{python}: Quarto's executable cell, of which
+	// folio knows only ```{mermaid}, a diagram.
+	Cell  bool
 	Attrs Attrs
 }
 
@@ -185,7 +199,7 @@ func CodeInfo(cb *ast.FencedCodeBlock, src []byte) CodeBlockInfo {
 		// ```{python} and ```{python echo=false}
 		inner := strings.Fields(strings.Trim(s, "{}"))
 		if len(inner) > 0 {
-			info.Lang = inner[0]
+			info.Lang, info.Cell = inner[0], true
 		}
 		return info
 	}

@@ -16,6 +16,8 @@
 {{if .Logo}}<link rel="icon" href="{{.Base}}{{.Logo}}">
 {{end -}}
 <script>document.documentElement.classList.add('js')</script>
+{{if .Mermaid}}<script src="{{.Base}}_site/mermaid.min.js" defer></script>
+{{end -}}
 <script src="{{.Base}}_site/site.js" defer></script>
 </head>
 <body>

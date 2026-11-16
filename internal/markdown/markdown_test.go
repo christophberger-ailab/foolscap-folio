@@ -178,3 +178,28 @@ func TestCalloutTitlesFollowTheLanguage(t *testing.T) {
 		}
 	}
 }
+
+// RENDER SITE 2-3: ```{mermaid} is a diagram for Mermaid to draw;
+// ```mermaid and ```{.mermaid} stay code.
+func TestMermaidDiagram(t *testing.T) {
+	for src, want := range map[string]string{
+		"```{mermaid}\ngraph LR\n  A --> B\n```\n": "<pre class=\"mermaid-diagram\">graph LR\n  A --&gt; B\n</pre>\n",
+		"``` {mermaid}\ngraph LR\n```\n":           "<pre class=\"mermaid-diagram\">graph LR\n</pre>\n",
+		"```mermaid\ngraph LR\n```\n":              "<pre class=\"sourceCode mermaid\"><code class=\"language-mermaid\">graph LR\n</code></pre>\n",
+		"```{.mermaid}\ngraph LR\n```\n":           "<pre class=\"sourceCode mermaid\"><code class=\"language-mermaid\">graph LR\n</code></pre>\n",
+		"```{python}\nprint(1)\n```\n":             "<pre class=\"sourceCode python\"><code class=\"language-python\">print(1)\n</code></pre>\n",
+	} {
+		if got := render(t, src, Options{}); got != want {
+			t.Errorf("%q:\ngot  %q\nwant %q", src, got, want)
+		}
+	}
+}
+
+func TestHasMermaid(t *testing.T) {
+	if !HasMermaid("<p>x</p>\n<pre class=\"mermaid-diagram\">graph LR\n</pre>\n") {
+		t.Error("HasMermaid misses a diagram")
+	}
+	if HasMermaid("<pre class=\"sourceCode mermaid\"><code class=\"language-mermaid\">x</code></pre>") {
+		t.Error("HasMermaid takes mermaid code for a diagram")
+	}
+}

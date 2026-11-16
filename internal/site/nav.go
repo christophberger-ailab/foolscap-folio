@@ -46,7 +46,7 @@ type pageData struct {
 	Content                      template.HTML
 	Prev, Next                   *navLink
 	L                            labels
-	Home, Brand                  bool
+	Home, Brand, Mermaid         bool
 	Logo, LogoAlt                string
 }
 

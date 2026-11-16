@@ -32,6 +32,9 @@ func TestShortcodes(t *testing.T) {
 		"```{mermaid}",
 		"graph TD",
 		"```",
+		"```{.mermaid}",
+		"graph TD",
+		"```",
 		"Unknown {{< kbd Ctrl >}} twice {{< kbd Alt >}}, and {{< var missing >}}.",
 		"Literal {{{< include x >}}}.",
 	}, "\n")

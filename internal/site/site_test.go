@@ -366,3 +366,26 @@ func TestLogo(t *testing.T) {
 	}
 	hasNot(t, "plain", read(t, out, "index.html"), "site-logo", `rel="icon"`)
 }
+
+// SITE 2-3: a page with a Mermaid diagram loads Mermaid, which the site
+// carries; a page without one does not, and a site without any carries none.
+func TestMermaid(t *testing.T) {
+	root, out := project(t)
+	if err := Build(opts(root, out)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(out, "_site", "mermaid.min.js")); !os.IsNotExist(err) {
+		t.Errorf("a site without diagrams carries mermaid.min.js (%v)", err)
+	}
+
+	write(t, root, "dispatcher/b.qmd", "---\ntitle: Page B\norder: 2\n---\n\n# Page B\n\n```{mermaid}\ngraph LR\n  A --> B\n```\n")
+	if err := Build(opts(root, out)); err != nil {
+		t.Fatal(err)
+	}
+	page := read(t, out, "dispatcher/b.html")
+	has(t, "b.html", page, `<pre class="mermaid-diagram">graph LR`, `<script src="../_site/mermaid.min.js" defer></script>`)
+	hasNot(t, "a/index.html", read(t, out, "dispatcher/a/index.html"), "mermaid.min.js")
+	if js := read(t, out, "_site/mermaid.min.js"); !strings.Contains(js, "globalThis.mermaid") {
+		t.Error("_site/mermaid.min.js is not Mermaid")
+	}
+}

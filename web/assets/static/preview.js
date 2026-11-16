@@ -866,6 +866,77 @@ function matchSpan(src) {
 
 var spanExtensionRegistered = false;
 
+// registerDiagramExtension has marked write a ```{mermaid} block as the
+// <pre class="mermaid-diagram"> Mermaid draws from, as the site does; ```mermaid
+// stays code. It runs once, as marked.use() adds the extension for good.
+var diagramExtensionRegistered = false;
+function registerDiagramExtension() {
+  if (diagramExtensionRegistered || typeof marked === "undefined") {
+    return;
+  }
+  diagramExtensionRegistered = true;
+  marked.use({
+    renderer: {
+      code: function (token) {
+        var lang = (token.lang || "").split(/\s/)[0];
+        if (lang === "{mermaid}") {
+          return '<pre class="mermaid-diagram">' + escapeHTML(token.text) + "</pre>\n";
+        }
+        return false; // marked's own rendering
+      },
+    },
+  });
+}
+
+// mermaidReady holds the callbacks waiting for Mermaid while it loads, and
+// is null once it has. Mermaid is large, so it is loaded only when a page
+// first shows a diagram.
+var mermaidReady = [];
+function withMermaid(callback) {
+  if (mermaidReady === null) {
+    callback();
+    return;
+  }
+  mermaidReady.push(callback);
+  if (mermaidReady.length > 1) {
+    return; // already loading
+  }
+  var script = document.createElement("script");
+  script.src = "/static/mermaid.min.js";
+  script.onload = function () {
+    var dark =
+      window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches;
+    window.mermaid.initialize({
+      startOnLoad: false,
+      theme: dark ? "dark" : "default",
+    });
+    var waiting = mermaidReady;
+    mermaidReady = null;
+    waiting.forEach(function (cb) {
+      cb();
+    });
+  };
+  document.head.appendChild(script);
+}
+
+// drawDiagrams has Mermaid draw the diagrams in root. A diagram the user is
+// still typing may not parse; Mermaid then says so in its place.
+function drawDiagrams(root) {
+  var nodes = root.querySelectorAll("pre.mermaid-diagram");
+  if (nodes.length === 0) {
+    return;
+  }
+  withMermaid(function () {
+    var live = Array.prototype.filter.call(nodes, function (n) {
+      return n.isConnected; // the preview may have been rendered anew meanwhile
+    });
+    if (live.length > 0) {
+      window.mermaid.run({ nodes: live }).catch(function () {});
+    }
+  });
+}
+
 // registerSpanExtension teaches marked about bracketed spans. It runs once,
 // the first time marked is available, since marked.use() adds the
 // extension for good.
@@ -1322,6 +1393,7 @@ function renderPreview(el, text, pagePath, titles) {
   }
   registerSpanExtension();
   registerImageExtension();
+  registerDiagramExtension();
   var page = splitFrontmatter(text);
   var html = "";
   if (page.front.trim() !== "") {
@@ -1357,4 +1429,5 @@ function renderPreview(el, text, pagePath, titles) {
   // move along with the blocks into a callout's body.
   buildCallouts(el, titles || {});
   restoreFolds(el, folds);
+  drawDiagrams(el);
 }

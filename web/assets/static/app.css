@@ -2296,6 +2296,13 @@ mark.folio-todo-hidden {
   overflow-x: auto;
 }
 
+.markdown-preview pre.mermaid-diagram {
+  background: none;
+  border: 0;
+  padding: 0;
+  text-align: center;
+}
+
 .markdown-preview pre code {
   background: none;
   padding: 0;

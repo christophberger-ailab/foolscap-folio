@@ -20,6 +20,7 @@ import (
 	"github.com/christophberger-ailab/foolscap-folio/internal/build"
 	"github.com/christophberger-ailab/foolscap-folio/internal/config"
 	"github.com/christophberger-ailab/foolscap-folio/internal/project"
+	"github.com/christophberger-ailab/foolscap-folio/internal/site"
 	"github.com/christophberger-ailab/foolscap-folio/internal/svgimage"
 )
 
@@ -119,6 +120,10 @@ func newServer(configFile string) (*server, error) {
 		return nil, err
 	}
 	s.mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(static))))
+	s.mux.HandleFunc("GET /static/mermaid.min.js", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+		_, _ = w.Write(site.MermaidJS()) // the site's own copy, not one more in the binary
+	})
 	s.mux.HandleFunc("GET /{$}", s.page)
 	s.mux.HandleFunc("GET /config", s.config)
 	s.mux.HandleFunc("GET /config/preview-css", s.previewCSSEditor)

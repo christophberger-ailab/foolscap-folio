@@ -38,6 +38,14 @@
     }
   }
 
+  // Mermaid diagrams, on the pages that load Mermaid: drawn in the color
+  // scheme the page is shown in.
+  if (window.mermaid) {
+    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    window.mermaid.initialize({ startOnLoad: false, theme: dark ? 'dark' : 'default' });
+    window.mermaid.run({ querySelector: 'pre.mermaid-diagram' }).catch(function () {});
+  }
+
   // Search. Fuse.js and the index are loaded as scripts on first use, so a
   // reader who never searches does not download them, and the site keeps
   // working from file://, where a page may not fetch files.

@@ -1542,3 +1542,26 @@ func TestPreviewTitlesCalloutsInThePagesLanguage(t *testing.T) {
 		t.Error("app.js does not hand the page's callout titles to the preview")
 	}
 }
+
+// UI 3-4-6: a ```{mermaid} block is drawn as a diagram in the preview, by
+// Mermaid, which the server carries and the preview loads only once a page
+// holds a diagram; ```mermaid stays code.
+func TestPreviewDrawsMermaidDiagrams(t *testing.T) {
+	srv, _ := testServer(t)
+	rec := get(t, srv, "/static/mermaid.min.js")
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "globalThis.mermaid") {
+		t.Fatalf("GET /static/mermaid.min.js: status %d, not Mermaid", rec.Code)
+	}
+	if page := get(t, srv, "/").Body.String(); strings.Contains(page, "mermaid.min.js") {
+		t.Error("every page loads Mermaid up front")
+	}
+	preview, err := assets.ReadFile("assets/static/preview.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"function drawDiagrams(", `"/static/mermaid.min.js"`, "drawDiagrams(el);", `lang === "{mermaid}"`} {
+		if !assetContains("assets/static/preview.js", string(preview), want) {
+			t.Errorf("preview.js does not draw Mermaid diagrams, missing %q", want)
+		}
+	}
+}

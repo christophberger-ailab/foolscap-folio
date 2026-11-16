@@ -292,9 +292,17 @@ func Flatten(sel config.Selection, log Logf) (string, Book, error) {
 		log("%s: warning: %s", sel.Topic.Folder, w)
 	}
 	log("%s: %d pages, %d links rewritten", sel.Topic.Folder, res.Pages, res.Links)
-	text, err := Expander(sel, log).Expand(res.Content)
+	exp := Expander(sel, log)
+	text, err := exp.Expand(res.Content)
 	if err != nil {
 		return "", Book{}, err
+	}
+	switch n := exp.Mermaid(); n {
+	case 0:
+	case 1:
+		log("%s: warning: 1 Mermaid diagram stays a code block; only a website draws it", sel.Topic.Folder)
+	default:
+		log("%s: warning: %d Mermaid diagrams stay code blocks; only a website draws them", sel.Topic.Folder, n)
 	}
 	book := Book{Title: tree.Title(), Anchor: tree.Anchor}
 	if tree.Page != nil {

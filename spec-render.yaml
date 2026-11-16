@@ -78,7 +78,7 @@ constraints:
       5-7-1: A `<text>` placeholder places the text's first baseline where its own (or its first tspan's) is, through its transforms, and passes on its font family and size unless `meta: fonts:` sets them; the text is left-aligned there, or centred on it for `text-anchor: middle`, and wraps before the image's edge
       5-7-2: Any other placeholder passes on the box it draws: the text's top is at the box's top, left-aligned at its left edge, or centred if the box is centred on the image
       6: Unsupported PDF constructs produce actionable errors rather than silently discarding content
-      7: Mermaid diagrams stay code blocks, with a warning; math is not typeset
+      7: 'Mermaid diagrams (```{mermaid}) stay code blocks in a document, with a warning saying how many; math is not typeset'
       8: 'PPTX slide decks are not supported; `::: slide` blocks and `.notes` are dropped'
 
   BRAND:
@@ -110,6 +110,7 @@ constraints:
       2-2-1-1: A page is named by the `title` of its front matter, else by its first heading of any level outside `::: slide` blocks, without its markup, else by its file or folder name; the table, the sidebar, the previous/next links and a document's title name it alike
       2-2-2: On the site's home page the block lists the topics; on a page without subpages it renders nothing, and whatever the block contains is dropped
       2-2-3: A document format renders nothing for the block, as the subpages follow the page as its chapters
+      2-3: 'A ```{mermaid} code block is a Mermaid diagram, drawn in the browser by Mermaid -- embedded in the binary, written to `_site/mermaid.min.js` only for a site that has a diagram, and loaded only by the pages holding one -- in its dark theme when the system''s color scheme is dark; ```mermaid and ```{.mermaid} stay code blocks, as any other language'
       3: All links in the output are relative, so the site works from file:// and below any URL prefix; links between pages of a topic are rewritten to the generated pages, raw HTML links are not
       3-1: A relative link to a page -- `.qmd` or `.md`, a page's `.html`, or a folder -- resolves against the folder of the page it is in, as the file system resolves it, and is rewritten to the generated page; a link that climbs out of the project root and back in through the root's own folder name, as links written for a larger tree do, lands on the page it names
       3-2: A link that leaves the project is left as written and warned about as leaving it; a link to a page that exists but is not part of the site -- a folder that is no topic, or a topic not selected -- is warned about as such, and only a target that does not exist is reported as not found

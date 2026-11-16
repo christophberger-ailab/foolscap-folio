@@ -127,8 +127,9 @@ What the comparison turned up, and the renderer therefore does as Quarto does:
   (they change the layout Pandoc picks for a slide), and a callout becomes a
   block quote headed by its title in bold.
 
-Known gaps: Mermaid diagrams (only Quarto, with a headless Chrome, draws
-them) stay code blocks; shortcodes other than `include`, `pagebreak` and
+Known gaps: Mermaid diagrams are drawn on a website, in the browser, but
+stay code blocks in a DOCX or PDF (only Quarto, with a headless Chrome, draws
+them there); shortcodes other than `include`, `pagebreak` and
 `var` are not resolved; a `filters:` entry with a Quarto entry point (`at:`)
 is rejected.
 

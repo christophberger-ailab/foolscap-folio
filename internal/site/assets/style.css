@@ -576,6 +576,12 @@ pre {
   overflow-x: auto;
   line-height: 1.5;
 }
+pre.mermaid-diagram {
+  background: none;
+  padding: 0;
+  text-align: center;
+  font-family: inherit;
+}
 pre code {
   color: var(--fg);
   background: none;

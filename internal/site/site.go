@@ -96,6 +96,7 @@ type builder struct {
 	outAbs  string
 	rootAbs string
 	search  []searchDoc
+	mermaid bool // a page holds a Mermaid diagram
 }
 
 func (b *builder) logf(format string, args ...any) {
@@ -296,6 +297,8 @@ func (b *builder) renderPage(p *pageInfo) error {
 		b.search = append(b.search, sd)
 	}
 	data := b.pageData(p, content, toc)
+	data.Mermaid = markdown.HasMermaid(string(content))
+	b.mermaid = b.mermaid || data.Mermaid
 	var buf bytes.Buffer
 	if err := b.tmpl.ExecuteTemplate(&buf, "page.html", data); err != nil {
 		return err
