@@ -108,10 +108,20 @@ func Render(sel config.Selection, o Options, log Logf) error {
 	if err != nil {
 		return err
 	}
+	brand, err := loadBrand(sel.Config.Root, sel.Config.UserBrand)
+	if err != nil {
+		return err
+	}
 	if _, statErr := os.Stat(cover); cover != "" && errors.Is(statErr, fs.ErrNotExist) {
-		log("warning: topic %s: cover %s not found; the placeholder stands in for it",
-			sel.Topic.Name, rel(sel.Config.Root, cover))
-		if !dryRun {
+		if brand != nil && brand.Meta.Coverpage != "" {
+			log("warning: topic %s: cover %s not found; %s's cover page %s stands in for it",
+				sel.Topic.Name, rel(sel.Config.Root, cover), BrandFile, brand.Meta.Coverpage)
+			cover = ""
+		} else {
+			log("warning: topic %s: cover %s not found; the placeholder stands in for it",
+				sel.Topic.Name, rel(sel.Config.Root, cover))
+		}
+		if cover != "" && !dryRun {
 			if cover, err = placeholderCover(sel.Config.Root); err != nil {
 				return fmt.Errorf("topic %s: cover: %w", sel.Topic.Name, err)
 			}
@@ -146,10 +156,6 @@ func Render(sel config.Selection, o Options, log Logf) error {
 		return err
 	}
 	lang := sel.Config.Lang
-	brand, err := loadBrand(sel.Config.Root, sel.Config.UserBrand)
-	if err != nil {
-		return err
-	}
 	look := brand.style()
 	page, done, err := coverPage(sel, brand, book, cover, log)
 	if err != nil {

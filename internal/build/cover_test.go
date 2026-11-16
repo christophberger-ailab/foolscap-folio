@@ -181,3 +181,22 @@ func TestSampleTemplateCover(t *testing.T) {
 		t.Errorf("subtitle %+v", sub)
 	}
 }
+
+// A topic's own cover that is missing gives way to the brand's cover page
+// template, if there is one (issue #75).
+func TestMissingCoverFallsBackToTemplate(t *testing.T) {
+	sel := project(t, map[string]string{
+		"folio.yml":      "topics:\n  book: {cover: assets/cover.png}\nformats:\n  handout: {type: docx}\n",
+		"book/index.qmd": "---\ntitle: Book\n---\n\nText.\n",
+		BrandFile:        "meta:\n  coverpage: coverpage.svg\n",
+		"coverpage.svg":  strings.Replace(templateSVG, "%s", "", 1),
+	})
+	var log []string
+	if err := Render(sel, Options{}, func(f string, a ...any) { log = append(log, fmt.Sprintf(f, a...)) }); err != nil {
+		t.Fatal(err)
+	}
+	all := strings.Join(log, "\n")
+	if !strings.Contains(all, "assets/cover.png not found") || !strings.Contains(all, "coverpage.svg") || strings.Contains(all, "placeholder") {
+		t.Errorf("log:\n%s", all)
+	}
+}

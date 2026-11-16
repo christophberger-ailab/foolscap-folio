@@ -517,7 +517,7 @@
   <div class="row">
     <span class="toggle" title="Collapse or expand"></span>
     {{if .Path}}<span class="drag-handle" title="Drag to move">⠿</span>{{end}}
-    <span class="num"></span>
+    <span class="num"{{if not .Order}} title="Not numbered: the page has no order in its frontmatter"{{end}}></span>
     {{if .Marker}}<span class="marker">{{.Marker}}</span>{{end}}
     {{range .Flags}}<span class="marker flag" title="{{.Title}}">{{.Emoji}}</span>{{end}}
     {{if .Path}}<a class="title" href="#" hx-get="/content?path={{.Path}}" hx-target="#content">{{.Title}}</a>

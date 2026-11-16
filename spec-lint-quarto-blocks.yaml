@@ -17,3 +17,4 @@ constraints:
       2: A quarto block starts with a line that begins with three or more colons, followed by a block descriptor
       3: A quarto block ends with a line that begins with three or more colons and contains nothing else (except maybe trailing whitespace)
       4: The number of colons in an opening fence may match the number of colons in the corresponding closing fence, but this is no strict technical requirement. It is a help for the user to recognize nesting more easily. 
+      5: Fences inside an HTML comment (`<!-- ... -->`, on one line or across several) are skipped; they are not part of the rendered page
