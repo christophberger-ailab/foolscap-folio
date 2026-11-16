@@ -316,3 +316,22 @@ func TestMetaFonts(t *testing.T) {
 		}
 	}
 }
+
+// Theme colors may have a light and a dark variant (issue #75); folio uses
+// the light one.
+func TestBrandColorVariants(t *testing.T) {
+	root := brandProject(t, "color:\n  palette:\n    ink: '#112233'\n  foreground:\n    light: ink\n    dark: '#ffffff'\n"+
+		"  background: {light: '#ffffff', dark: ink}\n  primary: {light: '#003366'}\n"+
+		"typography:\n  headings:\n    color: {light: '#445566', dark: '#ffffff'}\n")
+	b, err := loadBrand(root, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	look := b.style()
+	if look.Color != "112233" || look.LinkColor != "003366" || look.HeadingColor != "445566" {
+		t.Errorf("look %+v", look)
+	}
+	if b.hex(b.Color.Background) != "FFFFFF" {
+		t.Errorf("background %q", b.Color.Background)
+	}
+}

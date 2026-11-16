@@ -37,9 +37,9 @@ type brand struct {
 	} `yaml:"logo"`
 	Color struct {
 		Palette    map[string]string `yaml:"palette"`
-		Foreground string            `yaml:"foreground"`
-		Background string            `yaml:"background"`
-		Primary    string            `yaml:"primary"`
+		Foreground brandColor        `yaml:"foreground"`
+		Background brandColor        `yaml:"background"`
+		Primary    brandColor        `yaml:"primary"`
 	} `yaml:"color"`
 	Typography struct {
 		Fonts           []brandFont `yaml:"fonts"`
@@ -229,14 +229,32 @@ func (f *brandFile) UnmarshalYAML(n *yaml.Node) error {
 // brandStyle is a typography element, given as a family name or as a
 // mapping of its properties.
 type brandStyle struct {
-	Family     string `yaml:"family"`
-	Weight     string `yaml:"weight"`
-	Style      string `yaml:"style"`
-	Size       string `yaml:"size"`
-	LineHeight string `yaml:"line-height"`
-	Color      string `yaml:"color"`
-	Background string `yaml:"background-color"`
-	Decoration string `yaml:"decoration"`
+	Family     string     `yaml:"family"`
+	Weight     string     `yaml:"weight"`
+	Style      string     `yaml:"style"`
+	Size       string     `yaml:"size"`
+	LineHeight string     `yaml:"line-height"`
+	Color      brandColor `yaml:"color"`
+	Background brandColor `yaml:"background-color"`
+	Decoration string     `yaml:"decoration"`
+}
+
+// brandColor is a color, or a light and a dark variant, of which the light
+// one counts.
+type brandColor string
+
+func (c *brandColor) UnmarshalYAML(n *yaml.Node) error {
+	if n.Kind == yaml.MappingNode {
+		var v struct {
+			Light string `yaml:"light"`
+		}
+		if err := n.Decode(&v); err != nil {
+			return err
+		}
+		*c = brandColor(v.Light)
+		return nil
+	}
+	return n.Decode((*string)(c))
 }
 
 func (s *brandStyle) UnmarshalYAML(n *yaml.Node) error {
@@ -427,11 +445,11 @@ func (b *brand) style() brandLook {
 
 // color resolves a color given by its name in the palette or as a theme
 // color, to the value behind it.
-func (b *brand) color(v string) string {
+func (b *brand) color(v brandColor) string {
 	for range 8 { // a palette that names itself ends here
-		switch next, ok := b.Color.Palette[v]; {
+		switch next, ok := b.Color.Palette[string(v)]; {
 		case ok:
-			v = next
+			v = brandColor(next)
 		case v == "foreground":
 			v = b.Color.Foreground
 		case v == "background":
@@ -439,7 +457,7 @@ func (b *brand) color(v string) string {
 		case v == "primary":
 			v = b.Color.Primary
 		default:
-			return v
+			return string(v)
 		}
 	}
 	return ""
@@ -453,8 +471,8 @@ var (
 
 // hex is a color as RRGGBB, or "" for one that is not given as #rgb or
 // #rrggbb.
-func (b *brand) hex(v string) string {
-	v = b.color(v)
+func (b *brand) hex(c brandColor) string {
+	v := b.color(c)
 	if !reHex.MatchString(v) {
 		return ""
 	}
@@ -491,7 +509,7 @@ func (b *brand) css() (string, map[string]string, []string) {
 		}
 		return v
 	}
-	color := func(what, v string) string { return val(what, b.color(v), reCSSValue) }
+	color := func(what string, v brandColor) string { return val(what, b.color(v), reCSSValue) }
 	// decls joins the properties that have a value.
 	decls := func(kv ...string) string {
 		var d []string
