@@ -109,6 +109,9 @@ func Render(sel config.Selection, o Options, log Logf) error {
 		return err
 	}
 	brand, err := loadBrand(sel.Config.Root, sel.Config.UserBrand)
+	if err == nil {
+		err = brand.interpolate(sel.Vars())
+	}
 	if err != nil {
 		return err
 	}

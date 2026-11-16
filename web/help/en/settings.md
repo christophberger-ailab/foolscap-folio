@@ -9,11 +9,16 @@
 - `External editor`: see [other editors](external-editor.md).
 - `Comments: Your name`: the name your [comments](editor.md#comments) and replies are signed with.
 - `Project: folio.yml`: the open project's configuration file, as text.
+- `Brand: _brand.yml`: the brand file that styles the open project, as text.
 - `folio: config.cue`: the settings file below, as text.
 
 ## Project: folio.yml
 
 Edits the open project's `folio.yml` (or its older `qm.yml`) in a text editor. `Save` checks the file the way a render reads it, so an unknown key or an output type folio cannot write is refused with the line it is on, and the file stays as it was. Saving creates `folio.yml` when the project has none. A changed listen address takes effect at the next start of `folio web`.
+
+## Brand: _brand.yml
+
+Edits the brand file in a text editor: the project's own `_brand.yml`, or, if it has none, yours beside the settings file, which styles every project without one. With neither, saving creates the project's. `Save` checks the file the way a render reads it, so an unknown `meta: fonts:` entry or an unreadable size is refused, and the file stays as it was. The `meta:` fields `coverpage` and the font names may use `{name}` variables from `folio.yml`, such as `{audience-template}`.
 
 ## folio: config.cue
 

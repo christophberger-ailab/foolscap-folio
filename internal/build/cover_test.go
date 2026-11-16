@@ -200,3 +200,54 @@ func TestMissingCoverFallsBackToTemplate(t *testing.T) {
 		t.Errorf("log:\n%s", all)
 	}
 }
+
+// The meta fields of _brand.yml take folio.yml's variables (issue #80).
+func TestBrandMetaVariables(t *testing.T) {
+	sel := project(t, map[string]string{
+		"folio.yml":      coverConfig,
+		"book/index.qmd": "---\ntitle: Book\n---\n",
+		BrandFile: "meta:\n  coverpage: 'assets/templates/coverpage{audience-template}.svg'\n" +
+			"  fonts:\n    title: {font: 'Sans{audience-template}', size: 20pt}\n",
+		"assets/templates/coverpage_DEV.svg": strings.Replace(templateSVG, "%s", "", 1),
+	})
+	b, err := loadBrand(sel.Config.Root, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = b.interpolate(sel.Vars()); err != nil {
+		t.Fatal(err)
+	}
+	if b.Meta.Coverpage != "assets/templates/coverpage_DEV.svg" || b.Meta.Fonts["title"].Font != "Sans_DEV" {
+		t.Errorf("meta %+v", b.Meta)
+	}
+	tpl, err := coverTemplate(sel, b.dir, b.Meta.Coverpage)
+	if err != nil || filepath.Base(tpl) != "coverpage_DEV.svg" {
+		t.Errorf("template %q, %v", tpl, err)
+	}
+
+	b.Meta.Coverpage = "cover{nobody}.svg"
+	if err = b.interpolate(sel.Vars()); err == nil || !strings.Contains(err.Error(), "meta: coverpage") || !strings.Contains(err.Error(), "nobody") {
+		t.Errorf("undefined variable: %v", err)
+	}
+	var none *brand
+	if err = none.interpolate(sel.Vars()); err != nil {
+		t.Errorf("no brand: %v", err)
+	}
+}
+
+// A render resolves the variables before it looks for the template.
+func TestRenderBrandMetaVariables(t *testing.T) {
+	sel := project(t, map[string]string{
+		"folio.yml":                          coverConfig,
+		"book/index.qmd":                     "---\ntitle: Book\n---\n\nText.\n",
+		BrandFile:                            "meta:\n  coverpage: 'assets/templates/coverpage{audience-template}.svg'\n",
+		"assets/templates/coverpage_DEV.svg": strings.Replace(templateSVG, "%s", "", 1),
+	})
+	var log []string
+	if err := Render(sel, Options{}, func(f string, a ...any) { log = append(log, fmt.Sprintf(f, a...)) }); err != nil {
+		t.Fatal(err)
+	}
+	if all := strings.Join(log, "\n"); strings.Contains(all, "not found") {
+		t.Errorf("log:\n%s", all)
+	}
+}

@@ -447,7 +447,7 @@ meta:
   coverpage: /assets/templates/cover.svg
 ```
 
-Every entry is optional; sizes are in pt (default) or px. The DOCX names the font; the PDF uses it if `typography: fonts` lists TrueType files for the family, as for the other brand fonts. Without a template the title (36pt, in the headings font and color) and the subtitle (20pt, in the base font) are centred on a blank page.
+Every entry is optional; sizes are in pt (default) or px. `coverpage` and the font names may use `{name}` placeholders from folio.yml, as `coverpage: assets/templates/cover{audience-template}.svg` does; a placeholder without a variable fails the render. The DOCX names the font; the PDF uses it if `typography: fonts` lists TrueType files for the family, as for the other brand fonts. Without a template the title (36pt, in the headings font and color) and the subtitle (20pt, in the base font) are centred on a blank page.
 
 For a template, folio looks for `cover_{topic}{audience-template}.svg`, `cover_{topic}.svg`, `cover{audience-template}.svg` and then `cover.svg` in the template's folder (relative to the brand file; `audience-template` is a variable, such as `_DEV`). The elements with the id `title` and `subtitle` are placeholders: folio takes them out and sets the title and subtitle in their place. A `<text>` placeholder, as design tools export one, passes on its position, color, font family and size (each unless `meta: fonts:` sets it), and the text starts on its baseline and wraps before the page's edge; any other element passes on the box it covers and its color. A template without one of them shows no title or subtitle there, and the render log says so. The rest of the template is drawn as an image, as SVG images are.
 
