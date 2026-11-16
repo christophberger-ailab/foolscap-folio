@@ -2,6 +2,7 @@ package svgimage
 
 import (
 	"bytes"
+	"image"
 	"image/color"
 	"math"
 	"os"
@@ -105,5 +106,40 @@ func TestCutTextPlaceholders(t *testing.T) {
 	}
 	if r, g, b, _ := img.At(350, 600).RGBA(); r>>8 != 0xfa || g>>8 != 0xbb || b>>8 != 0x55 {
 		t.Errorf("box not drawn: %x %x %x", r>>8, g>>8, b>>8)
+	}
+}
+
+// TestCoverTemplateKeepsTheRest is issue #84: once its title and subtitle
+// are cut out, a cover template still draws its other text and its image.
+func TestCoverTemplateKeepsTheRest(t *testing.T) {
+	svg := `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="595.276" height="841.89" viewBox="0 0 595.276 841.89">
+  <defs><style>
+    .cls-1{fill:#404040;stroke:#000000;stroke-linejoin:round}
+    .cls-2{font-family:&apos;Source Sans 3&apos;, sans-serif;font-size:12px;fill:#333333}
+    .cls-4{font-family:Aptos, sans-serif;font-size:16px;font-weight:bold;fill:#404040}
+    .cls-5{font-family:Aptos, sans-serif;font-size:36.004px;fill:#404040}
+  </style></defs>
+  <g id="Layer_1" data-name="Layer 1">
+    <line id="vertical_bar" x1="159.771" y1="72.603" x2="159.771" y2="789.322" class="cls-1"/>
+    <text transform="matrix(1 0 0 1 36.907 778.682)" x="0" y="0" xml:space="preserve" class="cls-2"><tspan x="0" y="0">example.com</tspan></text>
+    <text id="subtitle" transform="matrix(1 0 0 1 202.396 290.391)" x="0" y="0" class="cls-4"><tspan x="0" y="0">Subtitle</tspan></text>
+    <text id="title" transform="matrix(0.3 0 0 1 197.542 188.773)" x="0" y="0" class="cls-5"><tspan x="0" y="0" textLength="207.328" lengthAdjust="spacingAndGlyphs">Title</tspan></text>
+    <image id="shot" width="35" height="36" transform="matrix(0.75 0 0 0.75 197.542 761.137)" preserveAspectRatio="none" xlink:href="` + redPNG(t) + `"/>
+  </g>
+</svg>`
+	rest, slots, err := Cut([]byte(svg), "title", "subtitle")
+	if err != nil || len(slots) != 2 {
+		t.Fatalf("Cut: %v, %d slots", err, len(slots))
+	}
+	img, err := Rasterize(rest, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found(img, image.Rect(36, 768, 100, 780), color.NRGBA{0x33, 0x33, 0x33, 0xff}) {
+		t.Error("the text without an id was not drawn")
+	}
+	if !found(img, image.Rect(199, 763, 222, 787), color.NRGBA{0xff, 0, 0, 0xff}) {
+		t.Error("the image was not drawn")
 	}
 }
