@@ -21,7 +21,7 @@ Eine Seite mit `draft: true` im Frontmatter wird ausgegraut. Sie gehört zum Pro
 Eine Seite kann nach ihrem Titel Statusmarken tragen:
 
 - 🚧 zu erledigen: `todo: true` unter `folio:` im Frontmatter, oder der Text `==TODO==` irgendwo in der Seite, auch in einem HTML-Kommentar.
-- 👀 zu prüfen: `review: true` unter `folio:` im Frontmatter.
+- 👀 zu prüfen: `review:` unter `folio:` im Frontmatter, mit dem, was geprüft werden soll. Der Tooltip der Markierung lautet „Review: “ und dann dieser Text. `review: true` markiert die Seite, ohne zu sagen, was zu prüfen ist.
 - 💬 kommentiert: die Seite enthält mindestens einen Kommentar (siehe die Hilfe zum Editor). Eine Kommentarmarke in Code zählt nicht.
 
 ```yaml
@@ -29,7 +29,7 @@ Eine Seite kann nach ihrem Titel Statusmarken tragen:
 title: Meine Seite
 folio:
   todo: true
-  review: true
+  review: die Zahlen in Abschnitt 2
 ---
 ```
 

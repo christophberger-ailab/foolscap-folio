@@ -44,7 +44,7 @@ Everything `folio web` remembers lives in one file: `<user config dir>/folio/con
 - the copyediting tasks and connections (including API keys),
 - the external editor command lines,
 - the name your comments are signed with (`user: name:`).
-- where and how often to look for a new folio release (`update: source:` and `update: check:`, which is `daily`, `weekly` or `never`). When `folio web` finds one, an **Update** button appears at the right end of the top bar; it installs the release, which is used from the next start of `folio web`.
+- where and how often to look for a new folio release (`update: source:` and `update: check:`, which is `hourly`, `daily`, `weekly` or `never`). When `folio web` finds one, an **Update** button appears at the right end of the top bar; it installs the release, which is used from the next start of `folio web`.
 - the titles of callouts that have no title of their own, per language (`callouts:`). The language is the project's `lang` in `folio.yml`; `folio render`, `folio preview` and the preview in `folio web` all use them. English and German come filled in; add a language like this, and leave out any type you want in English:
 
   ```

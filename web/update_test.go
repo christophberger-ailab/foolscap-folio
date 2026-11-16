@@ -108,7 +108,7 @@ func TestAnInstalledUpdateAsksForARestart(t *testing.T) {
 
 func TestCheckInterval(t *testing.T) {
 	for check, want := range map[string]time.Duration{
-		"daily": 24 * time.Hour, "weekly": 7 * 24 * time.Hour, "never": 0,
+		"hourly": time.Hour, "daily": 24 * time.Hour, "weekly": 7 * 24 * time.Hour, "never": 0,
 	} {
 		if got := (updateConfig{Check: check}).interval(); got != want {
 			t.Errorf("%s: %v, want %v", check, got, want)
