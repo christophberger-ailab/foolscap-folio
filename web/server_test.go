@@ -143,6 +143,20 @@ func TestTreeShowsPageFlags(t *testing.T) {
 	}
 }
 
+// A `folio: {review: <text>}` says what to review, and the 👀 tooltip says
+// it too, escaped as HTML.
+func TestTreeShowsReviewNote(t *testing.T) {
+	srv, root := testServer(t)
+	page := "---\ntitle: Sketch\norder: 4\nfolio:\n  review: \"tone & <figures>\"\n---\n# Sketch\n"
+	if err := os.WriteFile(filepath.Join(root, "chapter2", "sketch.qmd"), []byte(page), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	body := get(t, srv, "/tree").Body.String()
+	if want := `<span class="marker flag" title="Review: tone &amp; &lt;figures&gt;">👀</span>`; !strings.Contains(body, want) {
+		t.Errorf("no %s in:\n%s", want, body)
+	}
+}
+
 // A page whose frontmatter says `folio: {hide: true}` is left out of the
 // tree, a section page with its whole branch.
 func TestTreeHidesPages(t *testing.T) {

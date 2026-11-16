@@ -30,10 +30,18 @@ type FrontMatter struct {
 // Flag reports whether the frontmatter sets key to true under `folio:`,
 // or, when `folio:` does not mention key, under the legacy `qm:`.
 func (fm FrontMatter) Flag(key string) bool {
+	v, _ := fm.Value(key)
+	return v == true
+}
+
+// Value returns key's value under `folio:`, or, when `folio:` does not
+// mention key, under the legacy `qm:`, and whether either mentions it.
+func (fm FrontMatter) Value(key string) (any, bool) {
 	if v, ok := fm.Folio[key]; ok {
-		return v == true
+		return v, true
 	}
-	return fm.QM[key] == true
+	v, ok := fm.QM[key]
+	return v, ok
 }
 
 var fmDelim = []byte("---\n")

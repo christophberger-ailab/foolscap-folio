@@ -45,15 +45,18 @@ type Flag struct {
 
 // pageFlags lists the status flags a page can carry, in the order the tree
 // shows them. A flag is set by `folio: {<Key>: true}` in the frontmatter, or
-// by In reporting true for the page's file when In is not nil. A new flag
-// is one more entry here.
+// by In reporting true for the page's file when In is not nil. A flag with
+// a Note is set by any value of Key but false, and a text value says what
+// the flag is about: its tooltip is then Note followed by the text. A new
+// flag is one more entry here.
 var pageFlags = []struct {
 	Key string
 	Flag
-	In func(src []byte) bool
+	In   func(src []byte) bool
+	Note string
 }{
 	{Key: "todo", Flag: Flag{"\U0001F6A7", "Contains todos"}, In: hasTodo},          // 🚧
-	{Key: "review", Flag: Flag{"\U0001F440", "Needs review"}},                       // 👀
+	{Key: "review", Flag: Flag{"\U0001F440", "Needs review"}, Note: "Review: "},     // 👀
 	{Key: "comment", Flag: Flag{"\U0001F4AC", "Contains comments"}, In: hasComment}, // 💬
 }
 
@@ -66,7 +69,13 @@ func PageFlags(src []byte) []Flag {
 func pageFlagsOf(src []byte, fm FrontMatter) []Flag {
 	var flags []Flag
 	for _, f := range pageFlags {
-		if fm.Flag(f.Key) || f.In != nil && f.In(src) {
+		v, ok := fm.Value(f.Key)
+		text, _ := v.(string)
+		text = strings.TrimSpace(text)
+		switch {
+		case f.Note != "" && text != "":
+			flags = append(flags, Flag{f.Emoji, f.Note + text})
+		case v == true, f.Note != "" && ok && v != false, f.In != nil && f.In(src):
 			flags = append(flags, f.Flag)
 		}
 	}
