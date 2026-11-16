@@ -155,7 +155,7 @@ const configSchema = `// -------------------------------------------------------
 	// How often folio web looks for a new release and, when it finds one,
 	// shows an Update button in the top bar. "folio upgrade" looks
 	// whenever it is run.
-	check: *"daily" | "weekly" | "never"
+	check: *"daily" | "hourly" | "weekly" | "never"
 }
 
 #Copyedit: {

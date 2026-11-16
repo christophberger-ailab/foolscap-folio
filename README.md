@@ -184,7 +184,7 @@ Where releases come from and how often `folio web` looks is the `update` section
 ```cue
 update: {
     source: "https://api.github.com/repos/christophberger-ailab/foolscap-folio/releases/latest"
-    check:  "daily" // or "weekly" or "never"
+    check:  "daily" // or "hourly", "weekly" or "never"
 }
 ```
 

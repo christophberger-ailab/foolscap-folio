@@ -30,7 +30,7 @@ import (
 type updateConfig struct {
 	// Source is the URL of the newest release's description.
 	Source string `json:"source"`
-	// Check is how often folio web looks for one: daily, weekly or never.
+	// Check is how often folio web looks for one: hourly, daily, weekly or never.
 	Check string `json:"check"`
 }
 
@@ -42,6 +42,8 @@ func (u updateConfig) interval() time.Duration {
 	switch u.Check {
 	case "never":
 		return 0
+	case "hourly":
+		return time.Hour
 	case "weekly":
 		return 7 * 24 * time.Hour
 	}

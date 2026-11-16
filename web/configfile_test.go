@@ -166,9 +166,9 @@ func TestSettingsFileSaveAppliesAndWrites(t *testing.T) {
 	}
 }
 
-// hourly finds the update check setting, to set it to a value the schema
-// does not allow.
-var hourly = regexp.MustCompile(`check:\s+"daily"`)
+// checkSetting finds the update check setting, to set it to a value the
+// schema does not allow.
+var checkSetting = regexp.MustCompile(`check:\s+"daily"`)
 
 func TestSettingsFileSaveRefusesInvalidCUE(t *testing.T) {
 	srv, _ := configTestServer(t)
@@ -176,10 +176,10 @@ func TestSettingsFileSaveRefusesInvalidCUE(t *testing.T) {
 	prev := srv.cfg.User.Name
 	for _, text := range []string{
 		"config: {",
-		hourly.ReplaceAllString(settingsWith(t, func(*storedConfig) {}), `check: "hourly"`),
+		checkSetting.ReplaceAllString(settingsWith(t, func(*storedConfig) {}), `check: "monthly"`),
 		// A schema loosened by hand must not let the settings past the
 		// schema the binary checks against.
-		hourly.ReplaceAllString(strings.Replace(settingsWith(t, func(*storedConfig) {}), `check: *"daily" | "weekly" | "never"`, `check: string`, 1), `check: "hourly"`),
+		checkSetting.ReplaceAllString(strings.Replace(settingsWith(t, func(*storedConfig) {}), `check: *"daily" | "hourly" | "weekly" | "never"`, `check: string`, 1), `check: "monthly"`),
 	} {
 		body := post(t, srv, "/config/settings-file", url.Values{"text": {text}}).Body.String()
 		if !strings.Contains(body, `class="error"`) || strings.Contains(body, "Saved.") {
