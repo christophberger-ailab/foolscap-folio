@@ -432,7 +432,7 @@ typography:
     weight: semi-bold
 ```
 
-**Images.** A local SVG image goes into the DOCX and the PDF as a PNG drawn from it. An image that is not there does not stop the render: the project's placeholder, `/assets/static/_placeholder.svg`, stands in for it in every format, and the render log names the missing image. A project without that file gets folio's own placeholder. `folio web` shows the same placeholder in its preview.
+**Images.** A local SVG image goes into the DOCX and the PDF as a PNG drawn from it by [resvg](https://github.com/linebender/resvg), which covers practically all of SVG: transforms, stylesheets, gradients, markers, multi-line text and embedded images. That makes SVG files from Inkscape, Illustrator or draw.io (`.drawio.svg`) a good way to put diagrams into every format. Text is set in the Go fonts. An SVG image reaches no files and no network; it may embed images as data URLs. An image that is not there does not stop the render: the project's placeholder, `/assets/static/_placeholder.svg`, stands in for it in every format, and the render log names the missing image. A project without that file gets folio's own placeholder. `folio web` shows the same placeholder in its preview.
 
 **Covers.** A topic's `cover:` is a project-relative PNG, and may use placeholders. It is put in front of the DOCX and the PDF. Both covers keep the image's aspect ratio and are anchored at the bottom-right corner of the page, where the brand graphic ends. The PDF cover (A4) fills the page and crops any overflow at the top or left. The DOCX cover uses the document's page size, shrinks to fit, and never crops. It sits in a dedicated zero-margin section, and the body's original section properties, styles, headers and footers are preserved. No header or footer is added to either cover. A missing or invalid cover fails the render before anything is written.
 
@@ -514,6 +514,7 @@ internal/build/         a render: flatten, parse, filter, write; the brand
 internal/site/          the website writer
 internal/docx/          the DOCX writer
 internal/docrender/     PDF layout, covers, and the Markdown → PDF input
+internal/svgimage/      SVG → PNG for DOCX and PDF: resvg as WebAssembly (Rust source in resvg/)
 internal/project/       the editable page tree behind the web UI
 internal/gitrepo/       the `git` command behind the web UI's Git pane
 internal/selfupdate/    finding, checking and installing a new release
@@ -538,6 +539,13 @@ The specification lives in `spec.yaml` (project-wide constraints) and one
 [acai feature-spec format](./acai-feature-spec.yaml) documented in this
 repository. Code comments reference requirements by id, e.g. `BOOKS.2-1`. When
 behaviour changes, change the spec with it.
+
+SVG images are drawn by resvg, compiled to WebAssembly and committed as
+`internal/svgimage/resvg.wasm.gz`, so building folio needs only Go. To update
+resvg, change its version in `internal/svgimage/resvg/Cargo.toml` and run
+`go generate ./internal/svgimage`, which needs Rust with the
+`wasm32-unknown-unknown` target (`rustup target add wasm32-unknown-unknown`).
+Update `internal/svgimage/resvg/THIRD_PARTY.md` with it.
 
 Releases are cut by `.github/workflows/release.yml` when a pull request is
 merged into `main` (a push to `main` that is not a PR merge releases nothing):

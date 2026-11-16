@@ -10,8 +10,7 @@ require (
 	github.com/signintech/gopdf v0.38.1
 	github.com/sigstore/sigstore-go v1.4.0
 	github.com/spf13/pflag v1.0.10
-	github.com/srwiley/oksvg v0.0.0-20221011165216-be6e8873101c
-	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef
+	github.com/tetratelabs/wazero v1.12.0
 	github.com/yuin/goldmark v1.8.7
 	go.yaml.in/yaml/v4 v4.0.0-rc.6
 	golang.org/x/image v0.46.0
