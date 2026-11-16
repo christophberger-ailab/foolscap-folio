@@ -99,6 +99,14 @@ func TestOpenRendersTree(t *testing.T) {
 	if strings.Contains(body, `bad-fences" data-path="chapter2/second.qmd"`) {
 		t.Errorf("second.qmd wrongly marked bad-fences:\n%s", body)
 	}
+	// The ⚠ of an unordered page says why it is there (issue #77); a
+	// numbered page's number has no tooltip.
+	if n := strings.Count(body, `<span class="num" title="Not numbered: the page has no order in its frontmatter"></span>`); n == 0 {
+		t.Errorf("no tooltip on the warning sign:\n%s", body)
+	}
+	if !strings.Contains(body, `<span class="num"></span>`) {
+		t.Errorf("numbered pages lost their plain number:\n%s", body)
+	}
 }
 
 // A page whose frontmatter says `draft: true` is listed like any other,

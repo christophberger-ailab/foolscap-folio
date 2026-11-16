@@ -75,6 +75,8 @@ constraints:
       1-6-2: Saving a page that gains or loses a mark refreshes the tree at once
       1-6-3: A comment marker in a code block or a code span does not mark the page, as it is code, not a comment (3-8-4)
       1-6-4: 'Each mark has a tooltip saying what it means: 🚧 "Contains todos", 👀 "Review: " followed by the review text, or "Needs review" when there is none, 💬 "Contains comments"'
+      1-6-5: 'A page without an `order` in its frontmatter is marked ⚠ in place of its number; the mark''s tooltip says why: "Not numbered: the page has no order in its frontmatter"'
+      1-6-6: Quarto block fences inside an HTML comment do not count when the tree looks for unmatched fences
       1-7: 'A page whose frontmatter sets `folio: {hide: true}` is left out of the tree; a section page takes its whole branch with it, and a folder without a section page goes once all its pages are hidden. The default is `false`'
       1-7-1: A hidden page is still part of the project -- it renders, keeps its place in the order a move renumbers, and is found by the search, which lists it under its path
       1-7-2: Saving a page that is hidden or shown again refreshes the tree at once
