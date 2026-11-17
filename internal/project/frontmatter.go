@@ -13,11 +13,12 @@ import (
 
 // FrontMatter holds the frontmatter fields the sorter cares about.
 // Order is nil when the file has no order field. Draft is Quarto's own
-// `draft: true`, which keeps a page out of what a render publishes. Folio
-// is folio's own `folio:` mapping, and QM the `qm:` mapping it was called
-// before the tool was named folio, still read so that existing pages keep
-// their flags; read both through Flag. Their values are left untyped so
-// that one entry of an unexpected type does not cost the page its title
+// `draft: true`, which keeps a page out of what a render publishes. Keys
+// holds every other top-level key, among them folio's own `review`,
+// `status` and `hide`; read them through Value. Folio and QM are the
+// `folio:` and `qm:` mappings those keys sat in before (issue #94), still
+// read so that existing pages keep their flags. The values are left untyped
+// so that one entry of an unexpected type does not cost the page its title
 // and order.
 type FrontMatter struct {
 	Title string         `yaml:"title"`
@@ -25,23 +26,25 @@ type FrontMatter struct {
 	Draft bool           `yaml:"draft"`
 	Folio map[string]any `yaml:"folio"`
 	QM    map[string]any `yaml:"qm"`
+	Keys  map[string]any `yaml:",inline"`
 }
 
-// Flag reports whether the frontmatter sets key to true under `folio:`,
-// or, when `folio:` does not mention key, under the legacy `qm:`.
+// Flag reports whether the frontmatter sets key to true, see Value.
 func (fm FrontMatter) Flag(key string) bool {
 	v, _ := fm.Value(key)
 	return v == true
 }
 
-// Value returns key's value under `folio:`, or, when `folio:` does not
-// mention key, under the legacy `qm:`, and whether either mentions it.
+// Value returns key's top-level value, or, when the top level does not
+// mention key, its value under the legacy `folio:` and then `qm:`, and
+// whether any of them mentions it.
 func (fm FrontMatter) Value(key string) (any, bool) {
-	if v, ok := fm.Folio[key]; ok {
-		return v, true
+	for _, m := range []map[string]any{fm.Keys, fm.Folio, fm.QM} {
+		if v, ok := m[key]; ok {
+			return v, true
+		}
 	}
-	v, ok := fm.QM[key]
-	return v, ok
+	return nil, false
 }
 
 var fmDelim = []byte("---\n")
@@ -60,7 +63,7 @@ func splitFrontmatter(src []byte) (block, body []byte) {
 	return src[:n], src[n:]
 }
 
-// ParseFrontmatter extracts title, order, draft, and the folio mapping from a
+// ParseFrontmatter extracts title, order, draft, and folio's own keys from a
 // page's frontmatter.
 func ParseFrontmatter(src []byte) FrontMatter {
 	var fm FrontMatter

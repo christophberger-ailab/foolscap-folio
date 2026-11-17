@@ -131,15 +131,18 @@ func TestTreeMarksDrafts(t *testing.T) {
 	}
 }
 
-// A page flagged by its `folio:` frontmatter, or by a ==TODO== anywhere in
-// it, carries each flag's emoji once in the tree, with a tooltip naming it.
+// A page flagged by its frontmatter, or by a ==TODO== anywhere in it,
+// carries each flag's emoji once in the tree, with a tooltip naming it.
 func TestTreeShowsPageFlags(t *testing.T) {
 	srv, root := testServer(t)
-	page := "---\ntitle: Sketch\norder: 4\nfolio:\n  todo: true\n  review: true\n---\n# Sketch\n<!-- ==TODO== -->\n==TODO==\n<!-- << Why? -->a<!-- >> --> <!-- << And? -->b<!-- >> -->\n"
+	page := "---\ntitle: Sketch\norder: 4\nstatus: new\nreview: true\n---\n# Sketch\n<!-- ==TODO== -->\n==TODO==\n<!-- << Why? -->a<!-- >> --> <!-- << And? -->b<!-- >> -->\n"
 	if err := os.WriteFile(filepath.Join(root, "chapter2", "sketch.qmd"), []byte(page), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	body := get(t, srv, "/tree").Body.String()
+	if n := strings.Count(body, `<span class="marker flag" title="New page">🆕</span>`); n != 1 {
+		t.Errorf("🆕 shown %d times, want 1:\n%s", n, body)
+	}
 	if n := strings.Count(body, `<span class="marker flag" title="Contains todos">🚧</span>`); n != 1 {
 		t.Errorf("🚧 shown %d times, want 1:\n%s", n, body)
 	}
@@ -151,11 +154,11 @@ func TestTreeShowsPageFlags(t *testing.T) {
 	}
 }
 
-// A `folio: {review: <text>}` says what to review, and the 👀 tooltip says
+// A `review: <text>` says what to review, and the 👀 tooltip says
 // it too, escaped as HTML.
 func TestTreeShowsReviewNote(t *testing.T) {
 	srv, root := testServer(t)
-	page := "---\ntitle: Sketch\norder: 4\nfolio:\n  review: \"tone & <figures>\"\n---\n# Sketch\n"
+	page := "---\ntitle: Sketch\norder: 4\nreview: \"tone & <figures>\"\n---\n# Sketch\n"
 	if err := os.WriteFile(filepath.Join(root, "chapter2", "sketch.qmd"), []byte(page), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -165,11 +168,11 @@ func TestTreeShowsReviewNote(t *testing.T) {
 	}
 }
 
-// A page whose frontmatter says `folio: {hide: true}` is left out of the
+// A page whose frontmatter says `hide: true` is left out of the
 // tree, a section page with its whole branch.
 func TestTreeHidesPages(t *testing.T) {
 	srv, root := testServer(t)
-	page := "---\ntitle: Sketch\norder: 4\nfolio:\n  hide: true\n---\n# Sketch\n"
+	page := "---\ntitle: Sketch\norder: 4\nhide: true\n---\n# Sketch\n"
 	if err := os.WriteFile(filepath.Join(root, "chapter2", "sketch.qmd"), []byte(page), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -185,7 +188,7 @@ func TestTreeHidesPages(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	hidden := strings.Replace(string(section), "---\n", "---\nfolio:\n  hide: true\n", 1)
+	hidden := strings.Replace(string(section), "---\n", "---\nhide: true\n", 1)
 	if err := os.WriteFile(filepath.Join(root, "chapter2", "index.qmd"), []byte(hidden), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -198,7 +201,7 @@ func TestTreeHidesPages(t *testing.T) {
 // Saving a page that is hidden or shown again refreshes the tree.
 func TestSaveRefreshesTreeOnHide(t *testing.T) {
 	srv, _ := testServer(t)
-	hidden := "---\ntitle: Second\norder: 1\nfolio:\n  hide: true\n---\n# Second\n"
+	hidden := "---\ntitle: Second\norder: 1\nhide: true\n---\n# Second\n"
 	rec := post(t, srv, "/save", url.Values{"path": {"chapter2/second.qmd"}, "body": {hidden}})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("save: status %d: %s", rec.Code, rec.Body)
