@@ -70,14 +70,15 @@ constraints:
       1-3: A Quarto span in a title is shown as the symbol its class carries followed by the span's text, so `# [Polizei-]{.pol}[Feuerwehr-]{.fw}Spickzettel` shows as "🚔Polizei-🚒Feuerwehr-Spickzettel"
       1-4: The symbols are read from the `.folio.<class>:before { content: "..." }` rules of the active custom preview stylesheet, so the tree and the preview mark a class alike and an edit to the stylesheet moves both; a span whose classes no rule names is shown as written
       1-5: 'A page whose frontmatter says `draft: true` is shown greyed out in the tree, since it is part of the project but not part of what a render publishes; the page is listed, opened, moved, and searched like any other'
-      1-6: 'A page whose frontmatter sets `folio: {todo: true}`, or whose file contains `==TODO==` anywhere -- inside an HTML comment too -- is marked 🚧 in the tree; one whose frontmatter sets `review` under `folio:` -- to a text saying what to review, or to `true` -- is marked 👀; one that holds a comment (3-8) is marked 💬'
-      1-6-1: Each mark is shown at most once per page, however many reasons the page gives for it; a page with several shows them all, in the order 🚧, 👀, 💬
+      1-6: 'A page whose frontmatter sets `status: new` is marked 🆕 in the tree, and one that sets `status: deprecated`, `obsolete` or `old` -- three names for one status -- is marked 🗑️; a page whose file contains `==TODO==` anywhere -- inside an HTML comment too -- is marked 🚧; one whose frontmatter sets `review` -- to a text saying what to review, or to `true` -- is marked 👀; one that holds a comment (3-8) is marked 💬'
+      1-6-0: 'folio''s frontmatter keys (`status`, `review`, `hide`) sit at the top level of the frontmatter; a page that still has them under the earlier `folio:` (or `qm:`) mapping keeps its marks, and a top-level key wins over it. A `todo` key no longer marks a page: a `==TODO==` in the text, or `<!-- ==TODO== -->`, does'
+      1-6-1: Each mark is shown at most once per page, however many reasons the page gives for it; a page with several shows them all, in the order of its status (🆕 or 🗑️), 🚧, 👀, 💬
       1-6-2: Saving a page that gains or loses a mark refreshes the tree at once
       1-6-3: A comment marker in a code block or a code span does not mark the page, as it is code, not a comment (3-8-4)
-      1-6-4: 'Each mark has a tooltip saying what it means: 🚧 "Contains todos", 👀 "Review: " followed by the review text, or "Needs review" when there is none, 💬 "Contains comments"'
+      1-6-4: 'Each mark has a tooltip saying what it means: 🆕 "New page", 🗑️ "Deprecated", 🚧 "Contains todos", 👀 "Review: " followed by the review text, or "Needs review" when there is none, 💬 "Contains comments"'
       1-6-5: 'A page without an `order` in its frontmatter is marked ⚠ in place of its number; the mark''s tooltip says why: "Not numbered: the page has no order in its frontmatter"'
       1-6-6: Quarto block fences inside an HTML comment do not count when the tree looks for unmatched fences
-      1-7: 'A page whose frontmatter sets `folio: {hide: true}` is left out of the tree; a section page takes its whole branch with it, and a folder without a section page goes once all its pages are hidden. The default is `false`'
+      1-7: 'A page whose frontmatter sets `hide: true` is left out of the tree; a section page takes its whole branch with it, and a folder without a section page goes once all its pages are hidden. The default is `false`'
       1-7-1: A hidden page is still part of the project -- it renders, keeps its place in the order a move renumbers, and is found by the search, which lists it under its path
       1-7-2: Saving a page that is hidden or shown again refreshes the tree at once
       2: Dragging a page updates the `order` frontmatter of the affected pages and the Markdown heading levels of the moved page
@@ -90,7 +91,7 @@ constraints:
       2-3-4: A section page (name/index.md, the shape new pages are created in, or the older name/index.qmd) is named by its directory: the field holds the directory's name with /index.md or /index.qmd staying text after it, and the rename renames the directory with the pages in it; only the project's own top-level index.md or index.qmd is not offered for renaming
       2-3-5: The editor is re-pointed at the new path as a move re-points it (2-1, 2-2), and the copyedit suggestions kept for the page follow it
       3: Pages can be created, deleted, and edited in place
-      3-0-0: A new page's frontmatter holds its `order:` alone and no `title:`, which would override the page's first heading as its title (1-1); until it has a heading the tree names it by its file name
+      3-0-0: 'A new page starts from a template: frontmatter with its `order:` (from where it is inserted) and `status: new`, and no `title:`, which would override the page''s first heading as its title (1-1); then a `::: explanation` div holding a heading with the page''s name, one `#` for a top-level page and one more for each level down the tree, so the tree names the page by that heading'
       3-0: A failed save is shown as an error next to the heading, naming why it failed, and leaving the page -- opening another one, reloading, closing the tab -- asks for confirmation while an edit is unsaved
       3-0-1: A save is replayed onto the writes the tree made to the same file since the editor opened it -- the `order:` a move or a create renumbered, and the heading levels a move to another depth shifted -- so an autosave after a move keeps both the user's text and the move
       3-0-2: An `order:` the user typed into the frontmatter themselves is kept over the one the tree wrote; a hand-made edit is never silently dropped

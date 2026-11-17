@@ -176,9 +176,11 @@ func TestCreatePage(t *testing.T) {
 		t.Fatal("created page not in tree")
 	}
 	// The page carries no title of its own (issue #58): a `title:` would
-	// override the level-1 heading the user writes, so the frontmatter is
-	// the order alone and the tree names the page by its folder.
-	if got, want := readFile(t, root, created), "---\norder: 3\n---\n\n"; got != want {
+	// override the heading the page starts with, and the tree names the
+	// page by that heading.
+	// It starts from the new-page template (issue #94): marked new, and an
+	// explanation div headed by the page's name at its depth in the tree.
+	if got, want := readFile(t, root, created), "---\norder: 3\nstatus: new\n---\n\n::: explanation\n## fifth\n\n:::\n"; got != want {
 		t.Errorf("content = %q, want %q", got, want)
 	}
 	if p.Title != "fifth" {
@@ -200,6 +202,9 @@ func TestCreatePageAtRoot(t *testing.T) {
 	}
 	if p := load(t, root).Find("about/index.md"); p == nil || order(t, p) != 5 {
 		t.Fatalf("about/index.md = %+v", p)
+	}
+	if got, want := readFile(t, root, created), "---\norder: 5\nstatus: new\n---\n\n::: explanation\n# about\n\n:::\n"; got != want {
+		t.Errorf("content = %q, want %q", got, want)
 	}
 }
 
@@ -228,7 +233,7 @@ func TestCreatePageAfter(t *testing.T) {
 			t.Errorf("%s order = %d, want %d", c.Path, *c.Order, i+1)
 		}
 	}
-	if got, want := readFile(t, root, created), "---\norder: 2\n---\n\n"; got != want {
+	if got, want := readFile(t, root, created), "---\norder: 2\nstatus: new\n---\n\n::: explanation\n## inserted\n\n:::\n"; got != want {
 		t.Errorf("content = %q, want %q", got, want)
 	}
 }
@@ -250,6 +255,9 @@ func TestCreatePageAfterAtRoot(t *testing.T) {
 	}
 	if got := paths(tree.Pages); !reflect.DeepEqual(got, want) {
 		t.Fatalf("root pages = %v, want %v", got, want)
+	}
+	if got, want := readFile(t, root, created), "---\norder: 2\nstatus: new\n---\n\n::: explanation\n# intro\n\n:::\n"; got != want {
+		t.Errorf("content = %q, want %q", got, want)
 	}
 }
 

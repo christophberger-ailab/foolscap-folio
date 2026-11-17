@@ -163,7 +163,7 @@ func shiftHeadingsBelow(abs string, delta int) error {
 // root), ordered after the last ordered sibling. It returns the new page's
 // path.
 func (t *Tree) CreatePage(parent, name string) (string, error) {
-	destDir, siblings, _, err := t.resolveParent(parent)
+	destDir, siblings, depth, err := t.resolveParent(parent)
 	if err != nil {
 		return "", err
 	}
@@ -173,7 +173,7 @@ func (t *Tree) CreatePage(parent, name string) (string, error) {
 			order = *p.Order
 		}
 	}
-	return t.newPageFile(destDir, name, order+1)
+	return t.newPageFile(destDir, name, order+1, depth)
 }
 
 // CreatePageAfter creates a new page as name/index.md in the sibling
@@ -186,7 +186,7 @@ func (t *Tree) CreatePageAfter(after, name string) (string, error) {
 		return "", fmt.Errorf("page %s not found", after)
 	}
 	dir := groupDir(after)
-	rel, err := t.newPageFile(dir, name, 0)
+	rel, err := t.newPageFile(dir, name, 0, t.depthOf(ap))
 	if err != nil {
 		return "", err
 	}
@@ -206,10 +206,12 @@ func (t *Tree) CreatePageAfter(after, name string) (string, error) {
 	return rel, nil
 }
 
-// newPageFile writes destDir/name/index.md with order frontmatter and
-// returns its path. It writes no title: a `title:` would override the
-// level-1 heading the page is given later.
-func (t *Tree) newPageFile(destDir, name string, order int) (string, error) {
+// newPageFile writes destDir/name/index.md from the new-page template and
+// returns its path: frontmatter with the order and `status: new`, and an
+// explanation div headed by name, at the heading level of a page depth
+// levels down the tree (0 for a root page). It writes no title: a `title:`
+// would override that heading.
+func (t *Tree) newPageFile(destDir, name string, order, depth int) (string, error) {
 	name = stem(strings.ReplaceAll(strings.TrimSpace(name), " ", "-"))
 	if name == "" || strings.ContainsAny(name, `/\`) || strings.HasPrefix(name, "_") || strings.HasPrefix(name, ".") {
 		return "", fmt.Errorf("invalid page name %q", name)
@@ -221,7 +223,8 @@ func (t *Tree) newPageFile(destDir, name string, order int) (string, error) {
 		}
 	}
 	rel := dir + "/index.md"
-	content := fmt.Sprintf("---\norder: %d\n---\n\n", order)
+	heading := strings.Repeat("#", min(6, depth+1))
+	content := fmt.Sprintf("---\norder: %d\nstatus: new\n---\n\n::: explanation\n%s %s\n\n:::\n", order, heading, name)
 	if err := os.MkdirAll(filepath.Dir(t.abs(rel)), 0o755); err != nil {
 		return "", err
 	}

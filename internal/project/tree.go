@@ -25,8 +25,8 @@ type Page struct {
 	BadFences bool   // the file has unmatched Quarto block fences
 	Draft     bool   // the page's frontmatter says `draft: true`
 	Marker    string // emoji marker from a _FW/_POL suffix (own or inherited)
-	Flags     []Flag // status flags from the folio: frontmatter and the body, see PageFlags
-	Hidden    bool   // the page's frontmatter says `folio: {hide: true}`
+	Flags     []Flag // status flags from the frontmatter and the body, see PageFlags
+	Hidden    bool   // the page's frontmatter says `hide: true`
 	Children  []*Page
 }
 
@@ -43,41 +43,52 @@ type Flag struct {
 	Title string
 }
 
-// pageFlags lists the status flags a page can carry, in the order the tree
-// shows them. A flag is set by `folio: {<Key>: true}` in the frontmatter, or
-// by In reporting true for the page's file when In is not nil. A flag with
-// a Note is set by any value of Key but false, and a text value says what
-// the flag is about: its tooltip is then Note followed by the text. A new
-// flag is one more entry here.
-var pageFlags = []struct {
-	Key string
-	Flag
-	In   func(src []byte) bool
-	Note string
-}{
-	{Key: "todo", Flag: Flag{"\U0001F6A7", "Contains todos"}, In: hasTodo},          // 🚧
-	{Key: "review", Flag: Flag{"\U0001F440", "Needs review"}, Note: "Review: "},     // 👀
-	{Key: "comment", Flag: Flag{"\U0001F4AC", "Contains comments"}, In: hasComment}, // 💬
+// The status flags a page can carry, which the tree shows in this order:
+// its `status:`, a `==TODO==` in it, a `review:` and a comment.
+var (
+	newFlag     = Flag{"\U0001F195", "New page"}          // 🆕
+	oldFlag     = Flag{"\U0001F5D1\uFE0F", "Deprecated"}  // 🗑️
+	todoFlag    = Flag{"\U0001F6A7", "Contains todos"}    // 🚧
+	reviewFlag  = Flag{"\U0001F440", "Needs review"}      // 👀
+	commentFlag = Flag{"\U0001F4AC", "Contains comments"} // 💬
+)
+
+// statusFlags maps the values of `status:` to their flags; deprecated,
+// obsolete and old are one status. Any other value sets no flag.
+var statusFlags = map[string]Flag{
+	"new":        newFlag,
+	"deprecated": oldFlag,
+	"obsolete":   oldFlag,
+	"old":        oldFlag,
 }
 
-// PageFlags returns the status flags src carries, each at
-// most once, in the order of pageFlags.
+// PageFlags returns the status flags src carries, each at most once, in the
+// order the tree shows them. A `review:` set to anything but false sets
+// 👀, and a text says what to review: the tooltip is then "Review: " and
+// the text.
 func PageFlags(src []byte) []Flag {
 	return pageFlagsOf(src, ParseFrontmatter(src))
 }
 
 func pageFlagsOf(src []byte, fm FrontMatter) []Flag {
 	var flags []Flag
-	for _, f := range pageFlags {
-		v, ok := fm.Value(f.Key)
-		text, _ := v.(string)
-		text = strings.TrimSpace(text)
-		switch {
-		case f.Note != "" && text != "":
-			flags = append(flags, Flag{f.Emoji, f.Note + text})
-		case v == true, f.Note != "" && ok && v != false, f.In != nil && f.In(src):
-			flags = append(flags, f.Flag)
+	status, _ := fm.Value("status")
+	text, _ := status.(string)
+	if f, ok := statusFlags[strings.ToLower(strings.TrimSpace(text))]; ok {
+		flags = append(flags, f)
+	}
+	if hasTodo(src) {
+		flags = append(flags, todoFlag)
+	}
+	if v, ok := fm.Value("review"); ok && v != false {
+		f := reviewFlag
+		if text, _ := v.(string); strings.TrimSpace(text) != "" {
+			f.Title = "Review: " + strings.TrimSpace(text)
 		}
+		flags = append(flags, f)
+	}
+	if hasComment(src) {
+		flags = append(flags, commentFlag)
 	}
 	return flags
 }
@@ -133,7 +144,7 @@ func dropCodeSpans(ln []byte) []byte {
 	return append(out, ln[at:]...)
 }
 
-// IsHidden reports whether src's frontmatter says `folio: {hide: true}`, which
+// IsHidden reports whether src's frontmatter says `hide: true`, which
 // leaves the page out of the tree view.
 func IsHidden(src []byte) bool {
 	return isHidden(ParseFrontmatter(src))

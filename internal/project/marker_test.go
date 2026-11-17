@@ -122,6 +122,8 @@ func TestPageFlags(t *testing.T) {
 	todo := Flag{"\U0001F6A7", "Contains todos"}
 	review := Flag{"\U0001F440", "Needs review"}
 	comment := Flag{"\U0001F4AC", "Contains comments"}
+	fresh := Flag{"\U0001F195", "New page"}
+	stale := Flag{"\U0001F5D1\uFE0F", "Deprecated"}
 	cases := []struct {
 		name string
 		src  string
@@ -129,30 +131,37 @@ func TestPageFlags(t *testing.T) {
 	}{
 		{"none", "---\ntitle: A\n---\n# A\n", nil},
 		{"no frontmatter", "# A\n", nil},
-		{"todo", "---\nfolio:\n  todo: true\n---\n", []Flag{todo}},
-		{"review", "---\nfolio:\n  review: true\n---\n", []Flag{review}},
-		{"review text", "---\nfolio:\n  review: the figures in section 2\n---\n", []Flag{{"\U0001F440", "Review: the figures in section 2"}}},
-		{"review text trimmed", "---\nfolio:\n  review: \"  wording \"\n---\n", []Flag{{"\U0001F440", "Review: wording"}}},
-		{"review empty text", "---\nfolio:\n  review: \"\"\n---\n", []Flag{review}},
-		{"review no value", "---\nfolio:\n  review:\n---\n", []Flag{review}},
-		{"review number", "---\nfolio:\n  review: 2\n---\n", []Flag{review}},
-		{"legacy qm review text", "---\nqm:\n  review: tone\n---\n", []Flag{{"\U0001F440", "Review: tone"}}},
-		{"both", "---\nfolio:\n  review: true\n  todo: true\n---\n", []Flag{todo, review}},
-		{"false", "---\nfolio:\n  todo: false\n  review: false\n---\n", nil},
-		{"not a bool", "---\nfolio:\n  todo: yes please\n---\n", nil},
-		{"unknown key", "---\nfolio:\n  later: true\n---\n", nil},
-		{"legacy qm", "---\nqm:\n  review: true\n---\n", []Flag{review}},
-		{"folio wins over qm", "---\nfolio:\n  review: false\nqm:\n  review: true\n  todo: true\n---\n", []Flag{todo}},
+		{"todo key no longer flags", "---\ntodo: true\n---\n", nil},
+		{"review", "---\nreview: true\n---\n", []Flag{review}},
+		{"review text", "---\nreview: the figures in section 2\n---\n", []Flag{{"\U0001F440", "Review: the figures in section 2"}}},
+		{"review text trimmed", "---\nreview: \"  wording \"\n---\n", []Flag{{"\U0001F440", "Review: wording"}}},
+		{"review empty text", "---\nreview: \"\"\n---\n", []Flag{review}},
+		{"review no value", "---\nreview:\n---\n", []Flag{review}},
+		{"review number", "---\nreview: 2\n---\n", []Flag{review}},
+		{"review false", "---\nreview: false\n---\n", nil},
+		{"legacy folio review", "---\nfolio:\n  review: tone\n---\n", []Flag{{"\U0001F440", "Review: tone"}}},
+		{"legacy qm review", "---\nqm:\n  review: true\n---\n", []Flag{review}},
+		{"top level wins over folio", "---\nreview: false\nfolio:\n  review: true\n---\n", nil},
+		{"legacy folio todo no longer flags", "---\nfolio:\n  todo: true\n---\n", nil},
+		{"status new", "---\nstatus: new\n---\n", []Flag{fresh}},
+		{"status New", "---\nstatus: \" New \"\n---\n", []Flag{fresh}},
+		{"status deprecated", "---\nstatus: deprecated\n---\n", []Flag{stale}},
+		{"status obsolete", "---\nstatus: obsolete\n---\n", []Flag{stale}},
+		{"status old", "---\nstatus: old\n---\n", []Flag{stale}},
+		{"status unknown", "---\nstatus: draft\n---\n", nil},
+		{"status not text", "---\nstatus: 3\n---\n", nil},
+		{"status first", "---\nstatus: new\nreview: true\n---\n==TODO==\n", []Flag{fresh, todo, review}},
+		{"unknown key", "---\nlater: true\n---\n", nil},
 		{"text", "# A\n\nSome ==TODO== here.\n", []Flag{todo}},
 		{"text in comment", "# A\n\n<!-- ==TODO== fix -->\n", []Flag{todo}},
-		{"text twice and key", "---\nfolio:\n  todo: true\n---\n==TODO== ==TODO==\n", []Flag{todo}},
-		{"text and review", "---\nfolio:\n  review: true\n---\n==TODO==\n", []Flag{todo, review}},
+		{"text twice", "==TODO== ==TODO==\n", []Flag{todo}},
+		{"text and review", "---\nreview: true\n---\n==TODO==\n", []Flag{todo, review}},
 		{"lowercase text", "==todo==\n", nil},
 		{"comment", "# A\n\n<!-- << Check this -->the passage<!-- >> -->\n", []Flag{comment}},
 		{"comment with attrs", "<!--<<{#c1 author=\"Ann\"} Hm -->x<!-- >> {#c1} -->\n", []Flag{comment}},
 		{"comment over lines", "<!--\n<< Hm\n-->x<!-- >> -->\n", []Flag{comment}},
 		{"comments twice", "<!-- << A -->x<!-- >> --> <!-- << B -->y<!-- >> -->\n", []Flag{comment}},
-		{"all three", "---\nfolio:\n  review: true\n---\n==TODO== <!-- << A -->x<!-- >> -->\n", []Flag{todo, review, comment}},
+		{"all three", "---\nreview: true\n---\n==TODO== <!-- << A -->x<!-- >> -->\n", []Flag{todo, review, comment}},
 		{"plain html comment", "<!-- a note << not a comment -->\n", nil},
 		{"end marker alone", "<!-- >> -->\n", nil},
 		{"comment in code span", "Write `<!-- << A -->` to comment.\n", nil},
@@ -173,7 +182,7 @@ func TestPageFlags(t *testing.T) {
 
 func TestLoadFlags(t *testing.T) {
 	root := t.TempDir()
-	src := "---\ntitle: Flagged\norder: 1\nfolio:\n  review: true\n---\n# Flagged\n<!-- ==TODO== -->\n"
+	src := "---\ntitle: Flagged\norder: 1\nreview: true\n---\n# Flagged\n<!-- ==TODO== -->\n"
 	if err := os.WriteFile(filepath.Join(root, "flagged.qmd"), []byte(src), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -196,13 +205,14 @@ func TestLoadFlags(t *testing.T) {
 func TestLoadHidden(t *testing.T) {
 	root := t.TempDir()
 	pages := map[string]string{
-		"shown.qmd":           "---\ntitle: Shown\norder: 1\nfolio:\n  hide: false\n---\n",
-		"secret.qmd":          "---\ntitle: Secret\norder: 2\nfolio:\n  hide: true\n---\n",
+		"shown.qmd":           "---\ntitle: Shown\norder: 1\nhide: false\n---\n",
+		"secret.qmd":          "---\ntitle: Secret\norder: 2\nhide: true\n---\n",
 		"old.qmd":             "---\ntitle: Old\norder: 5\nqm:\n  hide: true\n---\n",
+		"legacy.qmd":          "---\ntitle: Legacy\norder: 6\nfolio:\n  hide: true\n---\n",
 		"sec/index.qmd":       "---\ntitle: Sec\norder: 3\n---\n",
-		"sec/gone.qmd":        "---\ntitle: Gone\nfolio:\n  hide: true\n---\n",
-		"loose/only.qmd":      "---\ntitle: Only\nfolio:\n  hide: true\n---\n",
-		"mixed/hidden.qmd":    "---\ntitle: Hidden\nfolio:\n  hide: true\n---\n",
+		"sec/gone.qmd":        "---\ntitle: Gone\nhide: true\n---\n",
+		"loose/only.qmd":      "---\ntitle: Only\nhide: true\n---\n",
+		"mixed/hidden.qmd":    "---\ntitle: Hidden\nhide: true\n---\n",
 		"mixed/visible.qmd":   "---\ntitle: Visible\n---\n",
 		"plain/no-option.qmd": "---\ntitle: Plain\n---\n",
 	}
@@ -223,6 +233,7 @@ func TestLoadHidden(t *testing.T) {
 		"shown.qmd":           false,
 		"secret.qmd":          true,
 		"old.qmd":             true,
+		"legacy.qmd":          true,
 		"sec/index.qmd":       false,
 		"sec/gone.qmd":        true,
 		"mixed/visible.qmd":   false,
