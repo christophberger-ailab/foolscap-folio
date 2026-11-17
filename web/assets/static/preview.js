@@ -20,6 +20,8 @@
 //   - a page written for one target group -- an `_FW` or `_POL` suffix on
 //     its name or on a folder above it -- is shown inside that group's
 //     Quarto div, the way the flattener wraps it (see targetGroupOf),
+//   - a ```{mermaid} block is drawn as a diagram by the server, with the
+//     renderer the documents and websites use (see drawDiagrams),
 //   - a `==TODO==` is shown as a marker in the editor's TODO color, also
 //     where it sits inside an HTML comment, which renders as nothing
 //     (see markTodos),
@@ -1309,6 +1311,71 @@ function markTodos(root) {
   });
 }
 
+// Diagrams
+//
+// A ```{mermaid} block -- Mermaid in braces, as Quarto writes it -- is a
+// diagram; a plain ```mermaid block is code, as it is in a render. The
+// preview asks the server to draw it (POST /diagram), so the diagram looks
+// as it does on the website, and keeps every answer by its source, so that
+// typing elsewhere on the page does not draw it again. While the answer is
+// on its way, and when the diagram cannot be drawn, the block stays code.
+var diagrams = new Map(); // source -> Promise of the SVG, "" when not drawable
+
+function diagramSVG(src) {
+  if (!diagrams.has(src)) {
+    diagrams.set(
+      src,
+      fetch("/diagram", { method: "POST", body: src })
+        .then(function (res) {
+          return res.ok ? res.text() : "";
+        })
+        .catch(function () {
+          diagrams.delete(src); // the server may be back next time
+          return "";
+        }),
+    );
+  }
+  return diagrams.get(src);
+}
+
+// isDiagram reports whether a rendered code element is a ```{mermaid} or
+// ```{.mermaid} block: marked names its class after the info string's
+// first word.
+function isDiagram(code) {
+  var lang = Array.prototype.find.call(code.classList, function (c) {
+    return c.indexOf("language-") === 0;
+  });
+  if (!lang || lang.charAt(9) !== "{") {
+    return false;
+  }
+  return lang.slice(10).replace(/^\./, "").replace(/\}$/, "") === "mermaid";
+}
+
+// drawDiagrams replaces every diagram block in root with its drawing once
+// the server has drawn it. A block the preview has been re-rendered away
+// from in the meantime is left alone.
+function drawDiagrams(root) {
+  root.querySelectorAll("pre > code").forEach(function (code) {
+    if (!isDiagram(code)) {
+      return;
+    }
+    var pre = code.parentNode;
+    diagramSVG(code.textContent).then(function (svg) {
+      if (svg === "" || !pre.isConnected) {
+        return;
+      }
+      var div = document.createElement("div");
+      div.className = "mermaid";
+      div.innerHTML = svg;
+      sanitize(div);
+      if (pre.hasAttribute("data-line")) {
+        div.setAttribute("data-line", pre.getAttribute("data-line"));
+      }
+      pre.replaceWith(div);
+    });
+  });
+}
+
 // renderPreview fills el with the preview of the Quarto Markdown in text.
 // pagePath is the edited page's path relative to the project root: it is
 // what the image paths resolve against, and what says which target group
@@ -1357,4 +1424,5 @@ function renderPreview(el, text, pagePath, titles) {
   // move along with the blocks into a callout's body.
   buildCallouts(el, titles || {});
   restoreFolds(el, folds);
+  drawDiagrams(el); // last: the drawings arrive later, into the finished page
 }

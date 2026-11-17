@@ -2301,6 +2301,21 @@ mark.folio-todo-hidden {
   padding: 0;
 }
 
+/* A Mermaid diagram the server drew (preview.js drawDiagrams) takes the
+   app's colors, as the website's take the site's. */
+.markdown-preview .mermaid {
+  margin: 0.8em 0;
+  text-align: center;
+  --pele-bg: var(--bg);
+  --pele-fg: var(--fg);
+  --pele-muted: var(--muted);
+  --pele-line: var(--fg);
+  --pele-surface: var(--hover);
+  --pele-surface-alt: var(--accent-bg);
+  --pele-border: var(--border);
+  --pele-accent: var(--accent);
+}
+
 .markdown-preview blockquote {
   margin: 0.8em 0;
   padding-left: 0.8rem;
