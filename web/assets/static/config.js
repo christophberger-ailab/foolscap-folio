@@ -1,12 +1,12 @@
 // Foolscap Folio - configuration page behavior (plain ES6, no build step)
 
 // initFileEditor mounts CodeMirror on a config page's file textarea: the
-// custom preview stylesheet, folio.yml, or config.cue. The textarea names
+// project's preview stylesheets, folio.yml, _brand.yml, or config.cue. The textarea names
 // its CodeMirror mode in data-mode (none for config.cue, which has no mode
 // of its own) and remains the form field, so submitting the form keeps
 // working even if CodeMirror failed to load.
 function initFileEditor() {
-  var area = document.querySelector('textarea.preview-css-content, textarea.config-file-content');
+  var area = document.querySelector('textarea.config-file-content');
   if (!area || typeof CodeMirror === 'undefined') {
     return;
   }

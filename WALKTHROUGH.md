@@ -474,7 +474,8 @@ what the UI does:
 | `GET /media/{path...}`                                 | `media`                | images for the preview                                                                 |
 | `GET /search`                                          | `search`               | the top-bar search                                                                     |
 | `POST /render`, `/render/select`, `GET /render/status` |                        | the render panel and its log                                                           |
-| `GET /config`, `/config/preview-css`, …                |                        | the custom preview stylesheets                                                         |
+| `GET /config`, `/config/files/{tab}`, …                |                        | the config pages; one tab per configuration file                                       |
+| `POST /diagram`                                        | `diagram`              | Mermaid diagrams for the preview, drawn by `internal/mermaid`                          |
 
 Two mechanisms are worth reading closely:
 
@@ -589,11 +590,12 @@ no longer read, not thrown away either. `legacyConnection` exists only because
 the old file spelled the base URL `base_url` where the schema spells it
 `baseURL`.
 
-What is left in `prefs.go` is the custom preview stylesheets in
-`<user config dir>/folio/custom-css/`, which stay files of their own because they
-are CSS: `ensureDefaultCSS` materialises the baked-in default once and never
-rewrites it, and `sanitizeCSSName` keeps user-supplied names to a safe shape.
-*Which* of them is active is a setting, so it moved into the settings file.
+What is left in `prefs.go` is the preview stylesheets, which belong to the
+project: the `.css` and `.scss` files in its `assets/styles/folio/`. A project
+without any is previewed in the built-in `defaultCustomCSS`, which becomes
+`custom.css` once it is saved; `sanitizeCSSName` keeps user-supplied names to a
+safe shape. *Which* of them is active is a setting, so it lives in the settings
+file.
 
 ### 8.5.2 Copyediting — `web/copyedit.go`, `web/llm.go`
 
@@ -699,7 +701,7 @@ the tree on disk never sees it.
 
 `assets/templates/app.html.tmpl` holds every template the server renders by
 name (`page`, `main`, `treewrap`, `content`, `render`, `render-log`,
-`config-page`, `preview-css-page`, …). `assets/static/` holds `app.css`,
+`config-page`, `config-file-page`, …). `assets/static/` holds `app.css`,
 `app.js`, the preview and editor scripts, and the vendored libraries: htmx for
 the interactions, Sortable for the drag and drop, marked for the live Markdown
 preview, and CodeMirror 5 for the editor (with a Vim keymap behind a toggle).

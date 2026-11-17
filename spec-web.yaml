@@ -23,7 +23,7 @@ constraints:
       Everything the UI remembers between runs lives in one CUE file, which
       carries the schema it is checked against.
     requirements:
-      1: 'The settings are one file: `<user config dir>/folio/config.cue`. Nothing else is written beside it but the preview stylesheets, which are CSS rather than settings'
+      1: 'The settings are one file: `<user config dir>/folio/config.cue`. Nothing else is written beside it'
       2: The file holds the recently opened projects, the per-project render selection and last open page, the active preview stylesheet, the copyediting setup, the external editors' command lines, the name comments are signed with, and where and how often to look for updates. Where the UI listens is the project's to say, in folio.yml
       3: The file is written for its owner alone, since the copyediting setup holds API keys
       4: 'The file carries its own schema: the CUE definitions the settings are checked against are written into it above them, so the file says what belongs in it and in what shape'
@@ -108,6 +108,7 @@ constraints:
       3-4-3: The page's frontmatter stays outside that div, being what directs the render rather than content the div would hold
       3-4-4: A Quarto callout is previewed the way Quarto renders it -- a box in the type's Quarto color with a thick left bar, and a header holding the type's icon and the title on the type's shaded color -- with the same colors the native PDF draws callouts in; the title is the fence's `title`, else a heading opening the callout, else the type's name; a bare `.callout` without a type is a grey box with neither icon nor a title of its own; the type's name is in the project's `lang`, from the `callouts` translations in config.cue as a render titles it
       3-4-5: A callout's `appearance="simple"` drops the shading and `appearance="minimal"` the icon as well, neither showing a title unless one is given; `icon=false` leaves the icon out; `collapse="true"` or `collapse="false"` fold the callout under its header at a click, folded or open to begin with, and a callout the user opened or folded stays so while the preview follows the typing
+      3-4-6: 'A ```{mermaid} block is previewed as its diagram, drawn by the server (POST /diagram) with the renderer documents and websites use and shown in the app''s colors; a ```mermaid block without braces, a diagram that cannot be drawn, and one whose drawing has not arrived yet stay code. A drawing is kept by its source, so typing elsewhere does not draw it again'
       3-5: The preview shows the page's images, served from the project by the `/media` route
       3-5-1: A website-absolute image path such as `/assets/images/x.png` resolves against the project root, the way the rendered site and the flattened book resolve it
       3-5-2: A relative image path resolves against the folder the edited page sits in
@@ -166,14 +167,14 @@ constraints:
       6-2: The log follows its newest line as it grows; scrolling up stops it following and holds the position across the polls, until the user scrolls back to the bottom or starts another render
       7: The top bar shows a Config button at the far right
       7-1: The Config button opens a full config page whose entries are presented as a list that can grow
-      7-2: 'The config list contains an entry named "Preview: Custom CSS" that opens the custom preview stylesheet editor'
-      7-3: The custom preview stylesheet editor uses the embedded CodeMirror CSS mode, offers Save, and links back to the config page and the app
+      7-2: 'The config list contains one entry, "Configuration files", for the configuration files; it opens a page with a tab per file -- the project''s folio.yml, its _brand.yml, its preview stylesheets ("Preview CSS"), and folio''s config.cue -- each an editor for the file as a whole, the tab shown marked as such'
+      7-3: The Preview CSS tab uses the embedded CodeMirror CSS mode, offers Save, and links back to the config page and the app
       7-3-1: The stylesheet editor can be dragged taller or shorter by its corner; the height is remembered in the browser for the next visit
-      7-4: Custom preview stylesheets are stored beside the settings file as `<user config dir>/folio/custom-css/*.css` -- they are CSS rather than settings, so they stay files of their own; the app ships a baked-in default that is materialized as `custom.css` the first time the app runs with a config directory that does not exist yet, and is never rewritten afterwards
-      7-4-1: The editor lets the user add an alternate stylesheet by name and switch which one it is editing once more than one exists
-      7-5: The app links the active custom preview stylesheet document-wide after `/static/app.css`, the route serves only the requested stored stylesheet as `text/css`, and an empty or absent stylesheet has no effect
-      7-6: The editor tells the user to scope rules with `.markdown-preview` when they should affect only the preview
-      7-7: When more than one custom CSS file exists, a dropdown below the Markdown preview lets the user switch which one is active; the choice is remembered across restarts and the preview reloads to apply the newly selected stylesheet
+      7-4: 'The preview stylesheets are the project''s: the `.css` and `.scss` files in its `assets/styles/folio` folder, since they mark the project''s own topics and audiences. Nothing is written for them beside the settings file. A project without any is previewed in a built-in stylesheet, which the tab shows and saving puts into the project as `custom.css`'
+      7-4-1: The tab edits every stylesheet of the project, switching between them once there is more than one, and adds a new one by name
+      7-5: The app links the active preview stylesheet document-wide after `/static/app.css`, the route serves only the requested stylesheet of the project as `text/css`, and an empty or absent stylesheet has no effect
+      7-6: The tab tells the user to scope rules with `.markdown-preview` when they should affect only the preview
+      7-7: When the project has more than one stylesheet, a dropdown below the Markdown preview lets the user switch which one is active; the choice is remembered across restarts and the preview reloads to apply the newly selected stylesheet
       7-7-1: The dropdown sits in the preview pane and is shown only with it, since it styles the preview and has nothing to do with the copyedit pane
       8: A search field in the top bar searches the text of all pages of the open project
       8-1: The search is answered from a word index that is rebuilt in the background whenever the project changed on disk, so typing never waits for a scan of the project

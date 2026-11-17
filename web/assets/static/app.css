@@ -907,6 +907,38 @@ button:hover,
   margin-top: 0.75rem;
 }
 
+/* The configuration files page has a tab per file; the tab shown is the
+   one the page is about. */
+.config-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0.5rem 0 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.config-tabs a {
+  padding: 0.4rem 0.9rem;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  color: var(--muted);
+  text-decoration: none;
+  margin-bottom: -1px;
+}
+
+.config-tabs a:hover {
+  color: var(--fg);
+  background: var(--hover);
+}
+
+.config-tabs a[aria-current="page"] {
+  color: var(--fg);
+  background: var(--bg);
+  border-color: var(--border);
+  font-weight: 600;
+}
+
 .css-file-switch,
 .css-new-file {
   display: flex;
@@ -1631,7 +1663,6 @@ textarea.file-content {
   min-height: 12rem;
 }
 
-textarea.preview-css-content,
 textarea.config-file-content {
   width: 100%;
   min-height: 24rem;
@@ -2299,6 +2330,21 @@ mark.folio-todo-hidden {
 .markdown-preview pre code {
   background: none;
   padding: 0;
+}
+
+/* A Mermaid diagram the server drew (preview.js drawDiagrams) takes the
+   app's colors, as the website's take the site's. */
+.markdown-preview .mermaid {
+  margin: 0.8em 0;
+  text-align: center;
+  --pele-bg: var(--bg);
+  --pele-fg: var(--fg);
+  --pele-muted: var(--muted);
+  --pele-line: var(--fg);
+  --pele-surface: var(--hover);
+  --pele-surface-alt: var(--accent-bg);
+  --pele-border: var(--border);
+  --pele-accent: var(--accent);
 }
 
 .markdown-preview blockquote {

@@ -275,6 +275,9 @@ func Flatten(sel config.Selection, log Logf) (string, Book, error) {
 	log = log.or()
 	root := sel.Config.Root
 	tree, err := loadTopic(root, sel.Topic)
+	if err == nil {
+		tree.Drop(sel.Excludes)
+	}
 	if err != nil {
 		return "", Book{}, err
 	}
@@ -372,6 +375,7 @@ func renderSite(sel config.Selection, dir string, dryRun bool, log Logf) error {
 		CalloutTitles: sel.Config.CalloutTitles,
 		Topics:        topics,
 		Keep:          sel.Keep,
+		Skip:          sel.Excludes,
 		Formats:       sel.Types(),
 		CSS:           css,
 		Expand:        exp.Expand,

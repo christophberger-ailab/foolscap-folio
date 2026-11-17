@@ -300,3 +300,79 @@ func TestPreviewSection(t *testing.T) {
 		}
 	}
 }
+
+// A folder or file whose name ends in another audience's audience-template
+// is not part of the selected audience's render.
+func TestExcludes(t *testing.T) {
+	root := project(t, `
+vars: {audience-template: ""}
+audiences:
+  std:
+  abc: {vars: {audience-template: _ABC}}
+  dev: {vars: {audience-template: _DEV}}
+`, "a")
+	c, err := Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for aud, want := range map[string]map[string]bool{
+		"std": {"chapter1": false, "chapter1_ABC": true, "page_DEV": true, "chapter1_abc": true},
+		"abc": {"chapter1": false, "chapter1_ABC": false, "page_DEV": true},
+		"dev": {"chapter1": false, "chapter1_ABC": true, "page_DEV": false},
+	} {
+		sels, err := c.Expand(Request{Audiences: []string{aud}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for name, w := range want {
+			if got := sels[0].Excludes(name); got != w {
+				t.Errorf("%s: Excludes(%q) = %v, want %v", aud, name, got, w)
+			}
+		}
+	}
+}
+
+// A website of every topic links the project's assets/styles/folio/all.css,
+// or all.scss, after the format's own stylesheets; a site of fewer topics
+// does not (#89).
+func TestAllTopicsSiteLinksAllCSS(t *testing.T) {
+	root := project(t, "formats:\n  web: {type: html, css: [site.css]}\n", "a", "b")
+	c, err := Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	css := func(topics ...string) []string {
+		t.Helper()
+		sels, err := c.Expand(Request{Topics: topics})
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, err := sels[0].Stylesheets()
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i, p := range got {
+			got[i], _ = filepath.Rel(root, p)
+			got[i] = filepath.ToSlash(got[i])
+		}
+		return got
+	}
+	if got := css(AllTopics); !slices.Equal(got, []string{"site.css"}) {
+		t.Errorf("without all.css: %q", got)
+	}
+	dir := filepath.Join(root, "assets", "styles", "folio")
+	os.MkdirAll(dir, 0o755)
+	os.WriteFile(filepath.Join(dir, "all.scss"), []byte("/* all */"), 0o644)
+	for _, topics := range [][]string{{AllTopics}, nil} {
+		if got := css(topics...); !slices.Equal(got, []string{"site.css", "assets/styles/folio/all.scss"}) {
+			t.Errorf("topics %q with all.scss: %q", topics, got)
+		}
+	}
+	os.WriteFile(filepath.Join(dir, "all.css"), []byte("/* all */"), 0o644)
+	if got := css(AllTopics); !slices.Equal(got, []string{"site.css", "assets/styles/folio/all.css"}) {
+		t.Errorf("with all.css and all.scss: %q", got)
+	}
+	if got := css("a"); !slices.Equal(got, []string{"site.css"}) {
+		t.Errorf("site of topic a: %q", got)
+	}
+}

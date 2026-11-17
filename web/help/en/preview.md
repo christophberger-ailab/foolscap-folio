@@ -6,6 +6,7 @@ The preview is an approximation. It is drawn in the browser from your Markdown a
 
 ## What it shows
 
+- A ```` ```{mermaid} ```` block is drawn as its diagram, as a render draws it; a plain ```` ```mermaid ```` block stays code.
 - Quarto fenced divs (`::: name`) and bracketed spans (`[text]{.name}`) get their class, so your custom CSS can style them.
 - A heading's attribute block, such as `{.unnumbered}`, is dropped, because it directs the render and is not part of what the heading says. Headings inside code blocks are left alone.
 - A page written for one target group is previewed inside that group's div. This applies when the file name, or a folder above it, ends in `_FW` or `_POL` (the deepest name wins). The stylesheet then tints and marks the whole page, as it does a `::: fw` or `::: pol` block. The frontmatter stays outside the div.
@@ -40,6 +41,6 @@ Below the preview, `◀ Previous` and `Next ▶` open the page before or after t
 
 ## Custom CSS
 
-If you have more than one custom stylesheet, a dropdown below the preview switches between them. The choice is remembered and the preview reloads to apply it. See [Config pages and the settings file](settings.md) for how to write the stylesheets.
+The preview is styled by the project's stylesheets in `assets/styles/folio`. If the project has more than one, a dropdown below the preview switches between them. The choice is remembered and the preview reloads to apply it. See [Config pages and the settings file](settings.md) for how to write the stylesheets.
 
 Back to [Contents](index.md).

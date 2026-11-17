@@ -33,6 +33,8 @@ constraints:
       2: A website format (type html) yields one render per selected audience, covering all selected topics; a document format (docx, pdf) yields one render per topic and audience
       2-1: A website goes to `<output>/<dir>`; with more than one audience in the project and no placeholder in `dir`, to `<output>/<dir>-<audience>`
       2-2: A document goes to `<output>/<dir>/<file>.<type>`; `file` defaults to `{topic}`, plus `-{audience}` when the project has more than one audience
+      2-1-1: 'A website of every topic links the project''s `assets/styles/folio/all.css`, or else `all.scss`, after the format''s own `css`, when it exists'
+      2-3: 'A folder or file whose name ends (ignoring case) in another audience''s `audience-template` variable, and not in the selected audience''s, is left out of the render with everything below it, in documents and websites alike'
       3: With --clean, each selected format's output directory is emptied once, before the first render; a directory that is not below the output directory is refused
       4: Progress is written to stdout, one line per step
       5: A failing combination does not stop the remaining ones; the command reports how many failed and exits with an error

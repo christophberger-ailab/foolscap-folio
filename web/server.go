@@ -53,12 +53,6 @@ type server struct {
 	configFile string
 	cfg        storedConfig
 
-	// cssDir holds the custom preview stylesheets, beside the settings
-	// file; empty disables persistence and serves the baked-in default
-	// from memory instead. The stylesheets stay files of their own —
-	// they are CSS, not settings.
-	cssDir string
-
 	// base is the text the open editor started from. A save is replayed
 	// onto the tree's own writes against it (see project.Rebase); it is
 	// what makes an autosave posted after a move keep the move.
@@ -102,9 +96,7 @@ func newServer(configFile string) (*server, error) {
 		mux:        http.NewServeMux(),
 		tmpl:       tmpl,
 		configFile: configFile,
-		cssDir:     cssDirFor(configFile),
 	}
-	ensureDefaultCSS(s.cssDir)
 	// A settings file that does not check out against its own schema
 	// stops the app here, naming the line that is wrong. Carrying on with
 	// defaults would mean the next write overwrote settings the user
@@ -121,9 +113,13 @@ func newServer(configFile string) (*server, error) {
 	s.mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(static))))
 	s.mux.HandleFunc("GET /{$}", s.page)
 	s.mux.HandleFunc("GET /config", s.config)
-	s.mux.HandleFunc("GET /config/preview-css", s.previewCSSEditor)
-	s.mux.HandleFunc("POST /config/preview-css", s.savePreviewCSSHandler)
-	s.mux.HandleFunc("POST /config/preview-css/new", s.newPreviewCSSHandler)
+	s.mux.HandleFunc("GET /config/files", s.configFilesPage)
+	s.mux.HandleFunc("GET /config/files/{tab}", s.configFilesPage)
+	s.mux.HandleFunc("POST /config/files/css", s.saveCSSFileHandler)
+	s.mux.HandleFunc("POST /config/files/css/new", s.newCSSFileHandler)
+	s.mux.HandleFunc("POST /config/files/project", s.saveProjectFileHandler)
+	s.mux.HandleFunc("POST /config/files/brand", s.saveBrandFileHandler)
+	s.mux.HandleFunc("POST /config/files/settings", s.saveSettingsFileHandler)
 	s.mux.HandleFunc("GET /config/preview.css", s.previewStylesheet)
 	s.mux.HandleFunc("POST /config/active-css", s.setActiveCSSHandler)
 	s.mux.HandleFunc("GET /config/copyedit", s.copyeditConfigPage)
@@ -137,12 +133,6 @@ func newServer(configFile string) (*server, error) {
 	s.mux.HandleFunc("POST /config/editor", s.saveEditorHandler)
 	s.mux.HandleFunc("GET /config/user", s.userConfigPage)
 	s.mux.HandleFunc("POST /config/user", s.saveUserHandler)
-	s.mux.HandleFunc("GET /config/project-file", s.projectFilePage)
-	s.mux.HandleFunc("POST /config/project-file", s.saveProjectFileHandler)
-	s.mux.HandleFunc("GET /config/brand-file", s.brandFilePage)
-	s.mux.HandleFunc("POST /config/brand-file", s.saveBrandFileHandler)
-	s.mux.HandleFunc("GET /config/settings-file", s.settingsFilePage)
-	s.mux.HandleFunc("POST /config/settings-file", s.saveSettingsFileHandler)
 	s.mux.HandleFunc("POST /config/check-update", s.checkUpdateHandler)
 	s.mux.HandleFunc("POST /config/install-update", s.installUpdateConfigHandler)
 	s.mux.HandleFunc("POST /editor/open", s.openEditorHandler)
@@ -167,6 +157,7 @@ func newServer(configFile string) (*server, error) {
 	s.mux.HandleFunc("GET /complete", s.complete)
 	s.mux.HandleFunc("GET /media/{path...}", s.media)
 	s.mux.HandleFunc("POST /save", s.save)
+	s.mux.HandleFunc("POST /diagram", s.diagram)
 	s.mux.HandleFunc("POST /render", s.startRender)
 	s.mux.HandleFunc("POST /render/select", s.selectRender)
 	s.mux.HandleFunc("GET /render/status", s.renderStatus)
@@ -337,17 +328,6 @@ type configEntry struct {
 	Title       string
 	Description string
 	Href        string
-}
-
-// previewCSSView is the page data for the custom preview stylesheet editor.
-type previewCSSView struct {
-	// File is the stylesheet currently being edited; Files lists all of
-	// them so the editor can offer a way to switch and to add another.
-	File    string
-	Files   []string
-	CSS     string
-	Message string
-	Error   string
 }
 
 // renderView is what the render panel shows: the project's topics with the
@@ -540,9 +520,9 @@ func (s *server) config(w http.ResponseWriter, r *http.Request) {
 // configView is the Config overview. The caller must hold s.mu.
 func (s *server) configView() configView {
 	return configView{Release: s.releaseView(), Entries: []configEntry{{
-		Title:       "Preview: Custom CSS",
-		Description: "Override the built-in Markdown preview styles.",
-		Href:        "/config/preview-css",
+		Title:       "Configuration files",
+		Description: "Edit the open project's folio.yml, its _brand.yml and its preview stylesheets, and folio's own config.cue.",
+		Href:        "/config/files",
 	}, {
 		Title:       "Copyedit: Editing tasks",
 		Description: "Write the prompts the copyedit tab offers.",
@@ -559,26 +539,7 @@ func (s *server) configView() configView {
 		Title:       "Comments: Your name",
 		Description: "Set the name the comments and replies you write are signed with.",
 		Href:        "/config/user",
-	}, {
-		Title:       "Project: folio.yml",
-		Description: "Edit the open project's configuration file: its formats, audiences, topics, and web settings.",
-		Href:        "/config/project-file",
-	}, {
-		Title:       "Brand: _brand.yml",
-		Description: "Edit the brand file that styles the open project's outputs: its colors, typography, logo, and cover page.",
-		Href:        "/config/brand-file",
-	}, {
-		Title:       "folio: config.cue",
-		Description: "Edit folio's own settings file, with the schema it is checked against.",
-		Href:        "/config/settings-file",
 	}}}
-}
-
-func (s *server) previewCSSEditor(w http.ResponseWriter, r *http.Request) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	file := s.cssFileParam(r.URL.Query().Get("file"))
-	s.render(w, "preview-css-page", previewCSSView{File: file, Files: s.cssFiles(), CSS: s.loadCSS(file)})
 }
 
 // cssFileParam validates a requested stylesheet name against the ones that
@@ -589,46 +550,6 @@ func (s *server) cssFileParam(name string) string {
 		return name
 	}
 	return s.activeCSS()
-}
-
-// savePreviewCSSHandler writes the named stylesheet. It parses explicitly
-// because the stylesheet is the user's own text, and a failed or malformed
-// form must not read as "save succeeded" by replacing it with an empty file.
-func (s *server) savePreviewCSSHandler(w http.ResponseWriter, r *http.Request) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if err := r.ParseForm(); err != nil {
-		file := s.cssFileParam(r.FormValue("file"))
-		s.render(w, "preview-css-page", previewCSSView{File: file, Files: s.cssFiles(), CSS: s.loadCSS(file), Error: err.Error()})
-		return
-	}
-	file := s.cssFileParam(r.PostForm.Get("file"))
-	if !r.PostForm.Has("css") {
-		s.render(w, "preview-css-page", previewCSSView{File: file, Files: s.cssFiles(), CSS: s.loadCSS(file), Error: "missing css field"})
-		return
-	}
-	css := r.PostForm.Get("css")
-	view := previewCSSView{File: file, Files: s.cssFiles(), CSS: css, Message: "Saved."}
-	if err := s.saveCSS(file, css); err != nil {
-		view.Message = ""
-		view.Error = err.Error()
-	}
-	s.render(w, "preview-css-page", view)
-}
-
-// newPreviewCSSHandler adds an alternate custom stylesheet, named by the
-// form, and opens it in the editor.
-func (s *server) newPreviewCSSHandler(w http.ResponseWriter, r *http.Request) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	r.ParseForm()
-	name, err := s.createCSS(r.FormValue("name"))
-	if err != nil {
-		file := s.activeCSS()
-		s.render(w, "preview-css-page", previewCSSView{File: file, Files: s.cssFiles(), CSS: s.loadCSS(file), Error: err.Error()})
-		return
-	}
-	s.render(w, "preview-css-page", previewCSSView{File: name, Files: s.cssFiles(), CSS: s.loadCSS(name), Message: "Created."})
 }
 
 // setActiveCSSHandler remembers which stylesheet the live preview shows.

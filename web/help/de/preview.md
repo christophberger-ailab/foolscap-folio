@@ -6,6 +6,7 @@ Die Vorschau ist eine Näherung. Sie wird im Browser aus deinem Markdown gezeich
 
 ## Was sie zeigt
 
+- Ein Block ```` ```{mermaid} ```` wird als sein Diagramm gezeichnet, wie ein Rendern es zeichnet; ein einfacher Block ```` ```mermaid ```` bleibt Code.
 - Quarto-Fenced-Divs (`::: name`) und Bracketed Spans (`[text]{.name}`) bekommen ihre Klasse, sodass dein eigenes CSS sie gestalten kann.
 - Der Attributblock einer Überschrift, etwa `{.unnumbered}`, wird weggelassen, weil er das Rendering steuert und nicht zum Inhalt der Überschrift gehört. Überschriften in Codeblöcken bleiben unberührt.
 - Eine Seite, die für eine Zielgruppe geschrieben ist, wird innerhalb des Divs dieser Gruppe angezeigt. Das gilt, wenn der Dateiname oder ein Ordner darüber auf `_FW` oder `_POL` endet (der tiefste Name gewinnt). Das Stylesheet färbt und markiert dann die ganze Seite, wie es bei einem `::: fw`- oder `::: pol`-Block geschieht. Das Frontmatter bleibt außerhalb des Divs.
@@ -40,6 +41,6 @@ Unter der Vorschau öffnen `◀ Previous` und `Next ▶` die Seite vor oder nach
 
 ## Eigenes CSS
 
-Hast du mehr als ein eigenes Stylesheet, wechselt ein Dropdown unter der Vorschau zwischen ihnen. Die Wahl wird gemerkt, und die Vorschau lädt neu, um sie anzuwenden. Wie du die Stylesheets schreibst, steht unter [Konfigurationsseiten und Einstellungsdatei](settings.md).
+Die Vorschau wird mit den Stylesheets des Projekts in `assets/styles/folio` gestaltet. Hat das Projekt mehr als eines, wechselt ein Dropdown unter der Vorschau zwischen ihnen. Die Wahl wird gemerkt, und die Vorschau lädt neu, um sie anzuwenden. Wie du die Stylesheets schreibst, steht unter [Konfigurationsseiten und Einstellungsdatei](settings.md).
 
 Zurück zum [Inhalt](index.md).

@@ -115,6 +115,8 @@ A project can name its own address in its `folio.yml` (`web: {baseurl: localhost
 
 The UI shows the project's page tree, reorders pages by drag and drop (which rewrites the `order:` front matter and shifts the moved page's headings), creates, edits and deletes pages with a live Markdown preview, searches the whole project, and runs renders in the background from the same flow `folio render` uses. The render selection and the page last open are remembered per project in the settings file (below).
 
+A ```` ```{mermaid} ```` block is drawn in the preview as it is in a render: the server draws it with the same renderer and the preview shows the diagram, so it looks as it does on the website. A plain ```` ```mermaid ```` block stays code, as in a render.
+
 A page marked `draft: true` in its front matter is greyed out in the tree: it is there, but it is not part of what a render publishes yet. A page written for one audience — an `_FW` or `_POL` suffix on its name or on a folder above it — is previewed inside that audience's `::: fw` / `::: pol` div, the way the flattener wraps it, so the custom preview stylesheet tints and marks the whole page just as it marks such a block written into the page by hand.
 
 Beside the editor sit the Markdown preview and a copyedit pane. The *Preview* and *Copyedit* buttons show and hide each on its own; with both shown they stand side by side, a pane's head dragged onto the other swaps them, and every divider can be dragged to resize. The copyedit pane lists the editing tasks configured under *Config → Copyedit: Editing tasks* — each one a prompt with a title, "Passive voice", "Shorten sentences". Clicking one sends the text the editor holds, unsaved edits and all, to the model selected in the pane's dropdown, and answers with a list of suggestions: what to change, what to put there instead, and why. Each suggestion's passage is highlighted in the editor, and clicking the suggestion scrolls to it; a Back button returns to the task list and takes the highlights off the text.
@@ -192,7 +194,7 @@ update: {
 
 ### Settings
 
-Everything the UI remembers between runs lives in one file, `<user config dir>/folio/config.cue`: the projects opened before, the render selection and last open page per project, which preview stylesheet is active, the copyediting setup, the external editors' command lines, and where to look for updates. The stylesheets themselves stay beside it in `custom-css/`, being CSS rather than settings. A settings directory from before the rename, `<user config dir>/qm/`, is moved to `folio/` on the first start.
+Everything the UI remembers between runs lives in one file, `<user config dir>/folio/config.cue`: the projects opened before, the render selection and last open page per project, which preview stylesheet is active, the copyediting setup, the external editors' command lines, and where to look for updates. The preview stylesheets themselves belong to the project, in `assets/styles/folio/`: they mark the project's own topics and audiences, and a website of every topic links `all.css` (or `all.scss`) from there. A settings directory from before the rename, `<user config dir>/qm/`, is moved to `folio/` on the first start.
 
 The file is CUE because it carries its own schema. The definitions are written into it above the settings, so the file says what belongs in it and in what shape, and every read is checked against them:
 
@@ -501,6 +503,10 @@ The old `_quarto*.yml` files are **not read anymore** by `folio` itself. Delete 
   and the flattener wraps variant content in a `::: fw` / `::: pol` div. That
   div is conditional like any other: it is kept for an audience named `fw`
   (or `pol`) or one that lists the class under `show:`.
+- A file or folder whose name ends in an audience's `audience-template`
+  variable (say `chapter1_DEV` for `dev: {vars: {audience-template: _DEV}}`)
+  belongs to that audience: a render for any other audience leaves it out,
+  with everything below it.
 - Pages can be written as `.qmd` or `.md`.
 
 ## Repository layout

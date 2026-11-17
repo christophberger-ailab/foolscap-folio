@@ -1,10 +1,10 @@
 package web
 
-// configfile.go — the Config area's editors for the configuration files
-// themselves: the project's folio.yml, its _brand.yml, and folio's own
-// config.cue.
+// configfile.go — the Config area's page for the configuration files
+// themselves, a tab per file: the project's folio.yml, its _brand.yml and
+// its preview stylesheets, and folio's own config.cue.
 //
-// Both editors check what they are given the way the file is checked when
+// The editors check what they are given the way the file is checked when
 // it is read, and write nothing that does not check out: a file the next
 // start cannot read is worse than an edit that was refused.
 
@@ -26,8 +26,13 @@ const keyHidden = "(stored key, not shown)"
 
 // configFileView is the page data of a configuration file editor.
 type configFileView struct {
-	// Kind picks the page's explanation: "project", "brand" or "settings".
+	// Kind is the tab shown, which picks the page's explanation:
+	// "project", "brand", "css" or "settings".
 	Kind string
+	// File is the stylesheet the css tab edits, one of Files, the
+	// project's stylesheets.
+	File  string
+	Files []string
 	// Action is where the form posts; Mode the CodeMirror mode.
 	Action, Mode string
 	// Path is the file being edited; Text what the editor holds.
@@ -52,7 +57,7 @@ func formText(r *http.Request) (string, error) {
 // projectFileView describes the open project's folio.yml, or its legacy
 // qm.yml. The caller must hold s.mu.
 func (s *server) projectFileView() configFileView {
-	v := configFileView{Kind: "project", Action: "/config/project-file", Mode: "yaml"}
+	v := configFileView{Kind: "project", Action: "/config/files/project", Mode: "yaml"}
 	if s.root == "" {
 		v.Unavailable = "Open a project in the app first: folio.yml belongs to a project."
 		return v
@@ -69,10 +74,81 @@ func (s *server) projectFileView() configFileView {
 	return v
 }
 
-func (s *server) projectFilePage(w http.ResponseWriter, r *http.Request) {
+// configFilesPage shows a tab of the configuration files page; the
+// project's folio.yml without one.
+func (s *server) configFilesPage(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.render(w, "config-file-page", s.projectFileView())
+	var v configFileView
+	switch r.PathValue("tab") {
+	case "", "project":
+		v = s.projectFileView()
+	case "brand":
+		v = s.brandFileView()
+	case "css":
+		v = s.cssFileView(r.URL.Query().Get("file"))
+	case "settings":
+		v = s.settingsFileView()
+	default:
+		http.NotFound(w, r)
+		return
+	}
+	s.render(w, "config-file-page", v)
+}
+
+// cssFileView describes the project's stylesheet named file, or the active
+// one. While the project has none, it is the built-in stylesheet, which
+// saving puts into the project. The caller must hold s.mu.
+func (s *server) cssFileView(file string) configFileView {
+	v := configFileView{Kind: "css", Action: "/config/files/css", Mode: "css"}
+	if s.root == "" {
+		v.Unavailable = "Open a project in the app first: the preview stylesheets belong to a project."
+		return v
+	}
+	v.Files = s.cssFiles()
+	v.File = s.cssFileParam(file)
+	v.Path = filepath.Join(s.styleDir(), v.File)
+	v.Text = s.loadCSS(v.File)
+	return v
+}
+
+// saveCSSFileHandler writes a stylesheet of the project. A form that cannot
+// be read saves nothing: the stylesheet is the user's own text, and a
+// malformed form must not read as an empty file.
+func (s *server) saveCSSFileHandler(w http.ResponseWriter, r *http.Request) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	text, err := formText(r)
+	v := s.cssFileView(r.PostForm.Get("file"))
+	if v.Unavailable != "" {
+		s.render(w, "config-file-page", v)
+		return
+	}
+	if err == nil {
+		v.Text = text
+		err = s.saveCSS(v.File, text)
+	}
+	if err != nil {
+		v.Error = err.Error()
+	} else {
+		v.Files, v.Message = s.cssFiles(), "Saved."
+	}
+	s.render(w, "config-file-page", v)
+}
+
+// newCSSFileHandler adds a stylesheet to the project, named by the form,
+// and opens it in the editor.
+func (s *server) newCSSFileHandler(w http.ResponseWriter, r *http.Request) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	name, err := s.createCSS(r.PostFormValue("name"))
+	v := s.cssFileView(name)
+	if err != nil {
+		v.Error = err.Error()
+	} else if v.Unavailable == "" {
+		v.Message = "Created."
+	}
+	s.render(w, "config-file-page", v)
 }
 
 // saveProjectFileHandler writes folio.yml once it reads as a project
@@ -105,7 +181,7 @@ func (s *server) saveProjectFileHandler(w http.ResponseWriter, r *http.Request) 
 // neither, it is the project's, which saving creates. The caller must hold
 // s.mu.
 func (s *server) brandFileView() configFileView {
-	v := configFileView{Kind: "brand", Action: "/config/brand-file", Mode: "yaml"}
+	v := configFileView{Kind: "brand", Action: "/config/files/brand", Mode: "yaml"}
 	var candidates []string
 	if s.root != "" {
 		candidates = append(candidates, filepath.Join(s.root, build.BrandFile))
@@ -131,12 +207,6 @@ func (s *server) brandFileView() configFileView {
 		break
 	}
 	return v
-}
-
-func (s *server) brandFilePage(w http.ResponseWriter, r *http.Request) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.render(w, "config-file-page", s.brandFileView())
 }
 
 // saveBrandFileHandler writes _brand.yml once a render can read it.
@@ -166,7 +236,7 @@ func (s *server) saveBrandFileHandler(w http.ResponseWriter, r *http.Request) {
 // they are written to config.cue, with the API keys hidden. The caller must
 // hold s.mu.
 func (s *server) settingsFileView() configFileView {
-	v := configFileView{Kind: "settings", Action: "/config/settings-file", Path: s.configFile}
+	v := configFileView{Kind: "settings", Action: "/config/files/settings", Path: s.configFile}
 	shown := s.cfg
 	shown.Copyedit.Connections = make([]apiConnection, len(s.cfg.Copyedit.Connections))
 	for i, c := range s.cfg.Copyedit.Connections {
@@ -181,12 +251,6 @@ func (s *server) settingsFileView() configFileView {
 	}
 	v.Text = string(b)
 	return v
-}
-
-func (s *server) settingsFilePage(w http.ResponseWriter, r *http.Request) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.render(w, "config-file-page", s.settingsFileView())
 }
 
 // saveSettingsFileHandler puts the edited settings in effect and writes
