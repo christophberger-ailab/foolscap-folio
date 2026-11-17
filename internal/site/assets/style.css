@@ -548,6 +548,19 @@ figcaption {
   font-size: var(--fs-small);
   color: var(--fg-muted);
 }
+/* A Mermaid diagram drawn by folio takes the page's colors. */
+.mermaid {
+  margin: 0 0 1em;
+  text-align: center;
+  --pele-bg: var(--bg);
+  --pele-fg: var(--fg);
+  --pele-muted: var(--fg-muted);
+  --pele-line: var(--fg);
+  --pele-surface: var(--bg-soft);
+  --pele-surface-alt: var(--code-bg);
+  --pele-border: var(--border);
+  --pele-accent: var(--accent);
+}
 blockquote {
   padding: 0.2em 1em;
   border-left: 0.25em solid var(--border);

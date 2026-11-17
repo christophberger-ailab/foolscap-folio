@@ -160,6 +160,8 @@ func (w *writer) block(n ast.Node, c ctx) {
 		default:
 			w.code(markdown.Code(n, w.src), c)
 		}
+	case *markdown.Diagram:
+		w.diagram(n, c)
 	case *ast.CodeBlock:
 		w.code(markdown.Code(n, w.src), c)
 	case *ast.ThematicBreak:

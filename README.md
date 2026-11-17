@@ -480,7 +480,10 @@ The old `_quarto*.yml` files are **not read anymore** by `folio` itself. Delete 
 ### Known differences from Quarto
 
 - No slide decks (PPTX): `::: slide` blocks and `.notes` are dropped. A follow-up will bring them back.
-- Mermaid diagrams (` ```{mermaid} `) stay code blocks, with a warning.
+- Mermaid diagrams (` ```{mermaid} `) are drawn by [pele-go](https://github.com/Broderick-Westrope/pele-go),
+  a pure-Go port of Pele, rather than by Mermaid in a headless browser; the
+  diagrams look alike but not identical. A diagram pele-go cannot draw stays a
+  code block, with a warning. ` ```mermaid ` without braces is a code block.
 - No math typesetting.
 - Raw HTML links in a page are not rewritten.
 - The project's Lua filters do not run; use `show:` for audience gates.

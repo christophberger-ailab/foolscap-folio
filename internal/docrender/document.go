@@ -50,9 +50,12 @@ type Options struct {
 	Warn func(format string, args ...any)
 }
 type Run struct {
-	Text, Link, Image           string
-	ImageWidth, ImageHeight     string
-	Caption                     string // below an image alone in its paragraph
+	Text, Link, Image       string
+	ImageWidth, ImageHeight string
+	Caption                 string // below an image alone in its paragraph
+	// SVG, if set, is the image itself, drawn as an SVG file is; Image is
+	// then only its name.
+	SVG                         string
 	Bold, Italic, Code, Heading bool
 	// Role, if set, is the font role in FontRoles the text is set in.
 	Role string

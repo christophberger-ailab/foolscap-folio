@@ -20,6 +20,7 @@ func (htmlRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
 	r.Register(KindDiv, renderDiv)
 	r.Register(KindSpan, renderSpan)
 	r.Register(KindRaw, renderRaw)
+	r.Register(KindDiagram, renderDiagram)
 	r.Register(ast.KindFencedCodeBlock, renderFencedCode)
 }
 

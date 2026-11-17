@@ -9,6 +9,7 @@ import (
 	east "github.com/yuin/goldmark/extension/ast"
 
 	"github.com/christophberger-ailab/foolscap-folio/internal/markdown"
+	"github.com/christophberger-ailab/foolscap-folio/internal/mermaid"
 )
 
 // PDFMarkdown lays out a parsed and prepared Markdown document as a PDF.
@@ -33,8 +34,9 @@ func FromMarkdown(d *markdown.Document) ([]Block, error) {
 }
 
 type mdConverter struct {
-	src   []byte
-	notes map[int]ast.Node
+	src      []byte
+	notes    map[int]ast.Node
+	diagrams int
 }
 
 // Quarto's callout colours, as border and title fill.
@@ -157,6 +159,13 @@ func (c *mdConverter) block(n ast.Node, indent int) ([]Block, error) {
 		}
 		b.Code = true
 		b.Runs = []Run{{Text: strings.TrimRight(markdown.Code(x, c.src), "\n"), Code: true}}
+	case *markdown.Diagram:
+		svg, err := mermaid.Static(x.SVG)
+		if err != nil {
+			return nil, err
+		}
+		c.diagrams++
+		b.Runs = []Run{{Image: fmt.Sprintf("mermaid-%d.svg", c.diagrams), SVG: svg}}
 	case *ast.CodeBlock:
 		b.Code = true
 		b.Runs = []Run{{Text: strings.TrimRight(markdown.Code(x, c.src), "\n"), Code: true}}

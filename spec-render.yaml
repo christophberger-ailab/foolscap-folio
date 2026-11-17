@@ -80,7 +80,10 @@ constraints:
       5-7-1: A `<text>` placeholder places the text's first baseline where its own (or its first tspan's) is, through its transforms, and passes on its font family and size unless `meta: fonts:` sets them; the text is left-aligned there, or centred on it for `text-anchor: middle`, and wraps before the image's edge
       5-7-2: Any other placeholder passes on the box it draws: the text's top is at the box's top, left-aligned at its left edge, or centred if the box is centred on the image
       6: Unsupported PDF constructs produce actionable errors rather than silently discarding content
-      7: Mermaid diagrams stay code blocks, with a warning; math is not typeset
+      7: 'A fenced code block that names `mermaid` in braces, ```` ```{mermaid} ```` or ```` ```{.mermaid} ````, is a Mermaid diagram drawn as SVG by pele-go; ```` ```mermaid ```` without braces stays a code block, highlighted as Mermaid'
+      7-1: In the DOCX and the PDF a diagram is a picture of its own, centred, drawn as SVG images are (4-8) at the diagram's own size, in Pele's default colors; its labels are measured in the Go fonts it is drawn in, so they fit their boxes
+      7-2: A diagram that cannot be drawn stays a code block, and a warning names its first line and the error
+      7-3: Math is not typeset
       8: 'PPTX slide decks are not supported; `::: slide` blocks and `.notes` are dropped'
 
   BRAND:
@@ -107,6 +110,7 @@ constraints:
       1-1: The site's home page lists the topics
       2: Pages are rendered from the same tree and with the same heading demotion as a document, with the same shortcodes and conditional filter
       2-1: An image alone in its paragraph with alt text is a `<figure>` with that text as its `<figcaption>`, as Pandoc writes an implicit figure; an image among text or without alt text stays in its paragraph
+      2-1-1: A Mermaid diagram (DOCUMENT 7) is inline SVG in a `<div class="mermaid">`, centred, in the site's colors for the light and the dark scheme
       2-2: 'A `::: {.subpages title="..."}` block is replaced, at its position, by a table of the page''s subpages, one row each with the subpage''s title linking to it, the row under the pointer highlighted, as a Quarto listing of type table showing the title field; the `title` attribute is the text of the table''s one header cell, and without it the table has no header'
       2-2-1: The subpages of a folder's index page are the pages in that folder and the subfolders with an index page of their own, as one level, in sidebar order; a subfolder without an index page is not listed, nor is anything further down
       2-2-1-1: A page is named by the `title` of its front matter, else by its first heading of any level outside `::: slide` blocks, without its markup, else by its file or folder name; the table, the sidebar, the previous/next links and a document's title name it alike

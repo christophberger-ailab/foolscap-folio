@@ -280,7 +280,10 @@ func (b *builder) renderPage(p *pageInfo) error {
 			}
 		}
 		doc := markdown.Parse([]byte(md))
-		doc.Prepare(markdown.Options{Keep: b.o.Keep, Formats: b.o.Formats, Lang: b.o.Lang, CalloutTitles: b.o.CalloutTitles})
+		doc.Prepare(markdown.Options{Keep: b.o.Keep, Formats: b.o.Formats, Lang: b.o.Lang, CalloutTitles: b.o.CalloutTitles,
+			Warn: func(format string, args ...any) {
+				b.logf("warning: %s: "+format, append([]any{p.node.Page.Rel}, args...)...)
+			}})
 		b.rewriteLinks(doc, p)
 		b.expandSubpages(doc, p)
 		toc = tocOf(doc)

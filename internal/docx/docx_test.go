@@ -19,6 +19,7 @@ import (
 	"github.com/mmonterroca/docxgo/v2/domain"
 
 	"github.com/christophberger-ailab/foolscap-folio/internal/markdown"
+	"github.com/christophberger-ailab/foolscap-folio/internal/svgimage"
 )
 
 // build writes Markdown to a DOCX and returns its parts by name. Every XML
@@ -637,5 +638,29 @@ func TestHeadingFonts(t *testing.T) {
 	}
 	if !strings.Contains(doc, `<w:sz w:val="40"/><w:szCs w:val="40"/></w:rPr><w:t xml:space="preserve">code</w:t>`) {
 		t.Errorf("code in h2 lost the size:\n%s", doc)
+	}
+}
+
+// A Mermaid diagram is a picture of its own, centred, at the diagram's
+// size.
+func TestDiagram(t *testing.T) {
+	d := markdown.Parse([]byte("```{mermaid}\nflowchart LR\n  A --> B\n```\n"))
+	d.Prepare(markdown.Options{})
+	path := filepath.Join(t.TempDir(), "out.docx")
+	if err := Write(path, d, Options{}); err != nil {
+		t.Fatal(err)
+	}
+	p := readParts(t, path)
+	doc := p["word/document.xml"]
+	m := regexp.MustCompile(`<w:jc w:val="center"/></w:pPr><w:r><w:drawing><wp:inline [^>]*><wp:extent cx="(\d+)" cy="(\d+)"/>`).FindStringSubmatch(doc)
+	if m == nil {
+		t.Fatalf("no centred picture:\n%s", abbreviate(doc))
+	}
+	w, h, _ := svgimage.Size([]byte(d.Root.FirstChild().(*markdown.Diagram).SVG))
+	if m[1] != fmt.Sprint(int64(w*9525)) || m[2] != fmt.Sprint(int64(h*9525)) {
+		t.Errorf("picture %s x %s EMU, want %g x %g px", m[1], m[2], w, h)
+	}
+	if !strings.HasPrefix(p["word/media/folio-image1.png"], "\x89PNG") {
+		t.Error("no PNG of the diagram")
 	}
 }
