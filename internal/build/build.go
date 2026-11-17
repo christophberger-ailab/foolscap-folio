@@ -234,7 +234,7 @@ func Document(sel config.Selection, log Logf) (*markdown.Document, Book, error) 
 		return nil, Book{}, err
 	}
 	doc := markdown.Parse([]byte(text))
-	doc.Prepare(markdown.Options{Keep: sel.Keep, Formats: sel.Types(), Lang: sel.Config.Lang, CalloutTitles: sel.Config.CalloutTitles})
+	doc.Prepare(markdown.Options{Keep: sel.Keep, Formats: sel.Types(), Lang: sel.Config.Lang, CalloutTitles: sel.Config.CalloutTitles, Warn: warn(log)})
 	dropTitle(doc, book.Anchor)
 	vars := sel.Vars()
 	for _, f := range []struct {

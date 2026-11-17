@@ -1,6 +1,7 @@
 package docrender
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/christophberger-ailab/foolscap-folio/internal/markdown"
+	"github.com/christophberger-ailab/foolscap-folio/internal/svgimage"
 )
 
 // imageLines lays out runs as one paragraph and returns each line, with
@@ -241,5 +243,36 @@ func TestMarkdownImageCaption(t *testing.T) {
 	}
 	if got := bb[1].Runs[1].Caption; got != "" {
 		t.Errorf("inline image caption %q", got)
+	}
+}
+
+// A Mermaid diagram is drawn as its SVG is, at the diagram's own size.
+func TestMarkdownDiagram(t *testing.T) {
+	d := markdown.Parse([]byte("```{mermaid}\nflowchart LR\n  A --> B\n```\n"))
+	d.Prepare(markdown.Options{})
+	bb, err := FromMarkdown(d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(bb) != 1 || len(bb[0].Runs) != 1 || bb[0].Runs[0].SVG == "" {
+		t.Fatalf("blocks %+v", bb)
+	}
+	w := testWriter(t)
+	r := bb[0].Runs[0]
+	key, iw, ih, err := w.fitImage(r, 11, 400)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sw, sh, _ := svgimage.Size([]byte(r.SVG))
+	if iw != sw*0.75 || ih != sh*0.75 {
+		t.Errorf("size %gx%g, want %gx%g", iw, ih, sw*0.75, sh*0.75)
+	}
+	if err := w.drawImage(key, 0, 0, iw, ih); err != nil {
+		t.Fatal(err)
+	}
+	d = markdown.Parse([]byte("```{mermaid}\nflowchart LR\n  A --> B\n```\n\n::: {.callout-note}\n```{mermaid}\npie\n  \"a\": 1\n```\n:::\n"))
+	d.Prepare(markdown.Options{})
+	if err := PDFMarkdown(context.Background(), filepath.Join(t.TempDir(), "x.pdf"), d, Options{}); err != nil {
+		t.Fatal(err)
 	}
 }

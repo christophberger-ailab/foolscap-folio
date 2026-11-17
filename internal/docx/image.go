@@ -16,6 +16,7 @@ import (
 	"github.com/yuin/goldmark/ast"
 
 	"github.com/christophberger-ailab/foolscap-folio/internal/markdown"
+	"github.com/christophberger-ailab/foolscap-folio/internal/mermaid"
 	"github.com/christophberger-ailab/foolscap-folio/internal/svgimage"
 )
 
@@ -60,20 +61,28 @@ func (w *writer) image(buf *bytes.Buffer, n *ast.Image, rp runProps, c ctx) {
 		}
 		data, svg = svgimage.Placeholder(w.opt.Root), true
 	}
+	if !w.picture(buf, data, svg, alt, filepath.Base(dest), markdown.AttrsOf(n)) {
+		placeholder() // SVG in disguise, WebP, ...
+	}
+}
+
+// picture writes an inline picture of an image's data, an SVG drawn as a
+// PNG, sized by its attributes. It reports whether the data is a picture
+// it can embed.
+func (w *writer) picture(buf *bytes.Buffer, data []byte, svg bool, alt, name string, a markdown.Attrs) bool {
 	var svgW, svgH float64
+	var err error
 	if svg {
 		if svgW, svgH, err = svgimage.Size(data); err == nil {
 			data, err = svgimage.PNG(data, svgScale)
 		}
 		if err != nil {
-			placeholder()
-			return
+			return false
 		}
 	}
 	cfg, format, err := image.DecodeConfig(bytes.NewReader(data))
 	if err != nil || cfg.Width == 0 || cfg.Height == 0 {
-		placeholder() // SVG in disguise, WebP, ...
-		return
+		return false
 	}
 	ext := format // png, jpeg or gif
 	w.imgTypes[ext] = "image/" + format
@@ -82,12 +91,12 @@ func (w *writer) image(buf *bytes.Buffer, n *ast.Image, rp runProps, c ctx) {
 	if svg { // the PNG is drawn larger than the SVG's own size
 		natW, natH = int64(svgW*emuPerPx), int64(svgH*emuPerPx)
 	}
-	cx, cy := w.imageSize(markdown.AttrsOf(n), natW, natH)
+	cx, cy := w.imageSize(a, natW, natH)
 	w.drawID++
-	name := fmt.Sprintf("folio-image%d.%s", w.drawID, ext)
-	w.media = append(w.media, mediaFile{name: name, data: data})
+	media := fmt.Sprintf("folio-image%d.%s", w.drawID, ext)
+	w.media = append(w.media, mediaFile{name: media, data: data})
 	rid := fmt.Sprintf("rIdQmImg%d", w.drawID)
-	w.rels = append(w.rels, relationship{rid, relImage, "media/" + name})
+	w.rels = append(w.rels, relationship{rid, relImage, "media/" + media})
 
 	fmt.Fprintf(buf, `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0">`+
 		`<wp:extent cx="%[1]d" cy="%[2]d"/><wp:docPr id="%[3]d" name="Picture %[3]d" descr="%[4]s"/>`+
@@ -98,7 +107,8 @@ func (w *writer) image(buf *bytes.Buffer, n *ast.Image, rp runProps, c ctx) {
 		`<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="%[1]d" cy="%[2]d"/></a:xfrm>`+
 		`<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic>`+
 		`</a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`,
-		cx, cy, w.drawID, esc(alt), esc(filepath.Base(dest)), rid)
+		cx, cy, w.drawID, esc(alt), esc(name), rid)
+	return true
 }
 
 // imagePath resolves an image reference against the project root. A query
@@ -178,4 +188,19 @@ func dimension(v string, full int64) (int64, bool) {
 		return int64(f * u.emu), true
 	}
 	return 0, false
+}
+
+// diagram writes a Mermaid diagram as a centred picture.
+func (w *writer) diagram(n *markdown.Diagram, c ctx) {
+	var buf bytes.Buffer
+	svg, err := mermaid.Static(n.SVG)
+	if err != nil || !w.picture(&buf, []byte(svg), true, "", "diagram.svg", markdown.Attrs{}) {
+		if w.opt.Warn != nil {
+			w.opt.Warn("a Mermaid diagram cannot be drawn; it is left out")
+		}
+		return
+	}
+	pp := w.paraProps(c)
+	pp.jc = "center"
+	w.para(pp, buf.String())
 }

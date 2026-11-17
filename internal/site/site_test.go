@@ -2,9 +2,11 @@ package site
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -365,4 +367,22 @@ func TestLogo(t *testing.T) {
 		t.Fatal(err)
 	}
 	hasNot(t, "plain", read(t, out, "index.html"), "site-logo", `rel="icon"`)
+}
+
+// A ```{mermaid} block is drawn as a diagram; one that cannot be drawn
+// stays a code block, with a warning naming its page.
+func TestMermaid(t *testing.T) {
+	root, out := project(t)
+	write(t, root, "x/page.qmd", "---\ntitle: X Page\n---\n\n```{mermaid}\nflowchart LR\n  A[Here] --> B\n```\n\n```{mermaid}\nflowchart LR\n  A -->\n```\n")
+	o := opts(root, out)
+	var logs []string
+	o.Log = func(f string, a ...any) { logs = append(logs, fmt.Sprintf(f, a...)) }
+	if err := Build(o); err != nil {
+		t.Fatal(err)
+	}
+	page := read(t, out, "x/page.html")
+	has(t, "x/page", page, `<div class="mermaid"><svg `, ">Here</text>", `<pre class="sourceCode mermaid">`)
+	if !slices.ContainsFunc(logs, func(l string) bool { return strings.Contains(l, "x/page.qmd") && strings.Contains(l, "Mermaid") }) {
+		t.Errorf("no warning naming the page in %q", logs)
+	}
 }

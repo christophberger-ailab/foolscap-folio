@@ -54,9 +54,6 @@ func TestShortcodes(t *testing.T) {
 	if !strings.Contains(out, "```\n{{< include /assets/colophon.md >}}\n```") {
 		t.Errorf("an include inside a code fence was expanded:\n%s", out)
 	}
-	if sc.Mermaid() != 1 {
-		t.Errorf("mermaid blocks: got %d, want 1", sc.Mermaid())
-	}
 	// Each unsupported shortcode is reported once; so is an undefined variable.
 	if len(warnings) != 2 {
 		t.Errorf("warnings = %q; want one for the kbd shortcode and one for the variable", warnings)

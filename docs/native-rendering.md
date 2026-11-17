@@ -127,8 +127,9 @@ What the comparison turned up, and the renderer therefore does as Quarto does:
   (they change the layout Pandoc picks for a slide), and a callout becomes a
   block quote headed by its title in bold.
 
-Known gaps: Mermaid diagrams (only Quarto, with a headless Chrome, draws
-them) stay code blocks; shortcodes other than `include`, `pagebreak` and
+Mermaid diagrams are drawn by pele-go, a pure-Go port of Pele, not by
+Mermaid in a headless Chrome as Quarto does, so they look alike but not
+identical. Known gaps: shortcodes other than `include`, `pagebreak` and
 `var` are not resolved; a `filters:` entry with a Quarto entry point (`at:`)
 is rejected.
 

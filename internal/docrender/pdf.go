@@ -807,12 +807,13 @@ func (w *pdfWriter) table(b Block) error {
 // An image that is not there gets the project's placeholder in its place,
 // with a warning; an SVG is drawn as a PNG made from it.
 func (w *pdfWriter) fitImage(r Run, size, width float64) (key string, iw, ih float64, err error) {
-	key, err = resource(w.root, r.Image)
-	if err != nil {
-		return "", 0, 0, err
-	}
 	var cw, ch float64
-	if info, statErr := os.Stat(key); statErr != nil || !info.Mode().IsRegular() {
+	if r.SVG != "" {
+		key = r.Image
+		cw, ch, err = w.raster(key, []byte(r.SVG))
+	} else if key, err = resource(w.root, r.Image); err != nil {
+		return "", 0, 0, err
+	} else if info, statErr := os.Stat(key); statErr != nil || !info.Mode().IsRegular() {
 		if !w.warned[r.Image] && w.warn != nil {
 			w.warn("image %q not found; the placeholder stands in for it", r.Image)
 		}

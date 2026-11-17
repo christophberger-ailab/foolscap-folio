@@ -57,7 +57,6 @@ type Expander struct {
 	warn func(format string, args ...any)
 
 	warned   map[string]bool
-	mermaid  int
 	includes int
 }
 
@@ -84,9 +83,6 @@ func (s *Expander) expand(text, dir string, depth int, stack []string) (string, 
 	var fence codeFence
 	for _, line := range lines {
 		if fence.step(line) {
-			if fence.opening && fence.mermaid {
-				s.mermaid++
-			}
 			out = append(out, line)
 			continue
 		}
@@ -197,18 +193,14 @@ var varRef = regexp.MustCompile(`\{\{<\s*var\s+([^\s>]+)\s*>\}\}`)
 
 // codeFence tracks whether a line belongs to a fenced code block.
 type codeFence struct {
-	open    bool
-	char    byte
-	width   int
-	mermaid bool
-	// opening is true on the line that opens the current block.
-	opening bool
+	open  bool
+	char  byte
+	width int
 }
 
 // step feeds one line and reports whether it is part of a fenced block: its
 // fences and everything between them.
 func (f *codeFence) step(line string) bool {
-	f.opening = false
 	trimmed := strings.TrimLeft(line, " ")
 	if len(line)-len(trimmed) >= 4 && !f.open {
 		return false // an indented code block is not a fence
@@ -227,9 +219,7 @@ func (f *codeFence) step(line string) bool {
 		for n < len(trimmed) && trimmed[n] == c {
 			n++
 		}
-		info := strings.TrimSpace(trimmed[n:])
-		f.open, f.char, f.width, f.opening = true, c, n, true
-		f.mermaid = strings.HasPrefix(info, "{mermaid}") || strings.HasPrefix(info, "{.mermaid}")
+		f.open, f.char, f.width = true, c, n
 		return true
 	}
 	n := 0
@@ -241,10 +231,6 @@ func (f *codeFence) step(line string) bool {
 	}
 	return true
 }
-
-// Mermaid is the number of Mermaid code blocks seen, which only Quarto
-// could draw; they stay code.
-func (s *Expander) Mermaid() int { return s.mermaid }
 
 // Includes is the number of files included.
 func (s *Expander) Includes() int { return s.includes }

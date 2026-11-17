@@ -98,11 +98,14 @@ type Options struct {
 	CalloutTitles map[string]map[string]string
 	// Demote is added to every heading level.
 	Demote int
+	// Warn, if set, receives the problems that do not stop the render,
+	// such as a diagram that cannot be drawn.
+	Warn func(format string, args ...any)
 }
 
 // Prepare readies a parsed document for a writer: conditional content
-// removed, headings demoted, callout titles settled and every heading
-// given an identifier.
+// removed, Mermaid diagrams drawn, headings demoted, callout titles
+// settled and every heading given an identifier.
 func (d *Document) Prepare(o Options) {
 	formats := map[string]bool{}
 	for _, t := range o.Formats {
@@ -113,6 +116,7 @@ func (d *Document) Prepare(o Options) {
 		}
 	}
 	filter(d, o.Keep, formats)
+	drawDiagrams(d, o.Warn)
 	Demote(d, o.Demote)
 	settleCallouts(d, CalloutTitles(o.CalloutTitles, o.Lang))
 	AssignIDs(d)
