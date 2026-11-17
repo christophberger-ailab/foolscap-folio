@@ -4,40 +4,41 @@
 
 `Config` at the far right of the top bar opens a page listing the configuration areas. Use the `App` button at the top to return. Above the areas, a `Release` box names the folio release you are running and has a `Check for updates` button (see [The settings file](#the-settings-file) for the automatic checks). When a newer release is found, the box says so and offers an **Update to …** button, which installs it just like the top bar's **Update** button. Below the button, the release notes of every release the update brings are listed, newest first, including the ones in between when you skipped some. After an update, folio web restarts itself with the new release and the page reloads; a **What's new in …** button in the top bar then leads back here to the notes of everything the update brought. A development build is offered the newest release, whatever it is. The areas are:
 
-- `Preview: Custom CSS`: the stylesheet for the [preview](preview.md).
+- `Configuration files`: the open project's `folio.yml`, its `_brand.yml` and its preview stylesheets, and folio's own `config.cue`, as text, each on a tab of its own.
 - `Copyedit: Editing tasks` and `Copyedit: API connections`: see [copyediting](copyedit.md).
 - `External editor`: see [other editors](external-editor.md).
 - `Comments: Your name`: the name your [comments](editor.md#comments) and replies are signed with.
-- `Project: folio.yml`: the open project's configuration file, as text.
-- `Brand: _brand.yml`: the brand file that styles the open project, as text.
-- `folio: config.cue`: the settings file below, as text.
 
-## Project: folio.yml
+## Configuration files
+
+One page holds every configuration file, a tab each: `folio.yml`, `_brand.yml`, `Preview CSS` and `config.cue`. Each tab edits its file as a whole.
+
+### folio.yml
 
 Edits the open project's `folio.yml` (or its older `qm.yml`) in a text editor. `Save` checks the file the way a render reads it, so an unknown key or an output type folio cannot write is refused with the line it is on, and the file stays as it was. Saving creates `folio.yml` when the project has none. A changed listen address takes effect at the next start of `folio web`.
 
-## Brand: _brand.yml
+### _brand.yml
 
 Edits the brand file in a text editor: the project's own `_brand.yml`, or, if it has none, yours beside the settings file, which styles every project without one. With neither, saving creates the project's. `Save` checks the file the way a render reads it, so an unknown `meta: fonts:` entry or an unreadable size is refused, and the file stays as it was. The `meta:` fields `coverpage` and the font names may use `{name}` variables from `folio.yml`, such as `{audience-template}`.
 
-## folio: config.cue
+### Preview CSS
+
+The preview stylesheets belong to the project: they are the `.css` and `.scss` files in its `assets/styles/folio` folder, since what they mark are the project's own topics and audiences. A stylesheet is loaded document-wide after the app's own. To affect only the preview, scope your rules with `.markdown-preview`, for example `.markdown-preview h1 { color: rebeccapurple; }`.
+
+- Press `Save` to store it. Drag the corner of the editor to make it taller or shorter; the height is remembered.
+- To add another stylesheet, type a name such as `pol.css` under `Add a stylesheet` and press `Add stylesheet`. With more than one stylesheet, an `Editing:` dropdown switches between them.
+- The active stylesheet is chosen with the dropdown below the preview.
+- Rules like `.folio.pol:before { content: "..." }` also supply the symbols the [page tree](tree.md) shows for spans.
+- A project without stylesheets is previewed in a built-in one, which the tab shows; saving it puts it into the project as `custom.css`.
+- A website of every topic links `all.css` (or `all.scss`) from the same folder, so the published site can mark the blocks as the preview does.
+
+### config.cue
 
 Edits [the settings file](#the-settings-file) in a text editor. `Save` checks the settings against the schema and puts them in effect at once. API keys are never shown: leave `(stored key, not shown)` in place to keep a key, or type a new key over it. The same rules as for [editing by hand](#editing-by-hand) apply: comments among the settings are not kept.
 
 ## Comments: Your name
 
 `folio web` runs on your own computer, so there is no login. The comments and replies you write in the editor are signed with the name you enter here, together with the date. Leave the field empty to sign with the name you are logged in to the computer with. Double quotes, braces, and line breaks are not allowed in the name.
-
-## Preview: Custom CSS
-
-Here you write CSS that overrides the preview's built-in styles. It is loaded document-wide after the app's own stylesheet. To affect only the preview, scope your rules with `.markdown-preview`, for example `.markdown-preview h1 { color: rebeccapurple; }`.
-
-- Press `Save` to store it. Drag the corner of the editor to make it taller or shorter; the height is remembered.
-- To add another stylesheet, type a name such as `dark.css` under `Add an alternate stylesheet` and press `Add stylesheet`. With more than one stylesheet, an `Editing:` dropdown switches between them.
-- The active stylesheet is chosen with the dropdown below the preview.
-- Rules like `.folio.pol:before { content: "..." }` also supply the symbols the [page tree](tree.md) shows for spans.
-
-Stylesheets are files named `<user config dir>/folio/custom-css/*.css`. A default `custom.css` is created the first time `folio web` runs.
 
 ## The settings file
 

@@ -342,76 +342,21 @@
 </body>
 </html>{{end}}
 
-{{define "preview-css-page"}}<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Preview Custom CSS</title>
-  <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="/static/codemirror/codemirror.css">
-  <link rel="stylesheet" href="/static/app.css">
-  <script src="/static/codemirror/codemirror.js"></script>
-  <script src="/static/codemirror/css.js"></script>
-  <script src="/static/config.js" defer></script>
-</head>
-<body>
-  <header class="topbar">
-    {{template "brand"}}
-    <nav class="topbar-nav">
-      <a class="button" href="/config">Config</a>
-      <a class="button" href="/">App</a>
-    </nav>
-  </header>
-  <main class="config-main">
-    <h2>Preview: Custom CSS</h2>
-    <p class="config-intro">Add CSS that should override the built-in Markdown preview styles.</p>
-    <p class="config-intro">The stylesheet is loaded document-wide after the app's own stylesheet; scope rules with <code>.markdown-preview</code> to affect only the preview, for example <code>.markdown-preview h1 { color: rebeccapurple; }</code>.</p>
-    {{if .Error}}<div class="error">{{.Error}}</div>{{end}}
-    {{if .Message}}<div class="notice">{{.Message}}</div>{{end}}
-    {{if gt (len .Files) 1}}
-    <form class="css-file-switch" method="get" action="/config/preview-css">
-      <label for="css-file-select">Editing:</label>
-      <select name="file" id="css-file-select" onchange="this.form.submit()">
-        {{range .Files}}<option value="{{.}}"{{if eq . $.File}} selected{{end}}>{{.}}</option>{{end}}
-      </select>
-    </form>
-    {{end}}
-    <form class="config-editor" method="post" action="/config/preview-css" autocomplete="off">
-      <input type="hidden" name="file" value="{{.File}}">
-      {{/* Same two rules as the page editor: no browser restore over the
-           stylesheet the server just sent, and a leading newline in the
-           file survives the round trip. */ -}}
-      <textarea name="css" class="preview-css-content" data-mode="css" spellcheck="false" autocomplete="off">
-{{.CSS}}</textarea>
-      <div class="config-actions">
-        <button type="submit">Save</button>
-        <a class="button" href="/config">Back to Config</a>
-        <a class="button" href="/">Back to App</a>
-      </div>
-    </form>
-    <form class="css-new-file" method="post" action="/config/preview-css/new">
-      <label for="css-new-name">Add an alternate stylesheet:</label>
-      <input type="text" name="name" id="css-new-name" placeholder="dark.css" required>
-      <button type="submit">Add stylesheet</button>
-    </form>
-  </main>
-</body>
-</html>{{end}}
-
-{{/* The editor for a configuration file as a whole: the project's
-     folio.yml or _brand.yml, or folio's own config.cue. */}}
+{{/* The configuration files page: a tab per file -- the project's
+     folio.yml, its _brand.yml and its preview stylesheets, and folio's own
+     config.cue -- each an editor for the file as a whole. */}}
 {{define "config-file-page"}}<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{if eq .Kind "project"}}Project: folio.yml{{else if eq .Kind "brand"}}Brand: _brand.yml{{else}}folio: config.cue{{end}}</title>
+  <title>Configuration files: {{if eq .Kind "project"}}folio.yml{{else if eq .Kind "brand"}}_brand.yml{{else if eq .Kind "css"}}Preview CSS{{else}}config.cue{{end}}</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/static/codemirror/codemirror.css">
   <link rel="stylesheet" href="/static/app.css">
   <script src="/static/codemirror/codemirror.js"></script>
   {{if eq .Mode "yaml"}}<script src="/static/codemirror/yaml.js"></script>{{end}}
+  {{if eq .Mode "css"}}<script src="/static/codemirror/css.js"></script>{{end}}
   <script src="/static/config.js" defer></script>
 </head>
 <body>
@@ -423,18 +368,34 @@
     </nav>
   </header>
   <main class="config-main">
+    <h2>Configuration files</h2>
+    <nav class="config-tabs" aria-label="Configuration files">
+      <a href="/config/files/project"{{if eq .Kind "project"}} aria-current="page"{{end}}>folio.yml</a>
+      <a href="/config/files/brand"{{if eq .Kind "brand"}} aria-current="page"{{end}}>_brand.yml</a>
+      <a href="/config/files/css"{{if eq .Kind "css"}} aria-current="page"{{end}}>Preview CSS</a>
+      <a href="/config/files/settings"{{if eq .Kind "settings"}} aria-current="page"{{end}}>config.cue</a>
+    </nav>
     {{if eq .Kind "project"}}
-    <h2>Project: folio.yml</h2>
     <p class="config-intro"><code>folio.yml</code> configures the open project: its title, output formats, audiences, topics, variables, and where <code>folio web</code> listens. A project without one gets the defaults; saving here creates it.</p>
     <p class="config-intro">The file is checked the way a render reads it before it is saved — an unknown key or a type folio cannot write is refused, and the file stays as it was. Where <code>folio web</code> listens takes effect at its next start.</p>
     {{else if eq .Kind "brand"}}
-    <h2>Brand: _brand.yml</h2>
     <p class="config-intro"><code>_brand.yml</code> is a <a href="https://posit-dev.github.io/brand-yml/">brand.yml</a> file: its colors, typography and logo style the website, the PDF and a DOCX without a template, and its <code>meta</code> section sets the cover's fonts and the cover page template. Its <code>meta</code> fields take the <code>{name}</code> variables of <code>folio.yml</code>, such as <code>coverpage: assets/templates/cover{audience-template}.svg</code>.</p>
     <p class="config-intro">This edits the project's own <code>_brand.yml</code>, or, if it has none, yours beside folio's settings, which styles every project without one. With neither, saving creates the project's. The file is checked the way a render reads it before it is saved.</p>
+    {{else if eq .Kind "css"}}
+    <p class="config-intro">The preview stylesheets are the project's <code>.css</code> and <code>.scss</code> files in <code>assets/styles/folio</code>; the dropdown below the preview picks the one it is shown in. They mark the project's own topics and audiences, such as <code>.folio.pol:before { content: "🚔" }</code>. A website of every topic links <code>all.css</code> (or <code>all.scss</code>) from there too.</p>
+    <p class="config-intro">A stylesheet is loaded document-wide after the app's own; scope rules with <code>.markdown-preview</code> to affect only the preview, for example <code>.markdown-preview h1 { color: rebeccapurple; }</code>.</p>
+    {{if and (not .Unavailable) (not .Files)}}<p class="notice">The project has no stylesheets yet, so the preview uses the built-in one shown here. Saving it adds it to the project as <code>{{.File}}</code>.</p>{{end}}
     {{else}}
-    <h2>folio: config.cue</h2>
     <p class="config-intro"><code>config.cue</code> holds folio's own settings: the projects opened before, what is selected in each, the preview stylesheet, the copyedit tasks and connections, the external editors, your name, and the update checks. The schema at the top says what belongs in it; the settings come after <code>config: #Config &amp;</code>.</p>
     <p class="config-intro">The settings are checked against the schema before they are saved, and take effect at once. folio writes the file itself, so comments you add are not kept, and the schema is always the one this version of folio checks against. API keys are not shown: leave <code>{{keyHidden}}</code> in place to keep a key, or type a new one over it.</p>
+    {{end}}
+    {{if gt (len .Files) 1}}
+    <form class="css-file-switch" method="get" action="/config/files/css">
+      <label for="css-file-select">Editing:</label>
+      <select name="file" id="css-file-select" onchange="this.form.submit()">
+        {{range .Files}}<option value="{{.}}"{{if eq . $.File}} selected{{end}}>{{.}}</option>{{end}}
+      </select>
+    </form>
     {{end}}
     {{with .Path}}<p class="config-intro">File: <code>{{.}}</code></p>{{end}}
     {{if .Error}}<div class="error"><pre>{{.Error}}</pre></div>{{end}}
@@ -442,6 +403,9 @@
     {{if .Unavailable}}<div class="notice">{{.Unavailable}}</div>
     {{else}}
     <form class="config-editor" method="post" action="{{.Action}}" autocomplete="off">
+      {{with .File}}<input type="hidden" name="file" value="{{.}}">{{end}}
+      {{/* No browser restore over the text the server just sent, and a
+           leading newline in the file survives the round trip. */ -}}
       <textarea name="text" class="config-file-content" data-mode="{{.Mode}}" spellcheck="false" autocomplete="off">
 {{.Text}}</textarea>
       <div class="config-actions">
@@ -450,6 +414,13 @@
         <a class="button" href="/">Back to App</a>
       </div>
     </form>
+    {{if eq .Kind "css"}}
+    <form class="css-new-file" method="post" action="/config/files/css/new">
+      <label for="css-new-name">Add a stylesheet:</label>
+      <input type="text" name="name" id="css-new-name" placeholder="pol.css" required>
+      <button type="submit">Add stylesheet</button>
+    </form>
+    {{end}}
     {{end}}
   </main>
 </body>

@@ -8,6 +8,8 @@ import (
 	"slices"
 	"sort"
 	"strings"
+
+	"github.com/christophberger-ailab/foolscap-folio/internal/config"
 )
 
 // projectPrefs is what the UI remembers about a project: the render
@@ -90,18 +92,6 @@ func (s *server) saveConfig() error {
 	return saveConfigFile(s.configFile, s.cfg)
 }
 
-// cssDirFor returns the directory that holds the custom preview
-// stylesheets, beside the settings file, or "" when persistence is
-// disabled. The stylesheets are the one thing that stays out of the
-// settings file: they are CSS, and CSS belongs in .css files where an
-// editor can highlight it.
-func cssDirFor(configFile string) string {
-	if configFile == "" {
-		return ""
-	}
-	return filepath.Join(filepath.Dir(configFile), "custom-css")
-}
-
 // prefsFor returns the saved selection of the open project, or the default
 // one. The caller must hold s.mu.
 func (s *server) prefsFor(root string) projectPrefs {
@@ -140,15 +130,19 @@ func (s *server) forgetPage(rel string) {
 	}
 }
 
-// defaultCSSName is the custom stylesheet every project starts with: the
-// one baked into the binary and materialized on disk the first time the
-// app runs.
+// defaultCSSName is the name the built-in stylesheet goes by: the one the
+// preview is shown in while the project has no stylesheets of its own, and
+// the file it becomes when it is saved into the project.
 const defaultCSSName = "custom.css"
 
-// defaultCustomCSS is the stylesheet baked into the app as the default
-// content of custom.css. It ships the quarto (::: slide, ::: pol, ...)
-// preview styling that used to be a hand-written custom.css; a fresh
-// install now looks the same without any setup.
+// projectCSSDir is the project's folder of preview stylesheets. They
+// belong to the project, not the user: what they mark are the project's
+// topics and audiences.
+const projectCSSDir = config.StyleDir
+
+// defaultCustomCSS is the built-in preview stylesheet. It ships the
+// conditional-block (::: slide, ::: pol, ...) preview styling, so a
+// project looks right before it has a stylesheet of its own.
 const defaultCustomCSS = `.folio.slide {
     background: linear-gradient(135deg, #fefefe 0%, #f0f0f3 50%, #fefefe 100%);
 }
@@ -187,10 +181,10 @@ const defaultCustomCSS = `.folio.slide {
 }
 `
 
-// cssNamePattern restricts custom stylesheet file names to a safe, plain
-// subset: no path separators or leading dots, so a name can never escape
-// the css directory or collide with the ".active" marker file.
-var cssNamePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_-]*\.css$`)
+// cssNamePattern restricts stylesheet file names to a safe, plain subset:
+// no path separators or leading dots, so a name can never escape the
+// stylesheet folder.
+var cssNamePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_-]*\.s?css$`)
 
 // sanitizeCSSName normalizes a user-supplied stylesheet name: it trims
 // space, adds the .css suffix if missing, and rejects anything that is not
@@ -200,7 +194,7 @@ func sanitizeCSSName(name string) (string, error) {
 	if name == "" {
 		return "", errors.New("stylesheet name is empty")
 	}
-	if !strings.HasSuffix(name, ".css") {
+	if !isStylesheet(name) {
 		name += ".css"
 	}
 	if !cssNamePattern.MatchString(name) {
@@ -210,112 +204,104 @@ func sanitizeCSSName(name string) (string, error) {
 }
 
 // activeMarkerFile is the file the active stylesheet used to be recorded
-// in, inside the css directory. It is a setting and lives in the settings
-// file now; the name is kept so that the old marker can be read once and
-// retired (see migrate.go).
+// in, inside the css directory beside the settings. It is a setting and
+// lives in the settings file now; the name is kept so that the old marker
+// can be read once and retired (see migrate.go).
 const activeMarkerFile = ".active"
 
-// ensureDefaultCSS materializes the baked-in default stylesheet the first
-// time the app runs with this config directory: it never touches a css
-// directory that already exists, so a user who deleted or renamed
-// custom.css keeps that choice across restarts.
-func ensureDefaultCSS(dir string) {
-	if dir == "" {
-		return
-	}
-	if _, err := os.Stat(dir); err == nil {
-		return
-	}
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return
-	}
-	os.WriteFile(filepath.Join(dir, defaultCSSName), []byte(defaultCustomCSS), 0o644)
+// isStylesheet reports whether a file name is a stylesheet: .css, or
+// .scss written as plain CSS.
+func isStylesheet(name string) bool {
+	return strings.HasSuffix(name, ".css") || strings.HasSuffix(name, ".scss")
 }
 
-// cssFiles lists the custom stylesheets available, sorted by name. With
-// persistence disabled, the single baked-in default is the only one.
-// The caller must hold s.mu.
-func (s *server) cssFiles() []string {
-	if s.cssDir == "" {
-		return []string{defaultCSSName}
+// styleDir is the open project's stylesheet folder, or "" without a
+// project. The caller must hold s.mu.
+func (s *server) styleDir() string {
+	if s.root == "" {
+		return ""
 	}
-	entries, err := os.ReadDir(s.cssDir)
-	if err != nil {
-		return []string{defaultCSSName}
+	return filepath.Join(s.root, filepath.FromSlash(projectCSSDir))
+}
+
+// cssFiles lists the project's stylesheets, sorted by name; none when it
+// has none. The caller must hold s.mu.
+func (s *server) cssFiles() []string {
+	entries, err := os.ReadDir(s.styleDir())
+	if s.root == "" || err != nil {
+		return nil
 	}
 	var names []string
 	for _, e := range entries {
-		if !e.IsDir() && strings.HasSuffix(e.Name(), ".css") {
+		if e.Type().IsRegular() && cssNamePattern.MatchString(e.Name()) {
 			names = append(names, e.Name())
 		}
-	}
-	if len(names) == 0 {
-		return []string{defaultCSSName}
 	}
 	sort.Strings(names)
 	return names
 }
 
-// loadCSS reads a stylesheet by name. Missing or unreadable files behave
-// like an empty stylesheet because the preview must still load; the
-// baked-in default is served from memory when persistence is disabled.
-// The caller must hold s.mu.
+// loadCSS reads one of the project's stylesheets by name. While the
+// project has none, it is the built-in stylesheet; a name that is not
+// there, or a file that cannot be read, is an empty stylesheet, for the
+// preview must still load. The caller must hold s.mu.
 func (s *server) loadCSS(name string) string {
-	if s.cssDir == "" {
-		if name == defaultCSSName || name == "" {
-			return defaultCustomCSS
-		}
+	files := s.cssFiles()
+	if len(files) == 0 {
+		return defaultCustomCSS
+	}
+	if !slices.Contains(files, name) {
 		return ""
 	}
-	b, err := os.ReadFile(filepath.Join(s.cssDir, name))
+	b, err := os.ReadFile(filepath.Join(s.styleDir(), name))
 	if err != nil {
 		return ""
 	}
 	return string(b)
 }
 
-// saveCSS writes a stylesheet by name. The caller reports failures in the
-// UI; the in-memory request has already been handled, so the server keeps
-// running even when persistence fails. The caller must hold s.mu.
+// saveCSS writes a stylesheet into the project's stylesheet folder, which
+// it creates if need be. The caller must hold s.mu.
 func (s *server) saveCSS(name, css string) error {
-	if s.cssDir == "" {
-		return errors.New("no config directory available")
+	dir := s.styleDir()
+	if dir == "" {
+		return errors.New("open a project first: the stylesheets belong to a project")
 	}
-	if err := os.MkdirAll(s.cssDir, 0o755); err != nil {
+	if !cssNamePattern.MatchString(name) {
+		return errors.New("invalid stylesheet name")
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(s.cssDir, name), []byte(css), 0o644)
+	return os.WriteFile(filepath.Join(dir, name), []byte(css), 0o644)
 }
 
-// createCSS adds a new, empty alternate stylesheet and returns its final
-// (sanitized) file name. The caller must hold s.mu.
+// createCSS adds a new, empty stylesheet to the project and returns its
+// final (sanitized) file name. The caller must hold s.mu.
 func (s *server) createCSS(name string) (string, error) {
 	clean, err := sanitizeCSSName(name)
 	if err != nil {
 		return "", err
 	}
-	if s.cssDir == "" {
-		return "", errors.New("no config directory available")
-	}
-	if _, err := os.Stat(filepath.Join(s.cssDir, clean)); err == nil {
+	if slices.Contains(s.cssFiles(), clean) {
 		return "", errors.New("a stylesheet with that name already exists")
 	}
-	if err := s.saveCSS(clean, ""); err != nil {
-		return "", err
-	}
-	return clean, nil
+	return clean, s.saveCSS(clean, "")
 }
 
 // activeCSS returns the stylesheet the live preview currently shows: the
-// one last selected in the dropdown, falling back to the first available
-// stylesheet when nothing was selected yet or the selection names a file
-// that is no longer there. The caller must hold s.mu.
+// one last selected in the dropdown, falling back to the project's first
+// when the selection names none of its stylesheets, and to the built-in
+// one when it has none. The caller must hold s.mu.
 func (s *server) activeCSS() string {
 	files := s.cssFiles()
-	if slices.Contains(files, s.cfg.Preview.CSS) {
+	switch {
+	case slices.Contains(files, s.cfg.Preview.CSS):
 		return s.cfg.Preview.CSS
+	case len(files) > 0:
+		return files[0]
 	}
-	return files[0]
+	return defaultCSSName
 }
 
 // setActiveCSS remembers name as the stylesheet the live preview shows.

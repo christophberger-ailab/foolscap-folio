@@ -50,37 +50,73 @@ func TestAppLinksConfigAndPreviewStylesheet(t *testing.T) {
 	}
 }
 
-func TestConfigPageListsPreviewCSSEntry(t *testing.T) {
+// The Config overview leads to the configuration files by one entry: the
+// page that holds all of them as tabs (#91).
+func TestConfigPageListsTheFilesOnce(t *testing.T) {
 	srv, _ := configTestServer(t)
 	rec := get(t, srv, "/config")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status %d: %s", rec.Code, rec.Body)
 	}
 	body := rec.Body.String()
-	for _, want := range []string{
-		"Preview: Custom CSS",
-		`href="/config/preview-css"`,
-		`href="/"`,
-	} {
-		if !strings.Contains(body, want) {
-			t.Errorf("config page missing %q:\n%s", want, body)
+	if !strings.Contains(body, `href="/config/files"`) || !strings.Contains(body, "Configuration files") {
+		t.Errorf("config page does not lead to the configuration files:\n%s", body)
+	}
+	for _, gone := range []string{"/config/preview-css", "/config/project-file", "/config/brand-file", "/config/settings-file"} {
+		if strings.Contains(body, gone) {
+			t.Errorf("config page still links %s:\n%s", gone, body)
 		}
+	}
+}
+
+// Every file has a tab on the one page, and the page marks the tab shown.
+func TestConfigFilesPageHasATabPerFile(t *testing.T) {
+	srv, _ := configTestServer(t)
+	if rec := get(t, srv, "/config/files"); rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "folio.yml") {
+		t.Fatalf("/config/files: status %d:\n%s", rec.Code, rec.Body)
+	}
+	for _, tab := range []string{"css", "project", "brand", "settings"} {
+		body := get(t, srv, "/config/files/"+tab).Body.String()
+		for _, other := range []string{"css", "project", "brand", "settings"} {
+			if !strings.Contains(body, `href="/config/files/`+other+`"`) {
+				t.Errorf("tab %s does not link tab %s:\n%s", tab, other, body)
+			}
+		}
+		if !strings.Contains(body, `href="/config/files/`+tab+`" aria-current="page"`) {
+			t.Errorf("tab %s is not marked as the one shown:\n%s", tab, body)
+		}
+	}
+	if rec := get(t, srv, "/config/files/nosuch"); rec.Code != http.StatusNotFound {
+		t.Errorf("unknown tab: status %d, want 404", rec.Code)
+	}
+}
+
+// cssDir is where the fixture project keeps its preview stylesheets.
+func cssDir(root string) string { return filepath.Join(root, filepath.FromSlash(projectCSSDir)) }
+
+func writeCSS(t *testing.T, root, name, css string) {
+	t.Helper()
+	if err := os.MkdirAll(cssDir(root), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(cssDir(root), name), []byte(css), 0o644); err != nil {
+		t.Fatal(err)
 	}
 }
 
 func TestPreviewCSSEditorServesCodeMirrorCSSMode(t *testing.T) {
 	srv, _ := configTestServer(t)
-	rec := get(t, srv, "/config/preview-css")
+	rec := get(t, srv, "/config/files/css")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status %d: %s", rec.Code, rec.Body)
 	}
 	body := rec.Body.String()
 	for _, want := range []string{
-		`<textarea name="css" class="preview-css-content"`,
+		`<textarea name="text" class="config-file-content" data-mode="css"`,
 		`src="/static/codemirror/codemirror.js"`,
 		`src="/static/codemirror/css.js"`,
 		`src="/static/config.js"`,
-		"loaded document-wide after the app's own stylesheet",
+		"assets/styles/folio",
 		".markdown-preview h1 { color: rebeccapurple; }",
 		`href="/config"`,
 		`href="/"`,
@@ -108,17 +144,19 @@ func TestPreviewCSSEditorServesCodeMirrorCSSMode(t *testing.T) {
 	}
 }
 
+// Saving a stylesheet writes it into the project, where the preview reads
+// it from (#89).
 func TestPreviewCSSSaveAndServe(t *testing.T) {
-	srv, _ := configTestServer(t)
+	srv, root := configTestServer(t)
 	css := ".markdown-preview h1 { color: red; }\n"
-	rec := post(t, srv, "/config/preview-css", url.Values{"file": {defaultCSSName}, "css": {css}})
+	rec := post(t, srv, "/config/files/css", url.Values{"file": {defaultCSSName}, "text": {css}})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("save: status %d: %s", rec.Code, rec.Body)
 	}
 	if !strings.Contains(rec.Body.String(), "Saved.") {
 		t.Errorf("save response missing status:\n%s", rec.Body)
 	}
-	if got, err := os.ReadFile(filepath.Join(srv.cssDir, defaultCSSName)); err != nil || string(got) != css {
+	if got, err := os.ReadFile(filepath.Join(cssDir(root), defaultCSSName)); err != nil || string(got) != css {
 		t.Fatalf("stored CSS = %q, %v; want %q", got, err, css)
 	}
 
@@ -140,11 +178,11 @@ func TestPreviewCSSSaveAndServe(t *testing.T) {
 func TestPreviewCSSMalformedFormKeepsSavedCSS(t *testing.T) {
 	srv, _ := configTestServer(t)
 	css := ".markdown-preview p { color: blue; }\n"
-	if rec := post(t, srv, "/config/preview-css", url.Values{"file": {defaultCSSName}, "css": {css}}); rec.Code != http.StatusOK {
+	if rec := post(t, srv, "/config/files/css", url.Values{"file": {defaultCSSName}, "text": {css}}); rec.Code != http.StatusOK {
 		t.Fatalf("initial save: status %d: %s", rec.Code, rec.Body)
 	}
 
-	req := httptest.NewRequest("POST", "/config/preview-css", strings.NewReader("file="+defaultCSSName+"&css=a;b"))
+	req := httptest.NewRequest("POST", "/config/files/css", strings.NewReader("file="+defaultCSSName+"&text=a;b"))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	rec := httptest.NewRecorder()
 	srv.ServeHTTP(rec, req)
@@ -154,9 +192,6 @@ func TestPreviewCSSMalformedFormKeepsSavedCSS(t *testing.T) {
 	}
 	if strings.Contains(body, "Saved.") {
 		t.Errorf("malformed response claims success:\n%s", body)
-	}
-	if !strings.Contains(body, css) {
-		t.Errorf("malformed response does not show saved CSS:\n%s", body)
 	}
 
 	rec = get(t, srv, "/config/preview.css?file="+defaultCSSName)
@@ -168,11 +203,11 @@ func TestPreviewCSSMalformedFormKeepsSavedCSS(t *testing.T) {
 func TestPreviewCSSEmptyFieldClearsStylesheet(t *testing.T) {
 	srv, _ := configTestServer(t)
 	css := ".markdown-preview p { color: blue; }\n"
-	if rec := post(t, srv, "/config/preview-css", url.Values{"file": {defaultCSSName}, "css": {css}}); rec.Code != http.StatusOK {
+	if rec := post(t, srv, "/config/files/css", url.Values{"file": {defaultCSSName}, "text": {css}}); rec.Code != http.StatusOK {
 		t.Fatalf("initial save: status %d: %s", rec.Code, rec.Body)
 	}
 
-	rec := post(t, srv, "/config/preview-css", url.Values{"file": {defaultCSSName}, "css": {""}})
+	rec := post(t, srv, "/config/files/css", url.Values{"file": {defaultCSSName}, "text": {""}})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("clear: status %d: %s", rec.Code, rec.Body)
 	}
@@ -185,57 +220,11 @@ func TestPreviewCSSEmptyFieldClearsStylesheet(t *testing.T) {
 	}
 }
 
-// TestDefaultCSSIsBakedIn checks that a fresh config directory gets the
-// app's built-in default stylesheet materialized as custom.css, so the
-// preview looks the same as it always has without any setup.
+// A project without stylesheets of its own is previewed in the built-in
+// one, and nothing is written for it: neither into the project nor beside
+// the user's settings (#89).
 func TestDefaultCSSIsBakedIn(t *testing.T) {
-	srv, _ := configTestServer(t)
-	rec := get(t, srv, "/config/preview.css?file="+defaultCSSName)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("stylesheet: status %d: %s", rec.Code, rec.Body)
-	}
-	if rec.Body.String() != defaultCustomCSS {
-		t.Errorf("stylesheet body = %q, want the baked-in default", rec.Body.String())
-	}
-	if got, err := os.ReadFile(filepath.Join(srv.cssDir, defaultCSSName)); err != nil || string(got) != defaultCustomCSS {
-		t.Fatalf("custom.css on disk = %q, %v; want the baked-in default", got, err)
-	}
-	if rec := get(t, srv, "/"); rec.Code != http.StatusOK {
-		t.Errorf("app page after baked-in default: status %d", rec.Code)
-	}
-}
-
-// TestDefaultCSSNotRewrittenOnRestart checks that ensureDefaultCSS never
-// touches an existing css directory: a user who cleared or replaced
-// custom.css keeps that choice across restarts.
-func TestDefaultCSSNotRewrittenOnRestart(t *testing.T) {
-	root := fixture(t)
-	prefs := filepath.Join(t.TempDir(), configFileName)
-	srv1, err := newServer(prefs)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if rec := post(t, srv1, "/config/preview-css", url.Values{"file": {defaultCSSName}, "css": {"/* mine */\n"}}); rec.Code != http.StatusOK {
-		t.Fatalf("save: status %d: %s", rec.Code, rec.Body)
-	}
-
-	srv2, err := newServer(prefs)
-	if err != nil {
-		t.Fatal(err)
-	}
-	post(t, srv2, "/open", url.Values{"path": {root}})
-	rec := get(t, srv2, "/config/preview.css?file="+defaultCSSName)
-	if rec.Body.String() != "/* mine */\n" {
-		t.Errorf("stylesheet body = %q, want the user's saved CSS to survive a restart", rec.Body.String())
-	}
-}
-
-func TestPreviewCSSRouteWithoutConfigDir(t *testing.T) {
-	// A server with persistence disabled (empty prefs file, as tests that
-	// do not exercise config use) still serves the baked-in default from
-	// memory instead of an error or a blank sheet.
-	srv, root := testServer(t)
-	_ = root
+	srv, root := configTestServer(t)
 	rec := get(t, srv, "/config/preview.css")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("stylesheet: status %d: %s", rec.Code, rec.Body)
@@ -246,52 +235,92 @@ func TestPreviewCSSRouteWithoutConfigDir(t *testing.T) {
 	if rec.Body.String() != defaultCustomCSS {
 		t.Errorf("stylesheet body = %q, want the baked-in default", rec.Body.String())
 	}
+	if _, err := os.Stat(cssDir(root)); err == nil {
+		t.Error("the project got a stylesheet directory it did not ask for")
+	}
+	if _, err := os.Stat(filepath.Join(filepath.Dir(srv.configFile), "custom-css")); err == nil {
+		t.Error("stylesheets were written beside the user's settings")
+	}
+	if rec := get(t, srv, "/"); rec.Code != http.StatusOK {
+		t.Errorf("app page after baked-in default: status %d", rec.Code)
+	}
 }
 
-// TestAddAlternateCSSFile checks that adding a second stylesheet works and
-// that its dropdown only shows up once there is more than one to choose
-// from.
-func TestAddAlternateCSSFile(t *testing.T) {
-	srv, _ := configTestServer(t)
+func TestPreviewCSSRouteWithoutConfigDir(t *testing.T) {
+	srv, _ := testServer(t)
+	rec := get(t, srv, "/config/preview.css")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("stylesheet: status %d: %s", rec.Code, rec.Body)
+	}
+	if rec.Body.String() != defaultCustomCSS {
+		t.Errorf("stylesheet body = %q, want the baked-in default", rec.Body.String())
+	}
+}
 
-	// With only the default stylesheet, no switcher is offered anywhere.
-	if body := get(t, srv, "/config/preview-css").Body.String(); strings.Contains(body, `id="css-file-select"`) {
+// The preview's dropdown offers the project's stylesheets, .css and .scss,
+// once there is more than one to choose from (#89).
+func TestPreviewOffersTheProjectsStylesheets(t *testing.T) {
+	srv, root := configTestServer(t)
+	if body := get(t, srv, "/content?path=index.qmd").Body.String(); strings.Contains(body, `id="preview-css-select"`) {
+		t.Errorf("content pane offers a stylesheet dropdown without stylesheets:\n%s", body)
+	}
+	writeCSS(t, root, "all.scss", "/* all */\n")
+	writeCSS(t, root, "pol.css", "/* pol */\n")
+	writeCSS(t, root, "notes.txt", "not a stylesheet")
+
+	body := get(t, srv, "/content?path=index.qmd").Body.String()
+	if !strings.Contains(body, `id="preview-css-select"`) {
+		t.Fatalf("content pane missing stylesheet dropdown once two files exist:\n%s", body)
+	}
+	if preview, sel := strings.Index(body, `id="preview"`), strings.Index(body, `id="preview-css-select"`); !(preview >= 0 && preview < sel) {
+		t.Errorf("the stylesheet dropdown is not below the preview:\n%s", body)
+	}
+	for _, want := range []string{`value="all.scss"`, `value="pol.css"`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("stylesheet dropdown missing option %q:\n%s", want, body)
+		}
+	}
+	for _, unwanted := range []string{`value="notes.txt"`, `value="custom.css"`} {
+		if strings.Contains(body, unwanted) {
+			t.Errorf("stylesheet dropdown offers %q:\n%s", unwanted, body)
+		}
+	}
+	if got := get(t, srv, "/config/preview.css?file=pol.css").Body.String(); got != "/* pol */\n" {
+		t.Errorf("pol.css served as %q", got)
+	}
+}
+
+// The CSS tab edits every stylesheet of the project and adds new ones
+// there (#91).
+func TestAddAlternateCSSFile(t *testing.T) {
+	srv, root := configTestServer(t)
+	writeCSS(t, root, "pol.css", "/* pol */\n")
+
+	if body := get(t, srv, "/config/files/css").Body.String(); strings.Contains(body, `id="css-file-select"`) {
 		t.Errorf("single-file editor page unexpectedly offers a file switcher:\n%s", body)
 	}
-	if body := get(t, srv, "/content?path=index.qmd").Body.String(); strings.Contains(body, `id="preview-css-select"`) {
-		t.Errorf("single-file content pane unexpectedly offers a stylesheet dropdown:\n%s", body)
-	}
 
-	rec := post(t, srv, "/config/preview-css/new", url.Values{"name": {"dark"}})
+	rec := post(t, srv, "/config/files/css/new", url.Values{"name": {"dark"}})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("new stylesheet: status %d: %s", rec.Code, rec.Body)
 	}
 	if !strings.Contains(rec.Body.String(), "Created.") {
 		t.Errorf("new stylesheet response missing status:\n%s", rec.Body)
 	}
-	if _, err := os.Stat(filepath.Join(srv.cssDir, "dark.css")); err != nil {
-		t.Fatalf("dark.css was not created: %v", err)
+	if _, err := os.Stat(filepath.Join(cssDir(root), "dark.css")); err != nil {
+		t.Fatalf("dark.css was not created in the project: %v", err)
 	}
-
-	body := get(t, srv, "/config/preview-css").Body.String()
-	for _, want := range []string{`id="css-file-select"`, `value="custom.css"`, `value="dark.css"`} {
-		if !strings.Contains(body, want) {
-			t.Errorf("editor page missing %q after adding a stylesheet:\n%s", want, body)
+	for _, name := range []string{"../evil", "pol"} {
+		body := post(t, srv, "/config/files/css/new", url.Values{"name": {name}}).Body.String()
+		if !strings.Contains(body, `class="error"`) {
+			t.Errorf("new stylesheet %q was not refused:\n%s", name, body)
 		}
 	}
 
-	body = get(t, srv, "/content?path=index.qmd").Body.String()
-	if !strings.Contains(body, `id="preview-css-select"`) {
-		t.Errorf("content pane missing stylesheet dropdown once two files exist:\n%s", body)
-	}
-	// The dropdown says how the preview is styled, so it stands below the
-	// preview it describes rather than above it.
-	if preview, sel := strings.Index(body, `id="preview"`), strings.Index(body, `id="preview-css-select"`); !(preview >= 0 && preview < sel) {
-		t.Errorf("the stylesheet dropdown is not below the preview:\n%s", body)
-	}
-	for _, want := range []string{`value="custom.css"`, `value="dark.css"`} {
+	body := get(t, srv, "/config/files/css?file=pol.css").Body.String()
+	for _, want := range []string{`id="css-file-select"`, `value="dark.css"`, `value="pol.css" selected`, "/* pol */"} {
 		if !strings.Contains(body, want) {
-			t.Errorf("stylesheet dropdown missing option %q:\n%s", want, body)
+			t.Errorf("editor page missing %q after adding a stylesheet:\n%s", want, body)
 		}
 	}
 }
@@ -299,9 +328,9 @@ func TestAddAlternateCSSFile(t *testing.T) {
 // TestSwitchActiveCSS checks that the dropdown's persisted choice changes
 // which stylesheet the main app's <link> and /config/preview.css serve.
 func TestSwitchActiveCSS(t *testing.T) {
-	srv, _ := configTestServer(t)
-	post(t, srv, "/config/preview-css/new", url.Values{"name": {"dark.css"}})
-	post(t, srv, "/config/preview-css", url.Values{"file": {"dark.css"}, "css": {"/* dark */\n"}})
+	srv, root := configTestServer(t)
+	writeCSS(t, root, "a.css", "/* a */\n")
+	writeCSS(t, root, "dark.css", "/* dark */\n")
 
 	rec := post(t, srv, "/config/active-css", url.Values{"file": {"dark.css"}})
 	if rec.Code != http.StatusNoContent {
@@ -319,22 +348,5 @@ func TestSwitchActiveCSS(t *testing.T) {
 
 	if rec := post(t, srv, "/config/active-css", url.Values{"file": {"no-such.css"}}); rec.Code != http.StatusBadRequest {
 		t.Errorf("select unknown file: status %d, want 400", rec.Code)
-	}
-}
-
-func TestPreviewCSSRouteWithoutSavedCSS(t *testing.T) {
-	srv, _ := configTestServer(t)
-	rec := get(t, srv, "/config/preview.css")
-	if rec.Code != http.StatusOK {
-		t.Fatalf("stylesheet: status %d: %s", rec.Code, rec.Body)
-	}
-	if ct := rec.Header().Get("Content-Type"); ct != "text/css" {
-		t.Errorf("Content-Type %q, want text/css", ct)
-	}
-	if rec.Body.Len() == 0 {
-		t.Errorf("stylesheet route returned empty body, want the baked-in default")
-	}
-	if rec := get(t, srv, "/"); rec.Code != http.StatusOK {
-		t.Errorf("app page after default stylesheet: status %d", rec.Code)
 	}
 }

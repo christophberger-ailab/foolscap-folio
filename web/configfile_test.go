@@ -13,10 +13,10 @@ import (
 
 func TestConfigPageListsTheFileEditors(t *testing.T) {
 	srv, _ := configTestServer(t)
-	body := get(t, srv, "/config").Body.String()
+	body := get(t, srv, "/config/files").Body.String()
 	for _, want := range []string{
-		`href="/config/project-file"`, "Project: folio.yml",
-		`href="/config/settings-file"`, "folio: config.cue",
+		`href="/config/files/project"`, "folio.yml",
+		`href="/config/files/settings"`, "config.cue",
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("config page missing %q:\n%s", want, body)
@@ -26,7 +26,7 @@ func TestConfigPageListsTheFileEditors(t *testing.T) {
 
 func TestProjectFileEditorShowsFolioYML(t *testing.T) {
 	srv, _ := configTestServer(t)
-	rec := get(t, srv, "/config/project-file")
+	rec := get(t, srv, "/config/files/project")
 	if rec.Code != 200 {
 		t.Fatalf("status %d: %s", rec.Code, rec.Body)
 	}
@@ -35,7 +35,7 @@ func TestProjectFileEditorShowsFolioYML(t *testing.T) {
 		`<textarea name="text" class="config-file-content" data-mode="yaml"`,
 		"audiences: [std]",
 		`src="/static/codemirror/yaml.js"`,
-		`action="/config/project-file"`,
+		`action="/config/files/project"`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("editor page missing %q:\n%s", want, body)
@@ -46,7 +46,7 @@ func TestProjectFileEditorShowsFolioYML(t *testing.T) {
 func TestProjectFileSaveWritesValidYAML(t *testing.T) {
 	srv, root := configTestServer(t)
 	text := "title: Renamed\nformats:\n  pdf: {type: pdf}\n"
-	rec := post(t, srv, "/config/project-file", url.Values{"text": {text}})
+	rec := post(t, srv, "/config/files/project", url.Values{"text": {text}})
 	if !strings.Contains(rec.Body.String(), "Saved.") {
 		t.Fatalf("save not confirmed:\n%s", rec.Body)
 	}
@@ -59,7 +59,7 @@ func TestProjectFileSaveRefusesInvalidYAML(t *testing.T) {
 	srv, root := configTestServer(t)
 	before, _ := os.ReadFile(filepath.Join(root, "folio.yml"))
 	for _, text := range []string{"nosuchkey: 1\n", "formats: [\n", "formats:\n  x: {type: exe}\n"} {
-		rec := post(t, srv, "/config/project-file", url.Values{"text": {text}})
+		rec := post(t, srv, "/config/files/project", url.Values{"text": {text}})
 		body := rec.Body.String()
 		if !strings.Contains(body, `class="error"`) || strings.Contains(body, "Saved.") {
 			t.Errorf("%q: not refused:\n%s", text, body)
@@ -76,10 +76,10 @@ func TestProjectFileSaveRefusesInvalidYAML(t *testing.T) {
 func TestProjectFileEditsTheLegacyFile(t *testing.T) {
 	srv, root := configTestServer(t)
 	os.Rename(filepath.Join(root, "folio.yml"), filepath.Join(root, "qm.yml"))
-	if body := get(t, srv, "/config/project-file").Body.String(); !strings.Contains(body, "qm.yml") {
+	if body := get(t, srv, "/config/files/project").Body.String(); !strings.Contains(body, "qm.yml") {
 		t.Errorf("editor does not name qm.yml:\n%s", body)
 	}
-	post(t, srv, "/config/project-file", url.Values{"text": {"title: Legacy\n"}})
+	post(t, srv, "/config/files/project", url.Values{"text": {"title: Legacy\n"}})
 	if got, _ := os.ReadFile(filepath.Join(root, "qm.yml")); string(got) != "title: Legacy\n" {
 		t.Errorf("qm.yml = %q", got)
 	}
@@ -91,7 +91,7 @@ func TestProjectFileEditsTheLegacyFile(t *testing.T) {
 func TestProjectFileCreatesAMissingFile(t *testing.T) {
 	srv, root := configTestServer(t)
 	os.Remove(filepath.Join(root, "folio.yml"))
-	post(t, srv, "/config/project-file", url.Values{"text": {"title: New\n"}})
+	post(t, srv, "/config/files/project", url.Values{"text": {"title: New\n"}})
 	if got, _ := os.ReadFile(filepath.Join(root, "folio.yml")); string(got) != "title: New\n" {
 		t.Errorf("folio.yml = %q", got)
 	}
@@ -102,10 +102,10 @@ func TestProjectFileNeedsAnOpenProject(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if body := get(t, srv, "/config/project-file").Body.String(); !strings.Contains(body, "Open a project") || strings.Contains(body, "<textarea") {
+	if body := get(t, srv, "/config/files/project").Body.String(); !strings.Contains(body, "Open a project") || strings.Contains(body, "<textarea") {
 		t.Errorf("editor offered without a project:\n%s", body)
 	}
-	if body := post(t, srv, "/config/project-file", url.Values{"text": {"title: X\n"}}).Body.String(); !strings.Contains(body, "Open a project") {
+	if body := post(t, srv, "/config/files/project", url.Values{"text": {"title: X\n"}}).Body.String(); !strings.Contains(body, "Open a project") {
 		t.Errorf("save accepted without a project:\n%s", body)
 	}
 }
@@ -113,7 +113,7 @@ func TestProjectFileNeedsAnOpenProject(t *testing.T) {
 func TestProjectFileMissingFieldKeepsTheFile(t *testing.T) {
 	srv, root := configTestServer(t)
 	before, _ := os.ReadFile(filepath.Join(root, "folio.yml"))
-	body := post(t, srv, "/config/project-file", url.Values{}).Body.String()
+	body := post(t, srv, "/config/files/project", url.Values{}).Body.String()
 	if !strings.Contains(body, `class="error"`) {
 		t.Errorf("missing field not reported:\n%s", body)
 	}
@@ -124,12 +124,12 @@ func TestProjectFileMissingFieldKeepsTheFile(t *testing.T) {
 
 func TestSettingsFileEditorShowsConfigCUE(t *testing.T) {
 	srv, _ := configTestServer(t)
-	body := get(t, srv, "/config/settings-file").Body.String()
+	body := get(t, srv, "/config/files/settings").Body.String()
 	for _, want := range []string{
 		`<textarea name="text" class="config-file-content"`,
 		"#Config: {",
 		"config: #Config &amp; {",
-		`action="/config/settings-file"`,
+		`action="/config/files/settings"`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("editor page missing %q:\n%s", want, body)
@@ -153,7 +153,7 @@ func settingsWith(t *testing.T, edit func(*storedConfig)) string {
 func TestSettingsFileSaveAppliesAndWrites(t *testing.T) {
 	srv, _ := configTestServer(t)
 	text := settingsWith(t, func(c *storedConfig) { c.User.Name = "Ada Edited" })
-	body := post(t, srv, "/config/settings-file", url.Values{"text": {text}}).Body.String()
+	body := post(t, srv, "/config/files/settings", url.Values{"text": {text}}).Body.String()
 	if !strings.Contains(body, "Saved.") {
 		t.Fatalf("save not confirmed:\n%s", body)
 	}
@@ -181,7 +181,7 @@ func TestSettingsFileSaveRefusesInvalidCUE(t *testing.T) {
 		// schema the binary checks against.
 		checkSetting.ReplaceAllString(strings.Replace(settingsWith(t, func(*storedConfig) {}), `check: *"daily" | "hourly" | "weekly" | "never"`, `check: string`, 1), `check: "monthly"`),
 	} {
-		body := post(t, srv, "/config/settings-file", url.Values{"text": {text}}).Body.String()
+		body := post(t, srv, "/config/files/settings", url.Values{"text": {text}}).Body.String()
 		if !strings.Contains(body, `class="error"`) || strings.Contains(body, "Saved.") {
 			t.Errorf("not refused:\n%s", body)
 		}
@@ -201,7 +201,7 @@ func TestSettingsFileHidesAPIKeys(t *testing.T) {
 		{ID: "c2", Name: "Two", Kind: "openai", BaseURL: "https://api.example.com/v1", Model: "m", Key: "sk-secret-two"},
 	}
 	srv.saveConfig()
-	text := get(t, srv, "/config/settings-file").Body.String()
+	text := get(t, srv, "/config/files/settings").Body.String()
 	if strings.Contains(text, "sk-secret") {
 		t.Fatalf("an API key is sent to the browser:\n%s", text)
 	}
@@ -217,7 +217,7 @@ func TestSettingsFileHidesAPIKeys(t *testing.T) {
 			{ID: "c2", Name: "Two", Kind: "openai", BaseURL: "https://api.example.com/v1", Model: "m", Key: "sk-new-two"},
 		}
 	})
-	if body := post(t, srv, "/config/settings-file", url.Values{"text": {edited}}).Body.String(); !strings.Contains(body, "Saved.") {
+	if body := post(t, srv, "/config/files/settings", url.Values{"text": {edited}}).Body.String(); !strings.Contains(body, "Saved.") {
 		t.Fatalf("save not confirmed:\n%s", body)
 	}
 	conns := srv.cfg.Copyedit.Connections
@@ -230,7 +230,7 @@ func TestSettingsFileHidesAPIKeys(t *testing.T) {
 	bogus := settingsWith(t, func(c *storedConfig) {
 		c.Copyedit.Connections = []apiConnection{{ID: "c9", Name: "New", Kind: "openai", BaseURL: "https://x.example", Model: "m", Key: keyHidden}}
 	})
-	if body := post(t, srv, "/config/settings-file", url.Values{"text": {bogus}}).Body.String(); !strings.Contains(body, `class="error"`) {
+	if body := post(t, srv, "/config/files/settings", url.Values{"text": {bogus}}).Body.String(); !strings.Contains(body, `class="error"`) {
 		t.Errorf("a hidden key with nothing behind it was accepted:\n%s", body)
 	}
 }
@@ -240,7 +240,7 @@ func TestSettingsFileHidesAPIKeys(t *testing.T) {
 func TestCrossOriginPostsAreRefused(t *testing.T) {
 	srv, root := configTestServer(t)
 	before, _ := os.ReadFile(filepath.Join(root, "folio.yml"))
-	req := httptest.NewRequest("POST", "/config/project-file", strings.NewReader(url.Values{"text": {"title: Evil\n"}}.Encode()))
+	req := httptest.NewRequest("POST", "/config/files/project", strings.NewReader(url.Values{"text": {"title: Evil\n"}}.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Sec-Fetch-Site", "cross-site")
 	rec := httptest.NewRecorder()
@@ -256,8 +256,8 @@ func TestCrossOriginPostsAreRefused(t *testing.T) {
 // _brand.yml has an editor of its own (issue #79).
 func TestConfigPageListsTheBrandFile(t *testing.T) {
 	srv, _ := configTestServer(t)
-	body := get(t, srv, "/config").Body.String()
-	if !strings.Contains(body, `href="/config/brand-file"`) || !strings.Contains(body, "Brand: _brand.yml") {
+	body := get(t, srv, "/config/files").Body.String()
+	if !strings.Contains(body, `href="/config/files/brand"`) || !strings.Contains(body, "_brand.yml") {
 		t.Errorf("config page does not list the brand file:\n%s", body)
 	}
 }
@@ -266,9 +266,9 @@ func TestBrandFileEditorShowsAndSavesTheProjectsBrand(t *testing.T) {
 	srv, root := configTestServer(t)
 	file := filepath.Join(root, "_brand.yml")
 	os.WriteFile(file, []byte("color:\n  primary: '#336699'\n"), 0o644)
-	body := get(t, srv, "/config/brand-file").Body.String()
+	body := get(t, srv, "/config/files/brand").Body.String()
 	for _, want := range []string{
-		`data-mode="yaml"`, "primary: &#39;#336699&#39;", `action="/config/brand-file"`, file, "<title>Brand: _brand.yml</title>",
+		`data-mode="yaml"`, "primary: &#39;#336699&#39;", `action="/config/files/brand"`, file, "<title>Configuration files: _brand.yml</title>",
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("editor page missing %q:\n%s", want, body)
@@ -276,7 +276,7 @@ func TestBrandFileEditorShowsAndSavesTheProjectsBrand(t *testing.T) {
 	}
 
 	text := "meta:\n  coverpage: 'cover{audience-template}.svg'\n"
-	if rec := post(t, srv, "/config/brand-file", url.Values{"text": {text}}); !strings.Contains(rec.Body.String(), "Saved.") {
+	if rec := post(t, srv, "/config/files/brand", url.Values{"text": {text}}); !strings.Contains(rec.Body.String(), "Saved.") {
 		t.Fatalf("save not confirmed:\n%s", rec.Body)
 	}
 	if got, _ := os.ReadFile(file); string(got) != text {
@@ -284,7 +284,7 @@ func TestBrandFileEditorShowsAndSavesTheProjectsBrand(t *testing.T) {
 	}
 
 	bad := "meta:\n  fonts:\n    h9: {size: 9pt}\n"
-	body = post(t, srv, "/config/brand-file", url.Values{"text": {bad}}).Body.String()
+	body = post(t, srv, "/config/files/brand", url.Values{"text": {bad}}).Body.String()
 	if !strings.Contains(body, `class="error"`) || strings.Contains(body, "Saved.") || !strings.Contains(body, "h9") {
 		t.Errorf("not refused:\n%s", body)
 	}
@@ -301,11 +301,11 @@ func TestBrandFileEditorFallsBackToTheUsersBrand(t *testing.T) {
 	srv.mu.Lock()
 	user := userBrandIn(srv.configFile)
 	srv.mu.Unlock()
-	if body := get(t, srv, "/config/brand-file").Body.String(); !strings.Contains(body, filepath.Join(root, "_brand.yml")) {
+	if body := get(t, srv, "/config/files/brand").Body.String(); !strings.Contains(body, filepath.Join(root, "_brand.yml")) {
 		t.Errorf("with no brand file, the editor does not offer the project's:\n%s", body)
 	}
 	os.WriteFile(user, []byte("color:\n  primary: red\n"), 0o644)
-	if body := get(t, srv, "/config/brand-file").Body.String(); !strings.Contains(body, user) || !strings.Contains(body, "primary: red") {
+	if body := get(t, srv, "/config/files/brand").Body.String(); !strings.Contains(body, user) || !strings.Contains(body, "primary: red") {
 		t.Errorf("editor does not show the user's brand file:\n%s", body)
 	}
 }

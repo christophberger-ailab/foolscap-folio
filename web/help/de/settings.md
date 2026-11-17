@@ -4,40 +4,41 @@
 
 `Config` ganz rechts in der oberen Leiste öffnet eine Seite, die die Konfigurationsbereiche auflistet. Mit der Schaltfläche `App` oben kehrst du zurück. Über den Bereichen nennt ein Kasten `Release` die laufende folio-Version und bietet die Schaltfläche `Check for updates` (zu den automatischen Prüfungen siehe [Die Einstellungsdatei](#die-einstellungsdatei)). Gibt es eine neuere Version, sagt der Kasten es und bietet die Schaltfläche **Update to …**, die sie installiert wie die Schaltfläche **Update** in der oberen Leiste. Unter der Schaltfläche stehen die Release Notes aller Versionen, die das Update bringt, die neueste zuerst, auch die übersprungenen dazwischen. Nach dem Update startet folio web mit der neuen Version neu, und die Seite lädt sich neu; eine Schaltfläche **What's new in …** in der oberen Leiste führt dann hierher zu den Notes von allem, was das Update gebracht hat. Einem Entwicklungs-Build wird die neueste Version angeboten, welche es auch ist. Die Bereiche sind:
 
-- `Preview: Custom CSS`: das Stylesheet für die [Vorschau](preview.md).
+- `Configuration files`: `folio.yml`, `_brand.yml` und die Vorschau-Stylesheets des geöffneten Projekts sowie folios eigene `config.cue`, als Text, jede auf einem eigenen Reiter.
 - `Copyedit: Editing tasks` und `Copyedit: API connections`: siehe [Lektorat](copyedit.md).
 - `External editor`: siehe [andere Editoren](external-editor.md).
 - `Comments: Your name`: der Name, mit dem deine [Kommentare](editor.md#kommentare) und Antworten gezeichnet werden.
-- `Project: folio.yml`: die Konfigurationsdatei des geöffneten Projekts, als Text.
-- `Brand: _brand.yml`: die Brand-Datei, die das geöffnete Projekt gestaltet, als Text.
-- `folio: config.cue`: die unten beschriebene Einstellungsdatei, als Text.
 
-## Project: folio.yml
+## Configuration files
+
+Eine Seite enthält alle Konfigurationsdateien, jede auf einem Reiter: `folio.yml`, `_brand.yml`, `Preview CSS` und `config.cue`. Jeder Reiter bearbeitet seine Datei als Ganzes.
+
+### folio.yml
 
 Bearbeitet die `folio.yml` (oder die ältere `qm.yml`) des geöffneten Projekts in einem Texteditor. `Save` prüft die Datei so, wie ein Rendern sie liest: Ein unbekannter Schlüssel oder ein Ausgabetyp, den folio nicht schreiben kann, wird mit seiner Zeile abgelehnt, und die Datei bleibt, wie sie war. Hat das Projekt keine, legt das Speichern `folio.yml` an. Eine geänderte Adresse, auf der `folio web` lauscht, gilt ab dem nächsten Start.
 
-## Brand: _brand.yml
+### _brand.yml
 
 Bearbeitet die Brand-Datei in einem Texteditor: die eigene `_brand.yml` des Projekts oder, wenn es keine hat, deine neben der Einstellungsdatei, die jedes Projekt ohne eigene gestaltet. Gibt es keine von beiden, legt das Speichern die des Projekts an. `Save` prüft die Datei so, wie ein Rendern sie liest: Ein unbekannter Eintrag unter `meta: fonts:` oder eine unlesbare Größe wird abgelehnt, und die Datei bleibt, wie sie war. Die `meta:`-Felder `coverpage` und die Schriftnamen dürfen `{name}`-Variablen aus `folio.yml` verwenden, etwa `{audience-template}`.
 
-## folio: config.cue
+### Preview CSS
+
+Die Vorschau-Stylesheets gehören zum Projekt: Es sind die `.css`- und `.scss`-Dateien in seinem Ordner `assets/styles/folio`, denn was sie markieren, sind die Themen und Zielgruppen des Projekts. Ein Stylesheet wird dokumentweit nach dem eigenen Stylesheet der App geladen. Damit es nur die Vorschau betrifft, begrenze deine Regeln mit `.markdown-preview`, zum Beispiel `.markdown-preview h1 { color: rebeccapurple; }`.
+
+- Drücke `Save`, um es zu speichern. Ziehe an der Ecke des Editors, um ihn höher oder niedriger zu machen; die Höhe wird gemerkt.
+- Um ein weiteres Stylesheet hinzuzufügen, tippe unter `Add a stylesheet` einen Namen wie `pol.css` und drücke `Add stylesheet`. Bei mehr als einem Stylesheet wechselt ein Dropdown `Editing:` zwischen ihnen.
+- Das aktive Stylesheet wählst du mit dem Dropdown unter der Vorschau.
+- Regeln wie `.folio.pol:before { content: "..." }` liefern auch die Symbole, die der [Seitenbaum](tree.md) für Spans zeigt.
+- Ein Projekt ohne Stylesheets wird mit einem eingebauten gezeigt, das der Reiter anzeigt; Speichern legt es als `custom.css` im Projekt an.
+- Eine Website aller Themen bindet `all.css` (oder `all.scss`) aus demselben Ordner ein, damit die veröffentlichte Seite die Blöcke markieren kann wie die Vorschau.
+
+### config.cue
 
 Bearbeitet [die Einstellungsdatei](#die-einstellungsdatei) in einem Texteditor. `Save` prüft die Einstellungen gegen das Schema und setzt sie sofort in Kraft. API-Schlüssel werden nie angezeigt: Lass `(stored key, not shown)` stehen, um einen Schlüssel zu behalten, oder überschreibe es mit einem neuen. Es gilt dasselbe wie beim [Bearbeiten von Hand](#von-hand-bearbeiten): Kommentare zwischen den Einstellungen bleiben nicht erhalten.
 
 ## Comments: Your name
 
 `folio web` läuft auf deinem eigenen Rechner, daher gibt es keine Anmeldung. Die Kommentare und Antworten, die du im Editor schreibst, werden mit dem Namen gezeichnet, den du hier einträgst, zusammen mit dem Datum. Bleibt das Feld leer, wird der Name verwendet, mit dem du am Rechner angemeldet bist. Doppelte Anführungszeichen, geschweifte Klammern und Zeilenumbrüche sind im Namen nicht erlaubt.
-
-## Preview: Custom CSS
-
-Hier schreibst du CSS, das die eingebauten Stile der Vorschau überschreibt. Es wird dokumentweit nach dem eigenen Stylesheet der App geladen. Damit es nur die Vorschau betrifft, begrenze deine Regeln mit `.markdown-preview`, zum Beispiel `.markdown-preview h1 { color: rebeccapurple; }`.
-
-- Drücke `Save`, um es zu speichern. Ziehe an der Ecke des Editors, um ihn höher oder niedriger zu machen; die Höhe wird gemerkt.
-- Um ein weiteres Stylesheet hinzuzufügen, tippe unter `Add an alternate stylesheet` einen Namen wie `dark.css` und drücke `Add stylesheet`. Bei mehr als einem Stylesheet wechselt ein Dropdown `Editing:` zwischen ihnen.
-- Das aktive Stylesheet wählst du mit dem Dropdown unter der Vorschau.
-- Regeln wie `.folio.pol:before { content: "..." }` liefern auch die Symbole, die der [Seitenbaum](tree.md) für Spans zeigt.
-
-Stylesheets sind Dateien mit dem Namen `<user config dir>/folio/custom-css/*.css`. Eine Standarddatei `custom.css` wird beim ersten Start von `folio web` angelegt.
 
 ## Die Einstellungsdatei
 

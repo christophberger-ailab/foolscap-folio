@@ -194,7 +194,7 @@ update: {
 
 ### Settings
 
-Everything the UI remembers between runs lives in one file, `<user config dir>/folio/config.cue`: the projects opened before, the render selection and last open page per project, which preview stylesheet is active, the copyediting setup, the external editors' command lines, and where to look for updates. The stylesheets themselves stay beside it in `custom-css/`, being CSS rather than settings. A settings directory from before the rename, `<user config dir>/qm/`, is moved to `folio/` on the first start.
+Everything the UI remembers between runs lives in one file, `<user config dir>/folio/config.cue`: the projects opened before, the render selection and last open page per project, which preview stylesheet is active, the copyediting setup, the external editors' command lines, and where to look for updates. The preview stylesheets themselves belong to the project, in `assets/styles/folio/`: they mark the project's own topics and audiences, and a website of every topic links `all.css` (or `all.scss`) from there. A settings directory from before the rename, `<user config dir>/qm/`, is moved to `folio/` on the first start.
 
 The file is CUE because it carries its own schema. The definitions are written into it above the settings, so the file says what belongs in it and in what shape, and every read is checked against them:
 

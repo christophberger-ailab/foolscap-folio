@@ -575,7 +575,9 @@ func (s Selection) Template() (string, error) {
 	return filepath.Join(s.Config.Root, filepath.FromSlash(p)), nil
 }
 
-// Stylesheets are the absolute paths of the format's extra stylesheets.
+// Stylesheets are the absolute paths of the format's extra stylesheets,
+// and for a website of every topic the project's all.css, or else
+// all.scss, in StyleDir.
 func (s Selection) Stylesheets() ([]string, error) {
 	var out []string
 	for _, c := range s.Format.CSS {
@@ -585,7 +587,31 @@ func (s Selection) Stylesheets() ([]string, error) {
 		}
 		out = append(out, filepath.Join(s.Config.Root, filepath.FromSlash(p)))
 	}
+	if s.allTopics() {
+		for _, name := range []string{"all.css", "all.scss"} {
+			p := filepath.Join(s.Config.Root, filepath.FromSlash(StyleDir), name)
+			if fi, err := os.Stat(p); err == nil && !fi.IsDir() {
+				return append(out, p), nil
+			}
+		}
+	}
 	return out, nil
+}
+
+// StyleDir is the project's folder of folio's own stylesheets: the ones
+// the web UI's preview offers, and all.css (or all.scss), which a website
+// of every topic links.
+const StyleDir = "assets/styles/folio"
+
+// allTopics reports whether the selection is a website of every topic.
+func (s Selection) allTopics() bool {
+	n := 0
+	for _, t := range s.Config.Topics {
+		if t.Name != AllTopics {
+			n++
+		}
+	}
+	return s.Topics != nil && len(s.Topics) == n
 }
 
 // String names the selection for logs.
