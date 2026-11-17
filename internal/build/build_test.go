@@ -142,3 +142,62 @@ func TestUpdateTOCIsOptIn(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+// A render leaves out the folders and files that carry another audience's
+// audience-template suffix, and everything below them (#92).
+func TestRenderSkipsOtherAudiencesPaths(t *testing.T) {
+	root := t.TempDir()
+	for name, body := range map[string]string{
+		"folio.yml":                  "formats:\n  web: {type: html}\n  handout: {type: docx}\naudiences:\n  std:\n  abc: {vars: {audience-template: _ABC}}\n",
+		"book/index.md":              "# Book\n",
+		"book/plain.md":              "# Plain page\n",
+		"book/chapter1_ABC/index.md": "# ABC chapter\n",
+		"book/chapter1_ABC/sub.md":   "# ABC sub page\n",
+		"book/extra_ABC.md":          "# ABC page\n",
+	} {
+		p := filepath.Join(root, name)
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	cfg, err := config.Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for aud, want := range map[string]bool{"std": false, "abc": true} {
+		sels, err := cfg.Expand(config.Request{Formats: []string{"handout"}, Audiences: []string{aud}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		text, _, err := Flatten(sels[0], nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, s := range []string{"ABC chapter", "ABC sub page", "ABC page"} {
+			if got := strings.Contains(text, s); got != want {
+				t.Errorf("%s document: has %q = %v, want %v", aud, s, got, want)
+			}
+		}
+		if !strings.Contains(text, "Plain page") {
+			t.Errorf("%s document lost the plain page", aud)
+		}
+
+		sels, err = cfg.Expand(config.Request{Formats: []string{"web"}, Audiences: []string{aud}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		out := t.TempDir()
+		if err := Site(sels[0], out, nil); err != nil {
+			t.Fatal(err)
+		}
+		for _, p := range []string{"book/chapter1_ABC/index.html", "book/chapter1_ABC/sub.html", "book/extra_ABC.html"} {
+			_, err := os.Stat(filepath.Join(out, p))
+			if got := err == nil; got != want {
+				t.Errorf("%s site: has %s = %v, want %v", aud, p, got, want)
+			}
+		}
+	}
+}

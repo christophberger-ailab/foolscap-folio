@@ -300,3 +300,34 @@ func TestPreviewSection(t *testing.T) {
 		}
 	}
 }
+
+// A folder or file whose name ends in another audience's audience-template
+// is not part of the selected audience's render.
+func TestExcludes(t *testing.T) {
+	root := project(t, `
+vars: {audience-template: ""}
+audiences:
+  std:
+  abc: {vars: {audience-template: _ABC}}
+  dev: {vars: {audience-template: _DEV}}
+`, "a")
+	c, err := Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for aud, want := range map[string]map[string]bool{
+		"std": {"chapter1": false, "chapter1_ABC": true, "page_DEV": true, "chapter1_abc": true},
+		"abc": {"chapter1": false, "chapter1_ABC": false, "page_DEV": true},
+		"dev": {"chapter1": false, "chapter1_ABC": true, "page_DEV": false},
+	} {
+		sels, err := c.Expand(Request{Audiences: []string{aud}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for name, w := range want {
+			if got := sels[0].Excludes(name); got != w {
+				t.Errorf("%s: Excludes(%q) = %v, want %v", aud, name, got, w)
+			}
+		}
+	}
+}

@@ -113,6 +113,19 @@ func (n *Node) Walk(fn func(*Node)) {
 	}
 }
 
+// Drop removes the descendants of n whose name drop reports, with
+// everything below them.
+func (n *Node) Drop(drop func(name string) bool) {
+	kept := n.Children[:0]
+	for _, c := range n.Children {
+		if !drop(c.Name) {
+			c.Drop(drop)
+			kept = append(kept, c)
+		}
+	}
+	n.Children = kept
+}
+
 // LoadTree reads the book folder at dir and returns its root node.
 //
 // projectRoot is used to compute the Rel paths that in-book links are

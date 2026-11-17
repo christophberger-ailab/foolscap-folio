@@ -40,7 +40,10 @@ type Options struct {
 	CalloutTitles map[string]map[string]string
 	Topics        []Topic
 	Keep          markdown.Keep
-	Formats       []string
+	// Skip reports the folder and file names (without extension) that the
+	// site leaves out, with everything below them; may be nil.
+	Skip    func(name string) bool
+	Formats []string
 	// CSS are stylesheets, absolute paths, that every page links after the
 	// site's own. They are copied verbatim into OutDir/_site/css.
 	CSS []string
@@ -187,6 +190,9 @@ func (b *builder) load() error {
 		tree, err := bookmaker.LoadTree(dir, b.root)
 		if err != nil {
 			return fmt.Errorf("site: topic %q: %w", t.Name, err)
+		}
+		if b.o.Skip != nil {
+			tree.Drop(b.o.Skip)
 		}
 		bookmaker.Pages(tree, t.Title)
 		ti := &topicInfo{Topic: t, root: tree, title: tree.Title(), byNod: map[*bookmaker.Node]*pageInfo{}}

@@ -501,6 +501,10 @@ The old `_quarto*.yml` files are **not read anymore** by `folio` itself. Delete 
   and the flattener wraps variant content in a `::: fw` / `::: pol` div. That
   div is conditional like any other: it is kept for an audience named `fw`
   (or `pol`) or one that lists the class under `show:`.
+- A file or folder whose name ends in an audience's `audience-template`
+  variable (say `chapter1_DEV` for `dev: {vars: {audience-template: _DEV}}`)
+  belongs to that audience: a render for any other audience leaves it out,
+  with everything below it.
 - Pages can be written as `.qmd` or `.md`.
 
 ## Repository layout

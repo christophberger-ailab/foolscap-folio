@@ -446,6 +446,32 @@ func (s Selection) Vars() map[string]string {
 	return out
 }
 
+// AudienceTemplate is the variable that names an audience's suffix on
+// folder and file names, such as _DEV in chapter1_DEV.
+const AudienceTemplate = "audience-template"
+
+// Excludes reports whether a folder or file name (without extension)
+// belongs to another audience: it ends, ignoring case, in another
+// audience's audience-template and not in the selected one's.
+func (s Selection) Excludes(name string) bool {
+	name = strings.ToLower(name)
+	ends := func(a Audience) bool {
+		sel := s
+		sel.Audience = a
+		suffix := strings.ToLower(sel.Vars()[AudienceTemplate])
+		return suffix != "" && strings.HasSuffix(name, suffix)
+	}
+	if ends(s.Audience) {
+		return false
+	}
+	for _, a := range s.Config.Audiences {
+		if a.Name != s.Audience.Name && ends(a.Value) {
+			return true
+		}
+	}
+	return false
+}
+
 // Keep decides whether content carrying the given classes survives this
 // selection.
 //
