@@ -237,7 +237,7 @@ func Document(sel config.Selection, log Logf) (*markdown.Document, Book, error) 
 	doc := markdown.Parse([]byte(text))
 	doc.Prepare(markdown.Options{Keep: sel.Keep, Formats: sel.Types(), Lang: sel.Config.Lang, CalloutTitles: sel.Config.CalloutTitles, Warn: warn(log)})
 	dropTitle(doc, book.Anchor)
-	vars := sel.Vars()
+	vars := variables(sel)
 	for _, f := range []struct {
 		name string
 		text *string
@@ -310,10 +310,43 @@ func Flatten(sel config.Selection, log Logf) (string, Book, error) {
 	return text, book, nil
 }
 
+// footer returns the page footer of a website selection by topic name,
+// "" for the home page, its placeholders resolved against the variables
+// of the topic. A placeholder without a variable is shown as written, with
+// a warning.
+func footer(sel config.Selection, log Logf) func(string) string {
+	text := sel.Footer()
+	done := map[string]string{}
+	return func(topic string) string {
+		if s, ok := done[topic]; ok || text == "" {
+			return s
+		}
+		ts := sel
+		ts.Topic = config.Topic{}
+		for _, t := range sel.Topics {
+			if t.Name == topic {
+				ts.Topic = t
+			}
+		}
+		s, err := config.Interpolate(text, variables(ts))
+		if err != nil {
+			log("warning: footer: %v; it is shown as written", err)
+		}
+		done[topic] = s
+		return s
+	}
+}
+
+// variables are the selection's variables together with those of
+// _variables.yml and the date.
+func variables(sel config.Selection) map[string]string {
+	return shortcode.Variables(sel.Config.Root, sel.Vars(), sel.Config.Lang)
+}
+
 // Expander returns the shortcode expander of a selection.
 func Expander(sel config.Selection, log Logf) *shortcode.Expander {
 	log = log.or()
-	return shortcode.New(sel.Config.Root, shortcode.Variables(sel.Config.Root, sel.Vars()),
+	return shortcode.New(sel.Config.Root, variables(sel),
 		warn(log))
 }
 
@@ -368,6 +401,7 @@ func renderSite(sel config.Selection, dir string, dryRun bool, log Logf) error {
 	}
 	exp := Expander(sel, log)
 	err = site.Build(site.Options{
+		Footer:        footer(sel, log),
 		BrandCSS:      brandCSS,
 		BrandFonts:    brandFonts,
 		Logo:          logo,

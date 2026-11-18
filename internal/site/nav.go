@@ -43,7 +43,7 @@ type pageData struct {
 	Nav                          []navLink
 	Sidebar                      *sideData
 	TOC                          []tocItem
-	Content                      template.HTML
+	Content, Footer              template.HTML
 	Prev, Next                   *navLink
 	L                            labels
 	Home, Brand                  bool

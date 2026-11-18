@@ -406,3 +406,24 @@ func TestMermaid(t *testing.T) {
 		t.Errorf("no warning naming the page in %q", logs)
 	}
 }
+
+// Every page ends in the footer of its topic, the home page in the one
+// without a topic; the footer is Markdown.
+func TestFooter(t *testing.T) {
+	root, out := project(t)
+	o := opts(root, out)
+	o.Footer = func(topic string) string { return "*" + topic + "_* · [Acme](https://acme.example)" }
+	if err := Build(o); err != nil {
+		t.Fatal(err)
+	}
+	has(t, "topic page", read(t, out, "dispatcher/b.html"),
+		`<footer class="page-footer"><em>d_</em> · <a href="https://acme.example">Acme</a></footer>`)
+	has(t, "home", read(t, out, "index.html"), `<footer class="page-footer"><em>_</em> · `)
+	has(t, "css", read(t, out, "_site/style.css"), ".page-footer")
+
+	root, out = project(t)
+	if err := Build(opts(root, out)); err != nil {
+		t.Fatal(err)
+	}
+	hasNot(t, "none", read(t, out, "index.html"), "page-footer")
+}

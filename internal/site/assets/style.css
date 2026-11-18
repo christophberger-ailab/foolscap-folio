@@ -358,9 +358,17 @@ html:not(.js) .search {
 .layout.no-sidebar.no-toc .page {
   margin: 0 auto;
 }
-.pager {
+.pager,
+.page-footer {
   max-width: var(--measure);
   margin: 3em auto 0;
+}
+.page-footer {
+  padding-top: 1em;
+  border-top: 1px solid var(--border);
+  font-size: 0.85em;
+  text-align: center;
+  color: var(--fg-muted);
 }
 
 /* ---------- sidebar ---------- */

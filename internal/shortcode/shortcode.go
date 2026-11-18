@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 
 	"gopkg.in/yaml.v3"
 
@@ -237,8 +238,10 @@ func (s *Expander) Includes() int { return s.includes }
 
 // Variables is what `{{< var >}}` resolves against: the project's
 // `_variables.yml`, whose nested keys are addressed with dots
-// (`metadata.version`), overlaid with vars.
-func Variables(root string, vars map[string]string) map[string]string {
+// (`metadata.version`), overlaid with vars. Its date is the date they
+// give, else today, in their date_format (see FormatDate) and the
+// language lang.
+func Variables(root string, vars map[string]string, lang string) map[string]string {
 	out := map[string]string{}
 	for _, name := range []string{"_variables.yml", "_variables.yaml"} {
 		data, err := os.ReadFile(filepath.Join(root, name))
@@ -254,6 +257,7 @@ func Variables(root string, vars map[string]string) map[string]string {
 	for k, v := range vars {
 		out[k] = v
 	}
+	out["date"] = date(out, lang)
 	return out
 }
 func flatten(prefix string, v any, out map[string]string) {
@@ -272,6 +276,10 @@ func flatten(prefix string, v any, out map[string]string) {
 			flatten(p, t[k], out)
 		}
 	case nil:
+	case time.Time: // an unquoted YAML date
+		if prefix != "" {
+			out[prefix] = t.Format(time.DateOnly)
+		}
 	default:
 		if prefix != "" {
 			out[prefix] = fmt.Sprint(t)
