@@ -945,9 +945,8 @@ func (s *server) content(w http.ResponseWriter, r *http.Request) {
 //
 // The text arriving here was typed on top of the page as it stood when the
 // editor opened it, and the tree may have written to the same file since:
-// every move and create renumbers a sibling group's `order:`, and a move to
-// another depth shifts the page's headings. Writing the editor's text out
-// as it stands would undo that — drag a chapter into another book, type one
+// every move and create renumbers a sibling group's `order:`. Writing the
+// editor's text out as it stands would undo that — drag a chapter into another book, type one
 // character, and the move is back where it started. So the edit is replayed
 // onto what the tree wrote rather than laid over it (see project.Rebase),
 // and a change to the file that the tree cannot account for is answered as
@@ -979,8 +978,8 @@ func (s *server) save(w http.ResponseWriter, r *http.Request) {
 		body = res.Body
 		// The editor still shows the text from before the replay. Telling
 		// it what was put back is what lets it say so, rather than leave
-		// the user looking at heading levels the file no longer has.
-		if res.HeadingDelta != 0 || res.OrderChanged {
+		// the user looking at an order the file no longer has.
+		if res.OrderChanged {
 			w.Header().Set("HX-Trigger", rebaseEvent(res))
 		}
 	}
@@ -1016,9 +1015,8 @@ func (s *server) save(w http.ResponseWriter, r *http.Request) {
 // for, so that the pane can report what the save had to put back.
 func rebaseEvent(res project.Rebased) string {
 	b, err := json.Marshal(map[string]any{
-		"qm:rebased": map[string]any{
-			"headings": res.HeadingDelta,
-			"order":    res.OrderChanged,
+		"folio:rebased": map[string]any{
+			"order": res.OrderChanged,
 		},
 	})
 	if err != nil {
@@ -1114,7 +1112,7 @@ func (s *server) selections(prefs projectPrefs) ([]config.Selection, error) {
 	if err != nil {
 		return nil, err
 	}
-	cfg.CalloutTitles = s.cfg.Callouts
+	cfg.CalloutTitles, cfg.Strings = s.cfg.Callouts, s.cfg.Strings
 	cfg.UserBrand = userBrandIn(s.configFile)
 	var docs, webs []string
 	for _, f := range prefs.Formats {

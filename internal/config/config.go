@@ -90,6 +90,10 @@ type Config struct {
 	// folio's settings file (config.cue), which whoever loads the
 	// project puts here.
 	CalloutTitles map[string]map[string]string `yaml:"-"`
+	// Strings are the user's own wording of the texts folio puts into a
+	// render, by language and key (see DefaultStrings), which folio's
+	// settings file (config.cue) holds too.
+	Strings map[string]map[string]string `yaml:"-"`
 	// UserBrand is the path of the user's _brand.yml, beside folio's
 	// settings file, which styles a project that has no brand file of its
 	// own; "" for none. Whoever loads the project puts it here.
@@ -153,6 +157,11 @@ type Format struct {
 	Show []string `yaml:"show"`
 	// TOC adds a table of contents to a document.
 	TOC bool `yaml:"toc"`
+	// SectionPrefix and ChapterPrefix put "Part n" and "Chapter n", in
+	// the project's language, before the titles of a document's sections
+	// and chapters.
+	SectionPrefix bool `yaml:"section_prefix"`
+	ChapterPrefix bool `yaml:"chapter_prefix"`
 	// Template is a reference DOCX whose styles, page setup, headers and
 	// footers the DOCX output uses.
 	Template string `yaml:"template"`
@@ -561,6 +570,51 @@ func (s Selection) Cover() (string, error) {
 		return "", fmt.Errorf("topic %s: cover: %w", s.Topic.Name, err)
 	}
 	return filepath.Join(s.Config.Root, filepath.FromSlash(p)), nil
+}
+
+// DefaultStrings are the texts folio puts into a render, by language and
+// key, as folio ships them. English is the last resort for every
+// language.
+var DefaultStrings = map[string]map[string]string{
+	"en": {"section_prefix": "Part", "chapter_prefix": "Chapter"},
+	"de": {"section_prefix": "Teil", "chapter_prefix": "Kapitel"},
+}
+
+// Prefixes returns what goes before the titles of the selection's sections
+// and chapters, each "" unless the format asks for it.
+func (s Selection) Prefixes() (section, chapter string) {
+	own := s.Config.Strings
+	if s.Format.SectionPrefix {
+		section = Localize(own, DefaultStrings, s.Config.Lang, "section_prefix")
+	}
+	if s.Format.ChapterPrefix {
+		chapter = Localize(own, DefaultStrings, s.Config.Lang, "chapter_prefix")
+	}
+	return section, chapter
+}
+
+// Localize returns the text of key in lang: the one own names, else the
+// one defaults names, else the English one in either. Within either table
+// a language tag falls back to its primary language, so "de-AT" finds
+// "de", and the tables' languages match whatever their case.
+func Localize(own, defaults map[string]map[string]string, lang, key string) string {
+	lang = strings.ToLower(strings.ReplaceAll(lang, "_", "-"))
+	primary, _, _ := strings.Cut(lang, "-")
+	for _, table := range []map[string]map[string]string{own, defaults} {
+		for _, l := range []string{lang, primary} {
+			for k, texts := range table {
+				if strings.EqualFold(k, l) && texts[key] != "" {
+					return texts[key]
+				}
+			}
+		}
+	}
+	for _, table := range []map[string]map[string]string{own, defaults} {
+		if t := table["en"][key]; t != "" {
+			return t
+		}
+	}
+	return ""
 }
 
 // Template is the absolute path of the format's reference DOCX, or "".

@@ -60,8 +60,9 @@ func TestMoveReorderWithinGroup(t *testing.T) {
 	}
 }
 
-// Moving a page up to the root shifts its headings up and renumbers both
-// groups; unordered pages in the source group stay unordered.
+// Moving a page up to the root renumbers both groups and leaves its
+// headings as they are (issue #96); unordered pages in the source group
+// stay unordered.
 func TestMoveToRoot(t *testing.T) {
 	root := writeFixture(t)
 	tree := mustMove(t, root, "chapter2/second.qmd", "", 1)
@@ -77,8 +78,8 @@ func TestMoveToRoot(t *testing.T) {
 	}
 
 	content := readFile(t, root, "second.qmd")
-	if !strings.Contains(content, "\n# Detail") {
-		t.Errorf("headings not shifted up:\n%s", content)
+	if !strings.Contains(content, "\n## Detail") {
+		t.Errorf("headings changed:\n%s", content)
 	}
 
 	ch2 := tree.Find("chapter2/index.qmd")
@@ -102,8 +103,8 @@ func TestMoveIntoLeaf(t *testing.T) {
 	if got := paths(second.Children); !reflect.DeepEqual(got, []string{"chapter2/second/another.qmd"}) {
 		t.Fatalf("second children = %v", got)
 	}
-	if !strings.Contains(readFile(t, root, "chapter2/second/another.qmd"), "## Another") {
-		t.Error("headings not shifted down")
+	if !strings.Contains(readFile(t, root, "chapter2/second/another.qmd"), "\n# Another") {
+		t.Error("headings changed")
 	}
 }
 
@@ -121,11 +122,11 @@ func TestMoveSectionIndexStyle(t *testing.T) {
 	if got := paths(ch3.Children); !reflect.DeepEqual(got, wantCh3) {
 		t.Fatalf("chapter3 children = %v, want %v", got, wantCh3)
 	}
-	if !strings.Contains(readFile(t, root, "chapter3/chapter2/index.qmd"), "## Two") {
-		t.Error("section headings not shifted")
+	if !strings.Contains(readFile(t, root, "chapter3/chapter2/index.qmd"), "\n# Two") {
+		t.Error("section headings changed")
 	}
-	if !strings.Contains(readFile(t, root, "chapter3/chapter2/second.qmd"), "### Detail") {
-		t.Error("descendant headings not shifted")
+	if !strings.Contains(readFile(t, root, "chapter3/chapter2/second.qmd"), "\n## Detail") {
+		t.Error("descendant headings changed")
 	}
 }
 
@@ -180,7 +181,7 @@ func TestCreatePage(t *testing.T) {
 	// page by that heading.
 	// It starts from the new-page template (issue #94): marked new, and an
 	// explanation div headed by the page's name at its depth in the tree.
-	if got, want := readFile(t, root, created), "---\norder: 3\nstatus: new\n---\n\n::: explanation\n## fifth\n\n:::\n"; got != want {
+	if got, want := readFile(t, root, created), "---\norder: 3\nstatus: new\n---\n\n::: explanation\n# fifth\n\n:::\n"; got != want {
 		t.Errorf("content = %q, want %q", got, want)
 	}
 	if p.Title != "fifth" {
@@ -233,7 +234,7 @@ func TestCreatePageAfter(t *testing.T) {
 			t.Errorf("%s order = %d, want %d", c.Path, *c.Order, i+1)
 		}
 	}
-	if got, want := readFile(t, root, created), "---\norder: 2\nstatus: new\n---\n\n::: explanation\n## inserted\n\n:::\n"; got != want {
+	if got, want := readFile(t, root, created), "---\norder: 2\nstatus: new\n---\n\n::: explanation\n# inserted\n\n:::\n"; got != want {
 		t.Errorf("content = %q, want %q", got, want)
 	}
 }
@@ -500,8 +501,8 @@ func TestMoveMarkdownSection(t *testing.T) {
 	if tree.Find("b/a/index.md") == nil || tree.Find("b/a/leaf.md") == nil {
 		t.Fatal("section not moved")
 	}
-	if got := readFile(t, root, "b/a/leaf.md"); !strings.Contains(got, "## Leaf") {
-		t.Errorf("headings not shifted: %q", got)
+	if got := readFile(t, root, "b/a/leaf.md"); !strings.Contains(got, "\n# Leaf") {
+		t.Errorf("headings changed: %q", got)
 	}
 	mustMove(t, root, "loose.md", "b/index.qmd", 0)
 	if load(t, root).Find("b/loose.md") == nil {

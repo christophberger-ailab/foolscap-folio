@@ -87,6 +87,17 @@ func (c *mdConverter) block(n ast.Node, indent int) ([]Block, error) {
 			b.Break = true
 			break
 		}
+		if x.Attrs.Has(markdown.TOCClass) {
+			b.TOC = true
+			break
+		}
+		if x.Attrs.Has(markdown.SectionClass) {
+			bb, err := c.blocks(x, indent)
+			for i := range bb {
+				bb[i].Section = true
+			}
+			return bb, err
+		}
 		if co, ok := markdown.CalloutOf(x); ok {
 			body, err := c.blocks(x, 0)
 			if err != nil {

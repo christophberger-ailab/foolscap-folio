@@ -78,8 +78,8 @@ constraints:
       `order:` front matter drive every output; a website and a document
       differ only in how the tree is written.
     requirements:
-      1: 'Headings are demoted by folder depth: pages in the topic folder, and the `index.qmd` of a subfolder (which sorts among its parent''s pages), keep their headings as written, and each deeper folder level adds one level'
-      1-1: 'A page whose front-matter title is not spelled out by a heading at its top heading level gets a generated title heading, and its own headings stay below it'
+      1: 'A website keeps the headings of every page as written; a document (DOCX, PDF) gives each tree level of a topic a meaning, set out in 5 to 9. folio never changes the heading levels of a page when it is moved in the tree; each source file is expected to start with an h1, which is not enforced'
+      1-1: 'A page whose front-matter title is not spelled out by a heading at its top heading level gets a generated title heading `#`, and its own headings stay below it; this holds for a website too'
       2: 'A document is the topic''s folder flattened into one Markdown text, with in-book links turned into anchors and shortcodes resolved, then parsed in Go'
       3: Source document file names may end in _POL.qmd or _FW.qmd.
       3-1: 'Source document folder names may end in _POL or _FW.'
@@ -87,6 +87,12 @@ constraints:
       4-1: If a file has no _POL or _FW suffix, include it as per the order value.
       4-2: If the basename of a folder or file has a _POL or _FW suffix, only include it if the suffix matches the selected audience.
       4-3: 'Variant content is wrapped in a `::: pol` / `::: fw` div, which is conditional like any other'
+      5: 'In a document the topic folder''s `index.md` (depth 0) is the book''s preliminaries: its title and subtitle go on the cover, its body is rendered after the cover and before the table of contents, and its headings are not listed in the contents. The flattened Markdown carries an empty `::: folio-toc` div after the preliminaries, marking where the contents go'
+      6: 'Depth 1 are the sections: the other `.md` files directly in the topic folder, and the `index.md` of the topic''s subfolders. Their headings are kept as written. A section''s own page is wrapped in a `::: folio-section` div; its h1 is the section title and the rest is the section''s intro. The contents list a section''s title but not the headings of its intro'
+      6-1: 'The headings of a section''s page are set in the fonts of `_brand.yml` `meta: fonts: section: h1` to `h6` (see spec-render.yaml BRAND 5-5); in the DOCX the headings of the intro have styles of their own, "Unlisted Heading 2" to "Unlisted Heading 6", based on Heading n with the outline level of body text, so that Word''s refresh of the contents leaves them out'
+      7: 'Depth 2 are the chapters: the `index.md` of the sections'' subfolders, and the other files in the topic''s subfolders. Their headings are kept as written, h1 to h6'
+      8: 'At depth 3 and deeper the headings are demoted by depth minus 2 levels'
+      8-1: 'A heading that would end up beyond h6 is logged as a warning and set as emphasized text: h7 bold, h8 bold italics, h9 and deeper italics'
 
   MARKDOWN:
     description: Markdown is parsed in Go, not by Pandoc.

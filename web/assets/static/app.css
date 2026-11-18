@@ -20,6 +20,7 @@
   --diff-del: #ffebe9;
   --diff-del-fg: #a40e26;
   --comment: #ca8a04;
+  --too-deep: #e4e6ea;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -42,6 +43,7 @@
     --diff-del: #2a1214;
     --diff-del-fg: #ffa198;
     --comment: #facc15;
+    --too-deep: #2a2e36;
   }
 }
 
@@ -1385,6 +1387,9 @@ li.page.collapsed > ul.children {
   margin-left: 0;
   padding-left: 0;
   border-left: none;
+  /* The home page and the topics are not numbered, so the numbering
+     starts in each topic: its sections are 1, 2, their chapters 1.1. */
+  counter-reset: none;
 }
 
 li.page {
@@ -1458,6 +1463,25 @@ li.page.ordered {
 li.page.unordered > .row > .num::before {
   content: "\26A0";
   color: var(--warn);
+}
+
+#tree > ul.children > li.page {
+  counter-increment: none;
+}
+
+#tree > ul.children > li.page.ordered > .row > .num::before,
+li.page.home > .row > .num::before {
+  content: none;
+}
+
+li.page.home.unordered > .row > .title {
+  color: var(--fg);
+}
+
+/* Headings that would go beyond h6 in print (issue #96); the row's
+   tooltip says which. */
+li.page.too-deep > .row {
+  background: var(--too-deep);
 }
 
 li.page.unordered > .row > .title {

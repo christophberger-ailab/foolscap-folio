@@ -74,6 +74,9 @@ type Block struct {
 	Break         bool
 	Code          bool
 	Callout       *Callout
+	// Section marks a block of a section's own page, whose headings are
+	// set in the section's fonts; TOC marks where the contents go.
+	Section, TOC bool
 }
 
 // Callout is a Quarto callout: a box in Border with a left bar, and Title

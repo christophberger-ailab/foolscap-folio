@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/christophberger-ailab/foolscap-folio/internal/foliocore"
+	"github.com/christophberger-ailab/foolscap-folio/internal/markdown"
 	"github.com/christophberger-ailab/foolscap-folio/internal/shortcode"
 )
 
@@ -38,7 +39,24 @@ type Options struct {
 	// book and into Result.Slides, a document of its own. Without it the
 	// slide divs stay in the book like any other div.
 	ExtractSlides bool
+
+	// SectionPrefix and ChapterPrefix, if set, go before the title of
+	// every section and chapter, with its number: "Part 2 Title".
+	// Sections and chapters are each numbered through the book.
+	SectionPrefix, ChapterPrefix string
+
+	// site renders a page for a website, which keeps its headings as
+	// written. PageMarkdown sets it.
+	site bool
 }
+
+// SectionClass is the class of the div a section's page is wrapped in, so
+// that the renderers can set it apart from the chapters.
+const SectionClass = markdown.SectionClass
+
+// TOCClass is the class of the empty div that marks where the contents
+// go: after the book's preliminaries, before its first section.
+const TOCClass = markdown.TOCClass
 
 // Result is the outcome of flattening a book folder.
 type Result struct {
@@ -56,6 +74,10 @@ type Result struct {
 	SlideBlocks int
 	// Warnings collects non-fatal problems found while flattening.
 	Warnings []string
+
+	// sections and chapters count the book's sections and chapters so
+	// far, for their prefixes.
+	sections, chapters int
 }
 
 // bookTitleClasses are the classes put on the book's own title heading --
@@ -108,8 +130,14 @@ func renderNode(n *Node, parentAudience string, targets linkTargets, opts Option
 	slideBlocks := make([]string, 0, len(n.Children)+1)
 
 	page, pageSlides := renderPage(n, targets, opts, res)
+	if page != "" && n.Depth == 1 {
+		page = wrapInDiv(page, SectionClass)
+	}
 	if page != "" {
 		bookBlocks = append(bookBlocks, page)
+	}
+	if n.bookRoot {
+		bookBlocks = append(bookBlocks, "::: "+TOCClass+"\n:::")
 	}
 	if pageSlides != "" {
 		slideBlocks = append(slideBlocks, pageSlides)
@@ -178,11 +206,16 @@ func renderPage(n *Node, targets linkTargets, opts Options, res *Result) (page, 
 		edit.Classes = bookTitleClasses
 	}
 
-	// Headings are demoted by folder depth (n.Level-1), not normalised: a
-	// page's headings keep their relative depth and their distance from
-	// the top, so a page that starts with `##` stays one level below a
-	// page that starts with `#` in the same folder.
-	delta := n.Level - 1
+	// A website keeps a page's headings as written. In print, each tree
+	// level has its meaning (issue #96): the book root's preliminaries,
+	// sections and chapters keep theirs too, and anything below a chapter
+	// goes down a level for each level of the tree.
+	delta := 0
+	if !opts.site {
+		delta = max(n.Depth-2, 0)
+		edit.Prefix = prefix(n, opts, res)
+	}
+	level := 1 + delta
 
 	// Includes are expanded before Quarto reads the page, so a page without
 	// a title whose included files bring the heading needs none generated.
@@ -192,7 +225,7 @@ func renderPage(n *Node, targets linkTargets, opts Options, res *Result) (page, 
 	}
 
 	if base == 0 || !echoesTitle(headings, base, declared) {
-		head := strings.Repeat("#", n.Level) + " " + n.Title() +
+		head := strings.Repeat("#", level) + " " + edit.Prefix + n.Title() +
 			" " + mergeAttrs("", n.Anchor, edit.Classes)
 		if base == 0 {
 			if len(lines) == 0 {
@@ -200,15 +233,34 @@ func renderPage(n *Node, targets linkTargets, opts Options, res *Result) (page, 
 			}
 			return head + "\n\n" + strings.Join(lines, "\n"), slides
 		}
-		// Body headings are subordinate to the generated title heading.
-		// They stay below it even where the page's own levels would put
-		// them beside it.
-		lines = shiftHeadings(lines, headings, n, max(base+delta, n.Level+1), base, titleEdit{}, res)
+		// In print, body headings are subordinate to the generated title
+		// heading. They stay below it even where the page's own levels
+		// would put them beside it.
+		target := base + delta
+		if !opts.site {
+			target = max(target, level+1)
+		}
+		lines = shiftHeadings(lines, headings, n, target, base, titleEdit{}, res)
 		return head + "\n\n" + strings.Join(lines, "\n"), slides
 	}
 
 	lines = shiftHeadings(lines, headings, n, base+delta, base, edit, res)
 	return strings.Join(lines, "\n"), slides
+}
+
+// prefix returns what goes before the title of n in print: the section or
+// chapter prefix and its number, "" for the other nodes or with no prefix.
+// It counts n as the next section or chapter.
+func prefix(n *Node, opts Options, res *Result) string {
+	switch {
+	case n.Depth == 1 && opts.SectionPrefix != "":
+		res.sections++
+		return fmt.Sprintf("%s %d ", opts.SectionPrefix, res.sections)
+	case n.Depth == 2 && opts.ChapterPrefix != "":
+		res.chapters++
+		return fmt.Sprintf("%s %d ", opts.ChapterPrefix, res.chapters)
+	}
+	return ""
 }
 
 // preparePage turns a node's source body into the lines that will appear in
@@ -310,8 +362,10 @@ func shiftHeadings(lines []string, headings []heading, n *Node, target, base int
 		level := h.Level + delta
 		if level > 6 {
 			res.Warnings = append(res.Warnings, fmt.Sprintf(
-				"%s: heading %q nests deeper than level 6 and was clamped", n.Rel, h.Text()))
-			level = 6
+				"%s: heading %q would be at level %d, deeper than Markdown's 6; it is set as emphasized text",
+				n.Rel, h.Text(), level))
+			out[h.Index] = mockHeading(h, level)
+			continue
 		}
 
 		applied := titleEdit{}
@@ -322,6 +376,20 @@ func shiftHeadings(lines []string, headings []heading, n *Node, target, base int
 		out[h.Index] = renderHeading(h, level, applied)
 	}
 	return out
+}
+
+// mockMarks are the emphasis that stands in for the headings Markdown does
+// not have: bold for h7, bold italics for h8, italics for h9 and deeper.
+var mockMarks = map[int]string{7: "**", 8: "***"}
+
+// mockHeading sets a heading of a level beyond 6 as a paragraph of
+// emphasized text.
+func mockHeading(h heading, level int) string {
+	mark, ok := mockMarks[level]
+	if !ok {
+		mark = "*"
+	}
+	return h.Indent + mark + h.Text() + mark
 }
 
 // describeRepair renders a fenceRepair for a warning message.
@@ -442,14 +510,13 @@ func Pages(root *Node, title string) {
 	root.titleOverride = title
 }
 
-// PageMarkdown renders a single node's own page — not its children — the
-// way Flatten renders it inside a book: markup balanced, a title heading
-// generated where the page has none, and headings demoted by the node's
-// folder depth. Links are left alone. With opts.WrapAudience the page is
+// PageMarkdown renders a single node's own page — not its children — for a
+// website: markup balanced and a title heading generated where the page
+// has none, the page's own headings as written. Links are left alone. With opts.WrapAudience the page is
 // wrapped in a div of the given audience class, which the caller works
 // out from the node and its ancestors. Call Pages on the tree first.
 func PageMarkdown(n *Node, audience string, opts Options) (string, []string) {
-	opts.RewriteLinks = false
+	opts.RewriteLinks, opts.site = false, true
 	res := &Result{}
 	page, _ := renderPage(n, nil, opts, res)
 	if opts.WrapAudience && audience != "" && page != "" {

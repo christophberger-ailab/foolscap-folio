@@ -76,12 +76,15 @@ constraints:
       1-6-2: Saving a page that gains or loses a mark refreshes the tree at once
       1-6-3: A comment marker in a code block or a code span does not mark the page, as it is code, not a comment (3-8-4)
       1-6-4: 'Each mark has a tooltip saying what it means: 🆕 "New page", 🗑️ "Deprecated", 🚧 "Contains todos", 👀 "Review: " followed by the review text, or "Needs review" when there is none, 💬 "Contains comments"'
-      1-6-5: 'A page without an `order` in its frontmatter is marked ⚠ in place of its number; the mark''s tooltip says why: "Not numbered: the page has no order in its frontmatter"'
+      1-6-5: 'A page without an `order` in its frontmatter is marked ⚠ in place of its number; the mark''s tooltip says why: "Not numbered: the page has no order in its frontmatter"; the root `index.md`, the home page, is the only page that needs no `order:`'
       1-6-6: Quarto block fences inside an HTML comment do not count when the tree looks for unmatched fences
+      1-6-7: 'The root `index.md` is the home page: it is listed first, without a number and without the ⚠ mark. Topic pages (top-level folders) are not numbered either, though an unordered topic still shows ⚠'
+      1-6-8: 'Sections are numbered 1, 2, … within each topic, and chapters 1.1, 1.2, and so on deeper down'
+      1-6-9: 'A page whose headings would render as h7 or deeper in print at its tree level gets a light grey row background with a tooltip naming the level ("Headings too deep: at this level of the tree, the page''s h6 renders as h8. …"); the pages above it are greyed as well, with a tooltip saying that a page below has headings that are too deep'
       1-7: 'A page whose frontmatter sets `hide: true` is left out of the tree; a section page takes its whole branch with it, and a folder without a section page goes once all its pages are hidden. The default is `false`'
       1-7-1: A hidden page is still part of the project -- it renders, keeps its place in the order a move renumbers, and is found by the search, which lists it under its path
       1-7-2: Saving a page that is hidden or shown again refreshes the tree at once
-      2: Dragging a page updates the `order` frontmatter of the affected pages and the Markdown heading levels of the moved page
+      2: Dragging a page updates the `order` frontmatter of the affected pages and renames files; the Markdown heading levels of the moved page are left as they are
       2-1: A drag that moves a page to another parent renames its file on disk; if the page open in the editor is the moved one, or sits inside a moved section, the editor is re-pointed at the new path, so autosave keeps writing to the file instead of to a path that no longer exists
       2-2: The re-pointing replaces the editor's path and heading only, never its text, which may hold edits that are not on disk yet; an autosave that the rename had already broken is retried at the new path
       2-3: A pencil button after the path in the editor's heading turns the page's file name -- and only the file name, the directory staying text -- into a field; Enter renames the file on disk within its directory, Esc or leaving the field cancels and puts the path back
@@ -91,9 +94,9 @@ constraints:
       2-3-4: A section page (name/index.md, the shape new pages are created in, or the older name/index.qmd) is named by its directory: the field holds the directory's name with /index.md or /index.qmd staying text after it, and the rename renames the directory with the pages in it; only the project's own top-level index.md or index.qmd is not offered for renaming
       2-3-5: The editor is re-pointed at the new path as a move re-points it (2-1, 2-2), and the copyedit suggestions kept for the page follow it
       3: Pages can be created, deleted, and edited in place
-      3-0-0: 'A new page starts from a template: frontmatter with its `order:` (from where it is inserted) and `status: new`, and no `title:`, which would override the page''s first heading as its title (1-1); then a `::: explanation` div holding a heading with the page''s name, one `#` for a top-level page and one more for each level down the tree, so the tree names the page by that heading'
+      3-0-0: 'A new page starts from a template: frontmatter with its `order:` (from where it is inserted) and `status: new`, and no `title:`, which would override the page''s first heading as its title (1-1); then a `::: explanation` div holding a heading with the page''s name, always level 1 (`# name`), so the tree names the page by that heading'
       3-0: A failed save is shown as an error next to the heading, naming why it failed, and leaving the page -- opening another one, reloading, closing the tab -- asks for confirmation while an edit is unsaved
-      3-0-1: A save is replayed onto the writes the tree made to the same file since the editor opened it -- the `order:` a move or a create renumbered, and the heading levels a move to another depth shifted -- so an autosave after a move keeps both the user's text and the move
+      3-0-1: A save is replayed onto the writes the tree made to the same file since the editor opened it -- the `order:` a move or a create renumbered -- so an autosave after a move keeps both the user's text and the move; a change of heading level on disk is treated as an outside edit and a conflict
       3-0-2: An `order:` the user typed into the frontmatter themselves is kept over the one the tree wrote; a hand-made edit is never silently dropped
       3-0-3: A change to the file that the tree cannot account for -- an edit made outside the browser -- is answered as a conflict: the save is refused, the file is left as it is, and the user is offered the choice between reloading that version and overwriting it
       3-0-4: A replay is reported to the user, because the editor still shows the text from before it and only a reload brings the pane in line

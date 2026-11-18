@@ -24,7 +24,7 @@ Die Überschrift über dem Editor zeigt den Pfad der Seite. Die Schaltfläche `�
 
 ## Verschiebungen während der Bearbeitung
 
-Wenn du im Baum Seiten verschiebst oder anlegst, während eine Seite geöffnet ist, ändert der Baum `order:` und Überschriftenebenen in dieser Datei. Dein nächstes Autosave behält Text und Verschiebung. Ein `order:`, das du selbst ins Frontmatter geschrieben hast, hat Vorrang vor dem, das der Baum geschrieben hat. In diesem Fall wirst du benachrichtigt, und `↻ Reload` bringt den Editor wieder mit der Datei in Einklang.
+Wenn du im Baum Seiten verschiebst oder anlegst, während eine Seite geöffnet ist, ändert der Baum `order:` in dieser Datei. Dein nächstes Autosave behält Text und Verschiebung. Ein `order:`, das du selbst ins Frontmatter geschrieben hast, hat Vorrang vor dem, das der Baum geschrieben hat. In diesem Fall wirst du benachrichtigt, und `↻ Reload` bringt den Editor wieder mit der Datei in Einklang.
 
 ## Konflikte
 

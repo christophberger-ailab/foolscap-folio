@@ -42,44 +42,6 @@ func TestRebaseKeepsTheTreesOrder(t *testing.T) {
 	}
 }
 
-// A move to another depth shifts the page's headings, and that shift has
-// to be reapplied to whatever the user typed in the meantime.
-func TestRebaseKeepsTheTreesHeadingShift(t *testing.T) {
-	base := page(1, 1, "text\n")
-	disk := page(1, 2, "text\n")
-	edited := page(1, 1, "text\n\n# A heading the user added\n")
-
-	got, ok := Rebase([]byte(edited), []byte(base), []byte(disk))
-	if !ok {
-		t.Fatal("want the heading shift recognized as the tree's own")
-	}
-	want := page(1, 2, "text\n\n## A heading the user added\n")
-	if string(got.Body) != want {
-		t.Errorf("body =\n%q\nwant\n%q", got.Body, want)
-	}
-	if got.HeadingDelta != 1 {
-		t.Errorf("HeadingDelta = %d, want 1", got.HeadingDelta)
-	}
-}
-
-// A move into another book does both at once.
-func TestRebaseKeepsOrderAndShiftTogether(t *testing.T) {
-	base := page(3, 2, "text\n")
-	disk := page(1, 1, "text\n")
-	edited := page(3, 2, "edited\n")
-
-	got, ok := Rebase([]byte(edited), []byte(base), []byte(disk))
-	if !ok {
-		t.Fatal("want both recognized as the tree's own")
-	}
-	if want := page(1, 1, "edited\n"); string(got.Body) != want {
-		t.Errorf("body =\n%q\nwant\n%q", got.Body, want)
-	}
-	if got.HeadingDelta != -1 || !got.OrderChanged {
-		t.Errorf("delta = %d, orderChanged = %v; want -1, true", got.HeadingDelta, got.OrderChanged)
-	}
-}
-
 // A file nothing touched leaves the edit exactly as the user wrote it.
 func TestRebaseUntouchedFilePassesTheEditThrough(t *testing.T) {
 	base := page(1, 1, "text\n")
@@ -92,7 +54,7 @@ func TestRebaseUntouchedFilePassesTheEditThrough(t *testing.T) {
 	if string(got.Body) != edited {
 		t.Errorf("body = %q, want the edit unchanged", got.Body)
 	}
-	if got.HeadingDelta != 0 || got.OrderChanged {
+	if got.OrderChanged {
 		t.Error("want nothing reported as replayed")
 	}
 }
@@ -140,41 +102,35 @@ func TestRebaseKeepsAnOrderTheUserTyped(t *testing.T) {
 	}
 }
 
-// Two moves before a single save compose into one replay.
-func TestRebaseComposesTwoMoves(t *testing.T) {
-	base := page(3, 1, "text\n")
-	disk := page(7, 3, "text\n") // renumbered twice, shifted down twice
-	edited := page(3, 1, "edited\n")
+// The tree no longer shifts headings (issue #96), so a heading level that
+// changed on disk was changed by someone else and is a conflict.
+func TestRebaseRefusesAHeadingShift(t *testing.T) {
+	base := page(1, 1, "text\n")
+	disk := page(1, 2, "text\n")
+	edited := page(1, 1, "edited\n")
 
-	got, ok := Rebase([]byte(edited), []byte(base), []byte(disk))
-	if !ok {
-		t.Fatal("want both moves recognized")
-	}
-	if want := page(7, 3, "edited\n"); string(got.Body) != want {
-		t.Errorf("body =\n%q\nwant\n%q", got.Body, want)
-	}
-	if got.HeadingDelta != 2 {
-		t.Errorf("HeadingDelta = %d, want 2", got.HeadingDelta)
+	if _, ok := Rebase([]byte(edited), []byte(base), []byte(disk)); ok {
+		t.Error("want a heading shift on disk refused as an outside edit")
 	}
 }
 
 // Applying the replay repeatedly must not compound it: the base moves on
-// with every save, so the same shift is never applied twice.
+// with every save.
 func TestRebaseIsStableAcrossRepeatedSaves(t *testing.T) {
-	base := page(1, 1, "text\n")
-	disk := page(1, 2, "text\n")
+	base := page(3, 1, "text\n")
+	disk := page(1, 1, "text\n")
 
-	first, ok := Rebase([]byte(page(1, 1, "one\n")), []byte(base), []byte(disk))
+	first, ok := Rebase([]byte(page(3, 1, "one\n")), []byte(base), []byte(disk))
 	if !ok {
 		t.Fatal("first rebase refused")
 	}
-	// The editor still holds unshifted text, and the file now holds what
+	// The editor still holds the old order, and the file now holds what
 	// the first save wrote, so the next save rebases from there.
-	second, ok := Rebase([]byte(page(1, 1, "two\n")), []byte(page(1, 1, "one\n")), first.Body)
+	second, ok := Rebase([]byte(page(3, 1, "two\n")), []byte(page(3, 1, "one\n")), first.Body)
 	if !ok {
 		t.Fatal("second rebase refused")
 	}
-	if want := page(1, 2, "two\n"); string(second.Body) != want {
+	if want := page(1, 1, "two\n"); string(second.Body) != want {
 		t.Errorf("body =\n%q\nwant\n%q", second.Body, want)
 	}
 }

@@ -161,9 +161,10 @@ func TestBuild(t *testing.T) {
 	xp := read(t, out, "x/page.html")
 	hasNot(t, "xp", xp, `<aside class="toc"`)
 
-	// demoted levels: subfolder page starts at h2, its subheadings h3 (+toc)
-	has(t, "sub", sub, `<h2 `, `<h3 `, `<h4 `)
-	hasNot(t, "sub", sub, `<h1 `)
+	// a website keeps a page's headings as written, however deep the
+	// page sits (issue #96)
+	has(t, "sub", sub, `<h1 `, `<h2 `, `<h3 `)
+	hasNot(t, "sub", sub, `<h4 `)
 	subToc := regexp.MustCompile(`(?s)<aside class="toc".*?</aside>`).FindString(sub)
 	has(t, "subtoc", subToc, `href="#heading-two"`, `href="#heading-three"`)
 	has(t, "a", a, `<h1 `)

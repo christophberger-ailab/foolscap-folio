@@ -409,6 +409,38 @@ func TestTOC(t *testing.T) {
 	lacks(t, build(t, md, Options{})["word/document.xml"], "TOC \\o")
 }
 
+// A flattened book (issue #96): its preliminaries go before the contents,
+// which list a section's title but not its intro's headings, and a
+// section's headings are set in the section's fonts.
+func TestBookSectionsAndContents(t *testing.T) {
+	md := "# Book\n\nPrelims.\n\n## Foreword\n\n::: folio-toc\n:::\n\n" +
+		":::: folio-section\n# Part One\n\nIntro.\n\n## Intro detail\n::::\n\n# Chapter One\n\n## Chapter detail\n"
+	var section [6]Font
+	section[0] = Font{Name: "Aptos Display", Size: 24}
+	p := build(t, md, Options{TOC: true, SectionHeadings: section})
+	doc := p["word/document.xml"]
+	if i, j := strings.Index(doc, "Prelims."), strings.Index(doc, ">Contents<"); i < 0 || j < i {
+		t.Error("the preliminaries do not come before the contents")
+	}
+	if i, j := strings.Index(doc, ">Contents<"), strings.Index(doc, ">Part One<"); j < i {
+		t.Error("the first section comes before the contents")
+	}
+	has(t, doc, `w:anchor="part-one"`, `w:anchor="chapter-one"`, `w:anchor="chapter-detail"`,
+		`<w:sz w:val="48"/><w:szCs w:val="48"/></w:rPr><w:t xml:space="preserve">Part One</w:t>`)
+	lacks(t, doc, `w:anchor="foreword"`, `w:anchor="intro-detail"`)
+	if strings.Count(doc, "Aptos Display") != 4 {
+		t.Errorf("section font set beyond the section title:\n%s", doc)
+	}
+	// Word rebuilds the contents from the heading styles, so the headings
+	// of the intro and the preliminaries have a style of their own that is
+	// not an outline level.
+	styles := p["word/styles.xml"]
+	has(t, styles, `w:styleId="UnlistedHeading2"`, `<w:outlineLvl w:val="9"/>`)
+	if n := strings.Count(doc, `<w:pStyle w:val="UnlistedHeading2"/>`); n != 2 {
+		t.Errorf("%d headings in the unlisted style, want the foreword's and the intro's", n)
+	}
+}
+
 // makeTemplate creates a template with docxgo: another page size and
 // margins, a header, an old body, and style IDs that differ from docxgo's
 // defaults, so that the writer has to find styles by name.

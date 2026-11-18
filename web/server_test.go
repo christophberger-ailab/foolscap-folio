@@ -1217,8 +1217,8 @@ func TestAutosaveAfterMoveKeepsBothTheEditAndTheMove(t *testing.T) {
 		t.Fatalf("content: status %d", opened.Code)
 	}
 	before := read(t, srv.root, "chapter2/third.qmd")
-	// It is dragged one level deeper, which renames the file, renumbers
-	// it, and shifts its headings.
+	// It is dragged one level deeper, which renames the file and
+	// renumbers it. Its headings stay as they are (issue #96).
 	rec := post(t, srv, "/move", url.Values{
 		"src": {"chapter2/third.qmd"}, "parent": {"chapter2/second.qmd"}, "pos": {"0"},
 		"open": {"chapter2/third.qmd"},
@@ -1227,11 +1227,11 @@ func TestAutosaveAfterMoveKeepsBothTheEditAndTheMove(t *testing.T) {
 		t.Fatalf("move: status %d: %s", rec.Code, rec.Body)
 	}
 	moved := read(t, srv.root, "chapter2/second/third.qmd")
-	if !strings.Contains(moved, "## Third") {
-		t.Fatalf("the move did not shift the heading, nothing to test:\n%s", moved)
+	if !strings.Contains(moved, "\n# Third") {
+		t.Fatalf("the move changed the heading:\n%s", moved)
 	}
 	// Now the user types, and the editor autosaves the text it opened
-	// with — order and heading levels from before the move included.
+	// with — the order from before the move included.
 	rec = post(t, srv, "/save", url.Values{
 		"path": {"chapter2/second/third.qmd"},
 		"body": {before + "\nthe user typed this\n"},
@@ -1243,8 +1243,8 @@ func TestAutosaveAfterMoveKeepsBothTheEditAndTheMove(t *testing.T) {
 	if !strings.Contains(got, "the user typed this") {
 		t.Errorf("the edit was lost:\n%s", got)
 	}
-	if !strings.Contains(got, "## Third") {
-		t.Errorf("the move's heading shift was reverted:\n%s", got)
+	if !strings.Contains(got, "\n# Third") {
+		t.Errorf("the heading changed:\n%s", got)
 	}
 	wantOrder := project.ParseFrontmatter([]byte(moved)).Order
 	if o := project.ParseFrontmatter([]byte(got)).Order; !sameOrderValue(o, wantOrder) {
@@ -1343,8 +1343,8 @@ func TestSaveAnnouncesWhatItReplayed(t *testing.T) {
 	rec := post(t, srv, "/save", url.Values{
 		"path": {"chapter2/second/third.qmd"}, "body": {before + "\nedited\n"},
 	})
-	if got := rec.Header().Get("HX-Trigger"); !strings.Contains(got, "qm:rebased") {
-		t.Errorf("HX-Trigger = %q, want a qm:rebased event", got)
+	if got := rec.Header().Get("HX-Trigger"); !strings.Contains(got, "folio:rebased") {
+		t.Errorf("HX-Trigger = %q, want a folio:rebased event", got)
 	}
 }
 

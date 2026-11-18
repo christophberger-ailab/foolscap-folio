@@ -2375,15 +2375,11 @@ function startRename(button, typed, problem) {
 
 // The page the editor holds was written on top of the page as it stood when
 // it opened, and the tree may have written to the same file since -- a move
-// or a create renumbers a sibling group, and a move to another depth shifts
-// the headings. The server replays the edit onto those rather than let it
-// undo them, and says so here: the editor still shows the text from before,
-// and only a reload brings it in line.
-document.body.addEventListener('folio:rebased', function (evt) {
-  var d = evt.detail || {};
-  rebaseNotice = d.headings
-    ? ' — the move\'s heading levels were kept; ↻ Reload to see them'
-    : ' — the move\'s numbering was kept; ↻ Reload to see it';
+// or a create renumbers a sibling group. The server replays the edit onto
+// that rather than let it undo it, and says so here: the editor still shows
+// the text from before, and only a reload brings it in line.
+document.body.addEventListener('folio:rebased', function () {
+  rebaseNotice = ' — the move\'s numbering was kept; ↻ Reload to see it';
 });
 
 document.body.addEventListener('htmx:beforeRequest', function (evt) {

@@ -104,22 +104,19 @@ func layoutPDF(ctx context.Context, path string, bb []Block, o Options) error {
 			return err
 		}
 	}
+	// The preliminaries come before the contents, on pages of their own,
+	// and are not listed in them.
+	prelims, bb := splitTOC(bb)
+	if len(prelims) > 0 {
+		w.newPage()
+		if err = w.body(prelims); err != nil {
+			return err
+		}
+		w.headings = nil
+	}
 	// Reserve a measured contents section, then fill in its page numbers after
 	// laying out the body. Long titles wrap without colliding with page numbers.
-	var entries []tocEntry
-	var collect func([]Block)
-	collect = func(bb []Block) {
-		for _, b := range bb {
-			if b.Callout != nil {
-				collect(b.Callout.Title)
-				collect(b.Callout.Body)
-			}
-			if b.Level > 0 && b.Level <= 3 && strings.TrimSpace(text(b.Runs)) != "" {
-				entries = append(entries, tocEntry{title: text(b.Runs), id: b.ID, level: b.Level})
-			}
-		}
-	}
-	collect(bb)
+	entries := tocEntries(bb)
 	tocStart, tocPages := 0, 0
 	if o.TOC && len(entries) > 0 {
 		w.newPage()
@@ -144,13 +141,8 @@ func layoutPDF(ctx context.Context, path string, bb []Block, o Options) error {
 	last := w.page
 	if tocPages > 0 {
 		// Fill numbers at the positions recorded during the actual text layout.
-		index := 0
-		for _, heading := range w.headings {
-			if heading.level > 3 || strings.TrimSpace(heading.title) == "" {
-				continue
-			}
-			e := entries[index]
-			index++
+		for i, heading := range w.headings[:min(len(w.headings), len(entries))] {
+			e := entries[i]
 			if err = p.SetPage(e.page); err != nil {
 				return err
 			}
@@ -183,6 +175,40 @@ func layoutPDF(ctx context.Context, path string, bb []Block, o Options) error {
 	}
 	return p.WritePdf(path)
 }
+
+// splitTOC separates the blocks before the contents marker from those
+// after it. Without a marker there are no preliminaries.
+func splitTOC(bb []Block) (prelims, rest []Block) {
+	for i, b := range bb {
+		if b.TOC {
+			return bb[:i], bb[i+1:]
+		}
+	}
+	return nil, bb
+}
+
+// inTOC reports whether the contents list the heading b: one of the first
+// three levels, but of a section only its title.
+func inTOC(b Block) bool {
+	return b.Level > 0 && b.Level <= 3 && (!b.Section || b.Level == 1) && strings.TrimSpace(text(b.Runs)) != ""
+}
+
+// tocEntries lists the headings of bb, callouts included, that the
+// contents list.
+func tocEntries(bb []Block) []tocEntry {
+	var entries []tocEntry
+	for _, b := range bb {
+		if b.Callout != nil {
+			entries = append(entries, tocEntries(b.Callout.Title)...)
+			entries = append(entries, tocEntries(b.Callout.Body)...)
+		}
+		if inTOC(b) {
+			entries = append(entries, tocEntry{title: text(b.Runs), id: b.ID, level: b.Level})
+		}
+	}
+	return entries
+}
+
 func (w *pdfWriter) newPage() {
 	w.p.AddPage()
 	// gopdf creates a page's content only when something is drawn, and
@@ -239,6 +265,12 @@ func (w *pdfWriter) body(bb []Block) error {
 			if s := w.sizes[role]; s > 0 {
 				size = s
 			}
+			if b.Section {
+				role = "section-" + role
+				if s := w.sizes[role]; s > 0 {
+					size = s
+				}
+			}
 			w.y += 12
 			w.ensure(size * 2.8)
 			p.SetXY(left, w.y)
@@ -246,7 +278,9 @@ func (w *pdfWriter) body(bb []Block) error {
 				p.SetAnchor(b.ID)
 			}
 			p.AddOutline(text(b.Runs))
-			w.headings = append(w.headings, tocEntry{title: text(b.Runs), id: b.ID, level: b.Level, page: w.page})
+			if inTOC(b) {
+				w.headings = append(w.headings, tocEntry{title: text(b.Runs), id: b.ID, level: b.Level, page: w.page})
+			}
 			for i := range b.Runs {
 				b.Runs[i].Heading, b.Runs[i].Role = true, role
 			}

@@ -112,6 +112,46 @@ audiences:
 	}
 }
 
+// A format's section_prefix and chapter_prefix turn on "Part n" and
+// "Chapter n" before section and chapter titles, in the project's
+// language: the user's own words from config.cue, else folio's
+// (issue #96).
+func TestPrefixes(t *testing.T) {
+	root := project(t, `
+lang: de-AT
+formats:
+  book:  {type: pdf, section_prefix: true, chapter_prefix: true}
+  plain: {type: pdf}
+`, "a")
+	c, err := Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	prefixes := func() map[string][2]string {
+		sels, err := c.Expand(Request{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		out := map[string][2]string{}
+		for _, s := range sels {
+			sec, ch := s.Prefixes()
+			out[s.Format.Name] = [2]string{sec, ch}
+		}
+		return out
+	}
+	if got := prefixes(); got["book"] != [2]string{"Teil", "Kapitel"} || got["plain"] != [2]string{} {
+		t.Errorf("prefixes = %v", got)
+	}
+	c.Strings = map[string]map[string]string{"de": {"chapter_prefix": "Kap."}}
+	if got := prefixes(); got["book"] != [2]string{"Teil", "Kap."} {
+		t.Errorf("with own strings, prefixes = %v", got)
+	}
+	c.Lang = "fr"
+	if got := prefixes(); got["book"] != [2]string{"Part", "Chapter"} {
+		t.Errorf("in a language folio does not know, prefixes = %v", got)
+	}
+}
+
 func TestAllTopic(t *testing.T) {
 	root := project(t, `
 formats:

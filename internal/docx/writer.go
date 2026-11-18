@@ -29,11 +29,14 @@ type writer struct {
 	lead string        // XML to put at the start of the next paragraph
 	err  error
 
-	rels     []relationship
-	relIDs   map[string]string // external URL -> relationship ID
-	media    []mediaFile
-	bmID     int
-	drawID   int
+	rels   []relationship
+	relIDs map[string]string // external URL -> relationship ID
+	media  []mediaFile
+	bmID   int
+	drawID int
+	// prelims is true while the writer is in a book's preliminaries,
+	// before the contents marker.
+	prelims  bool
 	imgTypes map[string]string // extension -> content type
 
 	// numbering
@@ -126,10 +129,36 @@ func (w *writer) document() {
 		}
 		return ast.WalkContinue, nil
 	})
-	if w.opt.TOC {
+	// A book's contents go where its marker is, after the preliminaries;
+	// any other document starts with them.
+	w.prelims = tocMarker(w.doc.Root) != nil
+	if w.opt.TOC && !w.prelims {
 		w.toc()
 	}
 	w.blocks(w.doc.Root, ctx{})
+}
+
+// tocMarker returns the div that marks where the contents go, or nil.
+func tocMarker(root ast.Node) ast.Node {
+	var marker ast.Node
+	_ = ast.Walk(root, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if d, ok := n.(*markdown.Div); ok && entering && d.Attrs.Has(markdown.TOCClass) {
+			marker = d
+			return ast.WalkStop, nil
+		}
+		return ast.WalkContinue, nil
+	})
+	return marker
+}
+
+// inSection reports whether n is part of a section's own page.
+func inSection(n ast.Node) bool {
+	for p := n.Parent(); p != nil; p = p.Parent() {
+		if d, ok := p.(*markdown.Div); ok && d.Attrs.Has(markdown.SectionClass) {
+			return true
+		}
+	}
+	return false
 }
 
 func (w *writer) blocks(parent ast.Node, c ctx) {
@@ -184,6 +213,13 @@ func (w *writer) div(n *markdown.Div, c ctx) {
 		w.para(pPr{}, `<w:r><w:br w:type="page"/></w:r>`)
 		return
 	}
+	if n.Attrs.Has(markdown.TOCClass) {
+		w.prelims = false
+		if w.opt.TOC {
+			w.toc()
+		}
+		return
+	}
 	if id := n.Attrs.ID; id != "" {
 		w.lead += w.bookmarkStart(id)
 		bm := w.bmID
@@ -203,11 +239,25 @@ func (w *writer) heading(n *ast.Heading, c ctx) {
 	if id != "" {
 		content.WriteString(w.bookmarkStart(id))
 	}
-	w.inlines(&content, n, runProps{font: w.opt.Headings[level-1]}, c)
+	font, style := w.opt.Headings[level-1], w.styles.heading(level)
+	// A section's headings are set in the section's fonts. The headings
+	// of its intro and of the preliminaries stay out of the contents.
+	section := inSection(n)
+	if section {
+		s := w.opt.SectionHeadings[level-1]
+		font.Name = cmpOr(s.Name, font.Name)
+		if s.Size > 0 {
+			font.Size = s.Size
+		}
+	}
+	if w.prelims || section && level > 1 {
+		style = w.styles.unlistedHeading(level)
+	}
+	w.inlines(&content, n, runProps{font: font}, c)
 	if id != "" {
 		fmt.Fprintf(&content, `<w:bookmarkEnd w:id="%d"/>`, w.bmID)
 	}
-	w.para(pPr{style: w.styles.heading(level)}, content.String())
+	w.para(pPr{style: style}, content.String())
 }
 
 // bookmarkStart returns the start tag of a new bookmark; the matching end
@@ -428,9 +478,16 @@ func (w *writer) toc() {
 		text  string
 	}
 	var entries []entry
+	// The contents list what follows their marker, of a section only its
+	// title.
+	marker := tocMarker(w.doc.Root)
+	listing := marker == nil
 	_ = ast.Walk(w.doc.Root, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if n == marker && entering {
+			listing = true
+		}
 		if h, ok := n.(*ast.Heading); ok && entering {
-			if h.Level <= 3 && markdown.HeadingID(h) != "" {
+			if listing && h.Level <= 3 && markdown.HeadingID(h) != "" && (h.Level == 1 || !inSection(h)) {
 				entries = append(entries, entry{h.Level, markdown.HeadingID(h), markdown.PlainText(h, w.src)})
 			}
 			return ast.WalkSkipChildren, nil

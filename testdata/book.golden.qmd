@@ -4,40 +4,46 @@
 Willkommen. Siehe [Alpha](#bm-book-erster-alpha) und [Extern](/anderes/kapitel/).
 :::
 
+::: folio-toc
+:::
+
+:::: folio-section
 ::: explanation
 # Erster Abschnitt {#bm-book-erster}
 
 Einleitung zum ersten Abschnitt.
 :::
+::::
 
 ::: explanation
-## Alpha-Seite {#bm-book-erster-alpha}
+# Alpha-Seite {#bm-book-erster-alpha}
 
 ![Bord](/assets/images/bord.png)
 
-### Unterpunkt
+## Unterpunkt
 :::
 
 ::: explanation
-#### Tiefe Seite {#bm-book-erster-alpha-tief}
+### Tiefe Seite {#bm-book-erster-alpha-tief}
 
 Text.
 :::
 
 ::: explanation
-### Beta-Seite {#bm-book-erster-beta}
+## Beta-Seite {#bm-book-erster-beta}
 :::
 
 ::: tutorial
-### Beta-Seite {#bm-book-erster-beta}
+## Beta-Seite {#bm-book-erster-beta}
 
 Übung.
 :::
 
 ::: reference
-### Quellen
+## Quellen
 :::
 
+:::: folio-section
 # Zweiter Abschnitt {#bm-book-zweiter}
 
 ::: explanation
@@ -45,13 +51,16 @@ Nur Fließtext, die Überschrift steht im Front Matter.
 
 ## Ein Unterpunkt
 :::
+::::
 
-:::: fw
+::::: fw
+:::: folio-section
 ::: explanation
 # Nur Feuerwehr {#bm-book-dritter-fw}
 :::
+::::
 
 ::: explanation
-### Feuerwehr-Detailseite {#bm-book-dritter-fw-seite}
+## Feuerwehr-Detailseite {#bm-book-dritter-fw-seite}
 :::
-::::
+:::::

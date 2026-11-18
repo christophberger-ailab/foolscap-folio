@@ -36,9 +36,10 @@ func Remap(renames []Rename, p string) string {
 
 // Move makes the page at src the child at position pos of the page at
 // parent ("" means the project root). It moves files when the parent
-// changes, shifts Markdown headings by the depth difference, renumbers the
-// destination siblings sequentially, and closes the order gap in the
-// source group. The receiver is stale afterwards; reload the tree.
+// changes, renumbers the destination siblings sequentially, and closes the
+// order gap in the source group. It leaves the pages' headings as they
+// are: their levels are the author's, and a print render adjusts them to
+// the tree level (issue #96). The receiver is stale afterwards; reload the tree.
 //
 // It returns the renames it performed on disk, so that a caller can follow
 // a page path it was holding to the file's new place; a move within one
@@ -48,7 +49,7 @@ func (t *Tree) Move(src, parent string, pos int) ([]Rename, error) {
 	if sp == nil {
 		return nil, fmt.Errorf("page %s not found", src)
 	}
-	destDir, destSiblings, destDepth, err := t.resolveParent(parent)
+	destDir, destSiblings, err := t.resolveParent(parent)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +57,7 @@ func (t *Tree) Move(src, parent string, pos int) ([]Rename, error) {
 	newPath := src
 	var renames []Rename
 	if srcDir := groupDir(src); destDir != srcDir {
-		if newPath, renames, err = t.reparent(sp, destDir, destDepth); err != nil {
+		if newPath, renames, err = t.reparent(sp, destDir); err != nil {
 			return nil, err
 		}
 		// Close the order gap left in the source group.
@@ -92,9 +93,9 @@ func (t *Tree) Move(src, parent string, pos int) ([]Rename, error) {
 	return renames, nil
 }
 
-// reparent moves the page's files under destDir and shifts headings by the
-// depth difference. It returns the page's new path and the renames it made.
-func (t *Tree) reparent(sp *Page, destDir string, destDepth int) (string, []Rename, error) {
+// reparent moves the page's files under destDir. It returns the page's new
+// path and the renames it made.
+func (t *Tree) reparent(sp *Page, destDir string) (string, []Rename, error) {
 	src := sp.Path
 	// The unit to move: an index page section moves its directory; anything
 	// else moves the file, plus its resource/children directory if present.
@@ -134,36 +135,14 @@ func (t *Tree) reparent(sp *Page, destDir string, destDepth int) (string, []Rena
 		os.Remove(t.abs(path.Dir(r.From))) // drop the source dir if now empty
 	}
 
-	if delta := destDepth - t.depthOf(sp); delta != 0 {
-		for _, r := range renames {
-			if err := shiftHeadingsBelow(t.abs(r.To), delta); err != nil {
-				return "", renames, err
-			}
-		}
-	}
 	return newPath, renames, nil
-}
-
-// shiftHeadingsBelow shifts headings in the .qmd or .md file at abs, or in
-// all such files below it if abs is a directory.
-func shiftHeadingsBelow(abs string, delta int) error {
-	return filepath.WalkDir(abs, func(p string, d os.DirEntry, err error) error {
-		if err != nil || d.IsDir() || !config.IsContentFile(p) {
-			return err
-		}
-		src, err := os.ReadFile(p)
-		if err != nil {
-			return err
-		}
-		return os.WriteFile(p, ShiftHeadings(src, delta), 0o644)
-	})
 }
 
 // CreatePage creates a new page as name/index.md under parent ("" for
 // root), ordered after the last ordered sibling. It returns the new page's
 // path.
 func (t *Tree) CreatePage(parent, name string) (string, error) {
-	destDir, siblings, depth, err := t.resolveParent(parent)
+	destDir, siblings, err := t.resolveParent(parent)
 	if err != nil {
 		return "", err
 	}
@@ -173,7 +152,7 @@ func (t *Tree) CreatePage(parent, name string) (string, error) {
 			order = *p.Order
 		}
 	}
-	return t.newPageFile(destDir, name, order+1, depth)
+	return t.newPageFile(destDir, name, order+1)
 }
 
 // CreatePageAfter creates a new page as name/index.md in the sibling
@@ -186,7 +165,7 @@ func (t *Tree) CreatePageAfter(after, name string) (string, error) {
 		return "", fmt.Errorf("page %s not found", after)
 	}
 	dir := groupDir(after)
-	rel, err := t.newPageFile(dir, name, 0, t.depthOf(ap))
+	rel, err := t.newPageFile(dir, name, 0)
 	if err != nil {
 		return "", err
 	}
@@ -208,10 +187,10 @@ func (t *Tree) CreatePageAfter(after, name string) (string, error) {
 
 // newPageFile writes destDir/name/index.md from the new-page template and
 // returns its path: frontmatter with the order and `status: new`, and an
-// explanation div headed by name, at the heading level of a page depth
-// levels down the tree (0 for a root page). It writes no title: a `title:`
-// would override that heading.
-func (t *Tree) newPageFile(destDir, name string, order, depth int) (string, error) {
+// explanation div headed by name as a level-1 heading, which every page
+// starts with wherever it sits in the tree (issue #96). It writes no title:
+// a `title:` would override that heading.
+func (t *Tree) newPageFile(destDir, name string, order int) (string, error) {
 	name = stem(strings.ReplaceAll(strings.TrimSpace(name), " ", "-"))
 	if name == "" || strings.ContainsAny(name, `/\`) || strings.HasPrefix(name, "_") || strings.HasPrefix(name, ".") {
 		return "", fmt.Errorf("invalid page name %q", name)
@@ -223,8 +202,7 @@ func (t *Tree) newPageFile(destDir, name string, order, depth int) (string, erro
 		}
 	}
 	rel := dir + "/index.md"
-	heading := strings.Repeat("#", min(6, depth+1))
-	content := fmt.Sprintf("---\norder: %d\nstatus: new\n---\n\n::: explanation\n%s %s\n\n:::\n", order, heading, name)
+	content := fmt.Sprintf("---\norder: %d\nstatus: new\n---\n\n::: explanation\n# %s\n\n:::\n", order, name)
 	if err := os.MkdirAll(filepath.Dir(t.abs(rel)), 0o755); err != nil {
 		return "", err
 	}
@@ -347,19 +325,19 @@ func trash(root string, victims []string) error {
 }
 
 // resolveParent resolves a parent page path ("" for root) to the directory
-// that holds its children, the current child pages, and the children's depth.
-func (t *Tree) resolveParent(parent string) (string, []*Page, int, error) {
+// that holds its children and the current child pages.
+func (t *Tree) resolveParent(parent string) (string, []*Page, error) {
 	if parent == "" {
-		return ".", t.Pages, 0, nil
+		return ".", t.Pages, nil
 	}
 	pp := t.Find(parent)
 	if pp == nil {
-		return "", nil, 0, fmt.Errorf("parent %s not found", parent)
+		return "", nil, fmt.Errorf("parent %s not found", parent)
 	}
 	if pp.Dir == "" {
-		return "", nil, 0, fmt.Errorf("%s cannot contain child pages", parent)
+		return "", nil, fmt.Errorf("%s cannot contain child pages", parent)
 	}
-	return pp.Dir, pp.Children, t.depthOf(pp) + 1, nil
+	return pp.Dir, pp.Children, nil
 }
 
 // groupDir returns the directory of the sibling group a page path belongs to.
@@ -394,24 +372,6 @@ func groupIn(p *Page, dir string) []*Page {
 		}
 	}
 	return nil
-}
-
-// depthOf returns the tree depth of a page (root pages have depth 0).
-func (t *Tree) depthOf(target *Page) int {
-	d, _ := depthIn(t.Pages, target, 0)
-	return d
-}
-
-func depthIn(pages []*Page, target *Page, level int) (int, bool) {
-	for _, p := range pages {
-		if p == target {
-			return level, true
-		}
-		if d, ok := depthIn(p.Children, target, level+1); ok {
-			return d, true
-		}
-	}
-	return 0, false
 }
 
 // setOrder writes order into the frontmatter of the page file at rel.
