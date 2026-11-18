@@ -20,6 +20,7 @@ import (
 	"github.com/christophberger-ailab/foolscap-folio/internal/docrender"
 	"github.com/christophberger-ailab/foolscap-folio/internal/docx"
 	"github.com/christophberger-ailab/foolscap-folio/internal/foliocore"
+	"github.com/christophberger-ailab/foolscap-folio/internal/site"
 )
 
 // BrandFile is the Quarto brand file (https://posit-dev.github.io/brand-yml/)
@@ -29,13 +30,8 @@ const BrandFile = "_brand.yml"
 
 type brand struct {
 	// dir is the directory of the file, which its paths are relative to.
-	dir  string
-	Logo struct {
-		Images map[string]brandLogo `yaml:"images"`
-		Small  brandLogo            `yaml:"small"`
-		Medium brandLogo            `yaml:"medium"`
-		Large  brandLogo            `yaml:"large"`
-	} `yaml:"logo"`
+	dir   string
+	Logo  brandLogos `yaml:"logo"`
 	Color struct {
 		Palette    map[string]string `yaml:"palette"`
 		Foreground brandColor        `yaml:"foreground"`
@@ -233,12 +229,31 @@ func CheckBrand(data []byte) error {
 	return err
 }
 
+// brandLogos is the logo section: named images and the logo by size, or
+// a single path that stands for every size.
+type brandLogos struct {
+	Images map[string]brandLogo `yaml:"images"`
+	Small  brandLogo            `yaml:"small"`
+	Medium brandLogo            `yaml:"medium"`
+	Large  brandLogo            `yaml:"large"`
+}
+
+func (l *brandLogos) UnmarshalYAML(n *yaml.Node) error {
+	if n.Kind == yaml.ScalarNode {
+		l.Small.Path = n.Value
+		return nil
+	}
+	type plain brandLogos
+	return n.Decode((*plain)(l))
+}
+
 // brandLogo is a logo: a path or the name of an image, a path with its
-// alt text, or a light and a dark variant, of which the light one counts.
+// alt text, or a light and a dark variant.
 type brandLogo struct {
 	Path  string `yaml:"path"`
 	Alt   string `yaml:"alt"`
 	Light string `yaml:"light"`
+	Dark  string `yaml:"dark"`
 }
 
 func (l *brandLogo) UnmarshalYAML(n *yaml.Node) error {
@@ -252,28 +267,48 @@ func (l *brandLogo) UnmarshalYAML(n *yaml.Node) error {
 	return nil // anything else is no logo
 }
 
-// logo is the logo of a website: the image file and its alt text, from
-// the brand's small logo, else the medium, else the large one.
-func (b *brand) logo() (file, alt string, notes []string) {
+// logo is the logo of a website, from the brand's small logo, else the
+// medium, else the large one: the image files for the light and the dark
+// color scheme and the alt text. A variant that is not a usable file is
+// left out with a note.
+func (b *brand) logo() (logo site.Logo, notes []string) {
 	if b == nil {
-		return "", "", nil
+		return logo, nil
 	}
-	for _, l := range []brandLogo{b.Logo.Small, b.Logo.Medium, b.Logo.Large} {
-		name := cmp.Or(l.Path, l.Light)
-		if img, ok := b.Logo.Images[name]; ok {
-			name, l.Alt = cmp.Or(img.Path, img.Light), cmp.Or(l.Alt, img.Alt)
-		}
+	file := func(name string) string {
 		if name == "" {
-			continue
+			return ""
 		}
 		path, err := foliocore.ProjectPath(b.dir, name)
 		if st, serr := os.Stat(path); err != nil || serr != nil || st.IsDir() {
 			notes = append(notes, fmt.Sprintf("%s: logo: %s is not a file the website can use", BrandFile, name))
-			continue
+			return ""
 		}
-		return path, l.Alt, notes
+		return path
 	}
-	return "", "", notes
+	for _, l := range []brandLogo{b.Logo.Small, b.Logo.Medium, b.Logo.Large} {
+		light, dark, alt := b.variants(l)
+		if logo.Light = file(light); logo.Light != "" {
+			logo.Dark, logo.Alt = file(dark), alt
+			return logo, notes
+		}
+	}
+	return logo, notes
+}
+
+// variants returns the light and the dark image of l and its alt text,
+// with the names of images resolved. A logo with one variant has it for
+// light; a dark one is "" unless given.
+func (b *brand) variants(l brandLogo) (light, dark, alt string) {
+	light, dark, alt = cmp.Or(l.Path, l.Light, l.Dark), l.Dark, l.Alt
+	if img, ok := b.Logo.Images[light]; ok {
+		light, alt = cmp.Or(img.Path, img.Light, img.Dark), cmp.Or(alt, img.Alt)
+		dark = cmp.Or(dark, img.Dark)
+	}
+	if img, ok := b.Logo.Images[dark]; ok {
+		dark = cmp.Or(img.Dark, img.Path, img.Light)
+	}
+	return light, dark, alt
 }
 
 type brandFont struct {

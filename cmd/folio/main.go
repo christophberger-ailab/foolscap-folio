@@ -44,7 +44,7 @@ func main() {
 
 	// `init` writes a starter folio.yml into a tree that has none; it
 	// shares --force and --dry-run with `migrate`.
-	initialize.Register(projectFlag)
+	initialize.Register(projectFlag, web.UserBrand)
 
 	// The `web` object serves the sorter UI; no sub-commands either.
 	web.Register(projectFlag, version)

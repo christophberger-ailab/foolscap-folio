@@ -239,3 +239,54 @@ func TestRenderSkipsOtherAudiencesPaths(t *testing.T) {
 		}
 	}
 }
+
+// A website's pages end in the project's footer, its placeholders
+// resolved from folio.yml, _variables.yml and the date, with the page's
+// topic; a placeholder without a variable is shown as written, with a
+// warning.
+func TestSiteFooter(t *testing.T) {
+	root := t.TempDir()
+	for file, body := range map[string]string{
+		"folio.yml":       "lang: de\nvars: {owner: Acme}\nfooter: \"{owner} · {topic} · {version} · {date} · {nope}\"\nformats:\n  web: {type: html}\ntopics:\n  book: {vars: {owner: Book Co}}\n",
+		"_variables.yml":  "version: 1.2\ndate: 2026-03-05\ndate_format: D. MON YYYY\n",
+		"book/index.qmd":  "---\ntitle: Book\n---\n\n# Book\n\nText.\n",
+		"book/second.qmd": "---\ntitle: Second\norder: 1\n---\n\n# Second\n\nIt is {{< var date >}}.\n",
+	} {
+		os.MkdirAll(filepath.Join(root, filepath.Dir(file)), 0o755)
+		os.WriteFile(filepath.Join(root, file), []byte(body), 0o644)
+	}
+	cfg, err := config.Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sels, err := cfg.Expand(config.Request{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var log []string
+	if err := Run(Options{Selections: sels}, func(f string, a ...any) { log = append(log, fmt.Sprintf(f, a...)) }); err != nil {
+		t.Fatal(err)
+	}
+	read := func(name string) string {
+		b, _ := os.ReadFile(filepath.Join(root, "_output", "web", name))
+		return string(b)
+	}
+	if want := `<footer class="page-footer">Book Co · book · 1.2 · 5. März 2026 · {nope}</footer>`; !strings.Contains(read("book/second.html"), want) {
+		t.Errorf("topic page lacks %s", want)
+	}
+	if want := `<footer class="page-footer">Acme ·  · 1.2 · 5. März 2026 · {nope}</footer>`; !strings.Contains(read("index.html"), want) {
+		t.Errorf("home page lacks %s", want)
+	}
+	if !strings.Contains(read("book/second.html"), "It is 5. März 2026.") {
+		t.Error("page: the var shortcode does not give the date")
+	}
+	warned := 0
+	for _, l := range log {
+		if strings.Contains(l, "footer") && strings.Contains(l, "nope") {
+			warned++
+		}
+	}
+	if warned != 2 {
+		t.Errorf("want a warning per topic and the home page, got %d:\n%s", warned, strings.Join(log, "\n"))
+	}
+}

@@ -137,6 +137,12 @@ a:hover {
   width: auto;
   max-width: 12em;
 }
+/* A logo with a dark variant shows the one that fits the color scheme. */
+.logo-dark { display: none; }
+@media (prefers-color-scheme: dark) {
+  .logo-light { display: none; }
+  .logo-dark { display: block; }
+}
 .topics ul {
   list-style: none;
   margin: 0;
@@ -352,9 +358,19 @@ html:not(.js) .search {
 .layout.no-sidebar.no-toc .page {
   margin: 0 auto;
 }
-.pager {
+.pager,
+.page-footer {
   max-width: var(--measure);
   margin: 3em auto 0;
+}
+.page-footer {
+  /* The smaller text would narrow the em-based column; widen it back. */
+  max-width: calc(var(--measure) / 0.85);
+  padding-top: 1em;
+  border-top: 1px solid var(--border);
+  font-size: 0.85em;
+  text-align: center;
+  color: var(--fg-muted);
 }
 
 /* ---------- sidebar ---------- */

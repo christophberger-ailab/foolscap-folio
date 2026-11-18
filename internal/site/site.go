@@ -52,15 +52,21 @@ type Options struct {
 	// the font files it refers to: name below _site/fonts to source file.
 	BrandCSS   string
 	BrandFonts map[string]string
-	// Logo is the image file, absolute, shown in the navbar before the
-	// title and used as the site's icon; "" for none. LogoAlt is its
-	// alternative text.
-	Logo, LogoAlt string
+	// Logo is shown in the navbar before the title and is the site's icon.
+	Logo Logo
+	// Footer returns the Markdown footer of the pages of a topic, by its
+	// name, and of the home page, by ""; "" for none. May be nil.
+	Footer func(topic string) string
 	// Expand expands shortcodes in a page's Markdown; may be nil.
 	Expand func(string) (string, error)
 	// Log receives warnings and progress; may be nil.
 	Log func(format string, args ...any)
 }
+
+// Logo is the site's logo: image files, absolute, for the light and the
+// dark color scheme, and their alternative text. Without Light there is
+// no logo; without Dark the light one serves both schemes.
+type Logo struct{ Light, Dark, Alt string }
 
 // pageInfo is one page of the site.
 type pageInfo struct {
@@ -94,7 +100,7 @@ type builder struct {
 	copied  map[string]bool
 	tmpl    *template.Template
 	labels  labels
-	logo    string   // OutDir-relative path of the logo, "" for none
+	logo    Logo     // OutDir-relative paths of the logo's files
 	css     []string // OutDir-relative paths of the extra stylesheets
 	outAbs  string
 	rootAbs string
@@ -130,8 +136,11 @@ func Build(o Options) error {
 		b.o.Lang = "en"
 	}
 	b.labels = labelsFor(b.o.Lang)
-	if o.Logo != "" {
-		b.logo = "_site/logo" + strings.ToLower(filepath.Ext(o.Logo))
+	if o.Logo.Light != "" {
+		b.logo = Logo{Light: "_site/logo" + strings.ToLower(filepath.Ext(o.Logo.Light)), Alt: o.Logo.Alt}
+		if o.Logo.Dark != "" {
+			b.logo.Dark = "_site/logo-dark" + strings.ToLower(filepath.Ext(o.Logo.Dark))
+		}
 	}
 	for i, c := range o.CSS {
 		name := strings.TrimSuffix(filepath.Base(c), filepath.Ext(c))
@@ -268,7 +277,7 @@ type tocItem struct {
 	Level    int // 1 or 2
 }
 
-func (b *builder) renderPage(p *pageInfo) error {
+func (b *builder) renderPage(p *pageInfo) (err error) {
 	var content template.HTML
 	var toc []tocItem
 	if p.landing != "" {
@@ -280,7 +289,6 @@ func (b *builder) renderPage(p *pageInfo) error {
 			b.logf("warning: %s", w)
 		}
 		if b.o.Expand != nil {
-			var err error
 			if md, err = b.o.Expand(md); err != nil {
 				return fmt.Errorf("site: %s: %w", p.node.Page.Rel, err)
 			}
@@ -293,8 +301,8 @@ func (b *builder) renderPage(p *pageInfo) error {
 		b.rewriteLinks(doc, p)
 		b.expandSubpages(doc, p)
 		toc = tocOf(doc)
-		s, err := markdown.HTML(doc)
-		if err != nil {
+		var s string
+		if s, err = markdown.HTML(doc); err != nil {
 			return fmt.Errorf("site: %s: %w", p.node.Page.Rel, err)
 		}
 		content = template.HTML(s)
@@ -305,6 +313,9 @@ func (b *builder) renderPage(p *pageInfo) error {
 		b.search = append(b.search, sd)
 	}
 	data := b.pageData(p, content, toc)
+	if data.Footer, err = b.footer(p); err != nil {
+		return err
+	}
 	var buf bytes.Buffer
 	if err := b.tmpl.ExecuteTemplate(&buf, "page.html", data); err != nil {
 		return err
@@ -351,4 +362,31 @@ func tocOf(doc *markdown.Document) []tocItem {
 		return nil
 	}
 	return items
+}
+
+// footer renders the footer of p's pages, a single paragraph without its
+// <p>.
+func (b *builder) footer(p *pageInfo) (template.HTML, error) {
+	if b.o.Footer == nil {
+		return "", nil
+	}
+	topic := ""
+	if p.topic != nil {
+		topic = p.topic.Name
+	}
+	md := b.o.Footer(topic)
+	if md == "" {
+		return "", nil
+	}
+	doc := markdown.Parse([]byte(md))
+	doc.Prepare(markdown.Options{Lang: b.o.Lang})
+	s, err := markdown.HTML(doc)
+	if err != nil {
+		return "", fmt.Errorf("site: footer: %w", err)
+	}
+	s = strings.TrimSpace(s)
+	if inner, ok := strings.CutPrefix(s, "<p>"); ok && strings.Count(s, "<p>") == 1 {
+		s = strings.TrimSuffix(inner, "</p>")
+	}
+	return template.HTML(s), nil
 }

@@ -30,6 +30,7 @@ package config
 
 import (
 	"bytes"
+	"cmp"
 	"errors"
 	"fmt"
 	"io"
@@ -104,6 +105,9 @@ type Config struct {
 	// Vars are the variables `{{< var name >}}` and `{name}` placeholders
 	// resolve against. Formats, audiences and topics add their own.
 	Vars map[string]string `yaml:"vars"`
+	// Footer is the text at the foot of every page of a website, in
+	// Markdown, with {name} placeholders; a format may have its own.
+	Footer string `yaml:"footer"`
 
 	Formats   Entries[Format]   `yaml:"formats"`
 	Audiences Entries[Audience] `yaml:"audiences"`
@@ -176,6 +180,8 @@ type Format struct {
 	// own. They are copied verbatim, so an .scss file must be plain CSS.
 	// May contain placeholders.
 	CSS []string `yaml:"css"`
+	// Footer replaces the project's page footer for this format.
+	Footer string `yaml:"footer"`
 	// Topics and Audiences restrict the matrix from the format's side.
 	Topics    []string          `yaml:"topics"`
 	Audiences []string          `yaml:"audiences"`
@@ -580,6 +586,10 @@ var DefaultStrings = map[string]map[string]string{
 	"de": {"section_prefix": "Teil", "chapter_prefix": "Kapitel"},
 }
 
+// Footer returns the selection's page footer, its placeholders not
+// resolved: the format's, else the project's.
+func (s Selection) Footer() string { return cmp.Or(s.Format.Footer, s.Config.Footer) }
+
 // Prefixes returns what goes before the titles of the selection's sections
 // and chapters, each "" unless the format asks for it.
 func (s Selection) Prefixes() (section, chapter string) {
@@ -679,7 +689,8 @@ func (s Selection) String() string {
 var placeholder = regexp.MustCompile(`\{([A-Za-z][\w-]*)\}`)
 
 // Interpolate replaces {name} placeholders by their variables. A
-// placeholder without a variable is an error.
+// placeholder without a variable is an error, and stays as written in
+// the text returned with it.
 func Interpolate(s string, vars map[string]string) (string, error) {
 	var missing []string
 	out := placeholder.ReplaceAllStringFunc(s, func(m string) string {
@@ -687,11 +698,12 @@ func Interpolate(s string, vars map[string]string) (string, error) {
 		v, ok := vars[name]
 		if !ok {
 			missing = append(missing, name)
+			return m
 		}
 		return v
 	})
 	if len(missing) > 0 {
-		return "", fmt.Errorf("undefined variable %s in %q", strings.Join(missing, ", "), s)
+		return out, fmt.Errorf("undefined variable %s in %q", strings.Join(missing, ", "), s)
 	}
 	return out, nil
 }

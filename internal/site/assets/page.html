@@ -13,7 +13,7 @@
 {{end -}}
 {{range .CSS}}<link rel="stylesheet" href="{{$.Base}}{{.}}">
 {{end -}}
-{{if .Logo}}<link rel="icon" href="{{.Base}}{{.Logo}}">
+{{with .Logo.Light}}<link rel="icon" href="{{$.Base}}{{.}}">
 {{end -}}
 <script>document.documentElement.classList.add('js')</script>
 <script src="{{.Base}}_site/site.js" defer></script>
@@ -23,7 +23,7 @@
 <header class="navbar">
   <div class="navbar-inner">
     {{if .Sidebar}}<button class="icon-button sidebar-toggle" type="button" aria-controls="sidebar" aria-expanded="false" aria-label="{{.L.Sidebar}}"><span class="icon icon-sidebar" aria-hidden="true"></span><span class="btn-label">{{.L.Contents}}</span></button>{{end}}
-    <a class="site-title" href="{{.HomeURL}}">{{if .Logo}}<img class="site-logo" src="{{.Base}}{{.Logo}}" alt="{{.LogoAlt}}">{{end}}{{.SiteTitle}}</a>
+    <a class="site-title" href="{{.HomeURL}}">{{with .Logo}}{{if .Dark}}<img class="site-logo logo-light" src="{{$.Base}}{{.Light}}" alt="{{.Alt}}"><img class="site-logo logo-dark" src="{{$.Base}}{{.Dark}}" alt="{{.Alt}}">{{else if .Light}}<img class="site-logo" src="{{$.Base}}{{.Light}}" alt="{{.Alt}}">{{end}}{{end}}{{.SiteTitle}}</a>
     {{if .Nav}}<button class="icon-button menu-toggle" type="button" aria-controls="topics" aria-expanded="false" aria-label="{{.L.Menu}}"><span class="icon icon-menu" aria-hidden="true"></span></button>
     <nav id="topics" class="topics" aria-label="{{.L.Topics}}"><ul>
       {{range .Nav}}<li><a href="{{.URL}}"{{if .Active}} class="active" aria-current="true"{{end}}>{{.Title}}</a></li>
@@ -51,6 +51,7 @@
       {{if .Prev}}<a class="prev" rel="prev" href="{{.Prev.URL}}"><span class="pager-label">{{$.L.Prev}}</span><span class="pager-title">{{.Prev.Title}}</span></a>{{else}}<span></span>{{end}}
       {{if .Next}}<a class="next" rel="next" href="{{.Next.URL}}"><span class="pager-label">{{$.L.Next}}</span><span class="pager-title">{{.Next.Title}}</span></a>{{end}}
     </nav>{{end}}
+    {{with .Footer}}<footer class="page-footer">{{.}}</footer>{{end}}
   </main>
   {{if .TOC}}<aside class="toc" aria-label="{{.L.OnThisPage}}">
     <nav>

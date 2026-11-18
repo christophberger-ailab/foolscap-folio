@@ -79,7 +79,7 @@ Global flags apply to every command:
 | command                                    | what it does                                                                                        |
 | ------------------------------------------ | --------------------------------------------------------------------------------------------------- |
 | `folio render [<topic>…]`                  | render the project's topic × format × audience matrix                                               |
-| `folio init`                               | write a starter `folio.yml` into a Markdown tree that has none                                      |
+| `folio init`                               | write a starter `folio.yml` and `_brand.yml` into a Markdown tree, or a sample project into an empty folder |
 | `folio migrate`                            | write `folio.yml` from the project's old `_quarto*.yml` files                                       |
 | `folio lint [<topic>]`                     | check the `.qmd` sources (currently: unclosed `:::` fences)                                         |
 | `folio web [<path>]`                       | serve the local sorting, editing and rendering UI                                                   |
@@ -228,6 +228,7 @@ Top level keys:
 | `lang`      | the document language (`de`, `en-US`, …); sets the proofing language and the contents heading |
 | `output`    | the directory renders are written below; default `_output`                                    |
 | `vars`      | variables for `{{< var name >}}` and `{name}` placeholders                                    |
+| `footer`    | the footer of every website page, in Markdown, with `{name}` placeholders; a format's `footer` replaces it |
 | `formats`   | how a render is produced                                                                      |
 | `audiences` | for whom                                                                                      |
 | `topics`    | what: one content folder each                                                                 |
@@ -312,7 +313,14 @@ title: Handbook
 lang: en
 ```
 
-`{name}` placeholders in `dir`, `file`, `cover`, `template` and `css` resolve against the variables: the project's `vars`, then the topic's, the audience's and the format's (later ones win), plus the built-ins `topic`, `format` and `audience`. A placeholder without a variable is an error. The same variables serve `{{< var name >}}` in the content, together with the keys of `_variables.yml` in the project root (nested keys are written with dots, `metadata.version`); `vars` win over the file.
+`{name}` placeholders in `dir`, `file`, `cover`, `template` and `css` resolve against the variables: the project's `vars`, then the topic's, the audience's and the format's (later ones win), plus the built-ins `topic`, `format` and `audience`. A placeholder without a variable is an error. The same variables serve `{{< var name >}}` and its short form `{{name}}` in the content, together with the keys of `_variables.yml` in the project root (nested keys are written with dots, `metadata.version`); `vars` win over the file. Code blocks and inline code keep `{{name}}` as written, and an unknown name stays as written, with a warning.
+
+The website's `footer`, the cover's title and subtitle and `{{name}}` also know `_variables.yml` and the built-in `date`: the variable `date` (`YYYY-MM-DD`), else the day of the render, written as the variable `date_format` says. `date_format` is `iso` (`YYYY-MM-DD`, the default) or a pattern of `YYYY` or `YY` (year), `MON` (the month's name in the project's `lang`), `MM` or `M` (month number with or without a leading zero) and `DD` or `D` (day, likewise) between other characters, such as `DD.MM.YYYY`, `MM/DD/YY` or `MON D, YYYY`. A `date` that is not `YYYY-MM-DD` is shown as written. In the footer, `topic` is the topic of the page, empty on the home page, and a placeholder without a variable stays as written, with a warning in the render log:
+
+```yaml
+footer: "© {owner} · {topic} · as of {date}"
+vars: {owner: Acme, date_format: "MON D, YYYY"}
+```
 
 ### Conditional content
 
@@ -428,7 +436,7 @@ Documents are written to `<output>/<dir>/<file>.docx` and `.pdf`, which by defau
 | `typography.link` | color, background, weight, decoration | color | color |
 | `logo.small`, else `medium`, else `large` | navbar logo and site icon | – | – |
 
-The website's navbar is in the primary color, with white or black text, whichever reads better on it. A logo is a path, the name of an entry in `logo.images`, or `light` and `dark` variants, of which the light one is used. Fonts with `files` are copied into the site, and fonts with `source: google` or `source: bunny` are loaded from that service by the reader's browser. The brand's colors apply to the light color scheme; the dark scheme keeps folio's own colors. The site's stylesheets come in this order: folio's, the brand's, then the format's `css`. A DOCX only names its fonts, so they must be installed where it is opened, and a DOCX with a `template` keeps the template's styles. A value the output cannot use is left out, with a note in the render log.
+The website's navbar is in the primary color, with white or black text, whichever reads better on it. A logo is a path, the name of an entry in `logo.images`, or `light` and `dark` variants; `logo:` may also be a single path for every size. The light variant stands in the navbar and is the site's icon; a dark one takes its place when the reader's system uses the dark color scheme. Fonts with `files` are copied into the site, and fonts with `source: google` or `source: bunny` are loaded from that service by the reader's browser. The brand's colors apply to the light color scheme; the dark scheme keeps folio's own colors. The site's stylesheets come in this order: folio's, the brand's, then the format's `css`. A DOCX only names its fonts, so they must be installed where it is opened, and a DOCX with a `template` keeps the template's styles. A value the output cannot use is left out, with a note in the render log.
 
 ```yaml
 typography:
@@ -480,6 +488,8 @@ folio init --force       # overwrite an existing folio.yml
 ```
 
 `folio init` writes a starter `folio.yml` into a tree of `.md` or `.qmd` pages that has none yet. It takes the title from the root `index.qmd` or `index.md` (its `title:`, else its first heading), else from the first heading of `README.md`, else from the folder's name; lists every content folder as a topic; adds the `web` format; and spells out where `folio web` and `folio preview` listen. Commented examples show a document format, audiences and `lang`. It refuses to overwrite an existing `folio.yml` (or `qm.yml`) without `--force`, refuses a tree without content folders, sends a tree that still has `_quarto*.yml` files to `folio migrate`, and checks that the result loads.
+
+Beside the `folio.yml` it writes a sample `_brand.yml` -- colors, type sizes and cover sizes, with fonts and a logo as commented examples -- unless the project has a brand file already, which it never overwrites. If you have a global `_brand.yml` beside folio's settings file, the new one starts with a prominent warning that it overrides the global one for this project. In an empty folder (dot files such as `.git` aside), `folio init` first writes a sample project to start from: a home page, a `handbook` topic with its preliminaries, two sections and their chapters, and a logo in a light and a dark variant that the sample brand names. Each page explains what its place in the tree makes it, so `folio preview` shows the structure right away.
 
 ### Migrating an existing project
 

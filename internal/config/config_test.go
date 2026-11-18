@@ -246,8 +246,8 @@ topics:
 		wdir != filepath.Join(root, "_output", "web-pol") {
 		t.Errorf("stem %q cover %q tpl %q dir %q web %q", stem, cover, tpl, dir, wdir)
 	}
-	if _, err := Interpolate("{nope}", nil); err == nil {
-		t.Error("undefined placeholder accepted")
+	if s, err := Interpolate("{a} {nope}", map[string]string{"a": "A"}); err == nil || s != "A {nope}" {
+		t.Errorf("undefined placeholder: %q, %v", s, err)
 	}
 }
 
@@ -414,5 +414,30 @@ func TestAllTopicsSiteLinksAllCSS(t *testing.T) {
 	}
 	if got := css("a"); !slices.Equal(got, []string{"site.css"}) {
 		t.Errorf("site of topic a: %q", got)
+	}
+}
+
+// A website's page footer is its format's, else the project's.
+func TestFooter(t *testing.T) {
+	root := project(t, `
+footer: "{topic} · {date}"
+formats:
+  web:  {type: html}
+  own:  {type: html, footer: "© Acme"}
+`, "a")
+	c, err := Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sels, err := c.Expand(Request{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]string{}
+	for _, s := range sels {
+		got[s.Format.Name] = s.Footer()
+	}
+	if got["web"] != "{topic} · {date}" || got["own"] != "© Acme" {
+		t.Errorf("footers = %q", got)
 	}
 }
