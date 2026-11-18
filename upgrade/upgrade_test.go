@@ -148,3 +148,16 @@ func TestTheNotesOfEveryReleaseInBetweenAreShown(t *testing.T) {
 		t.Errorf("no heading for the changes:\n%s", text)
 	}
 }
+
+// A binary that a package manager installed is updated with that package
+// manager: folio says so instead of asking.
+func TestAManagedBinaryPointsToItsPackageManager(t *testing.T) {
+	o, out := opts(t, "v0.4.0", "v0.5.0", "y\n")
+	o.Exe = "/usr/local/Cellar/folio/0.4.0/bin/folio"
+	if err := Run(context.Background(), o); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), "update it with brew upgrade folio") || strings.Contains(out.String(), "[y/N]") {
+		t.Errorf("output: %s", out)
+	}
+}

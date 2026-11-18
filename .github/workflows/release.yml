@@ -130,83 +130,13 @@ jobs:
       - name: Test
         run: go test ./...
 
-  build:
-    name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
-    needs: [version, test]
-    if: needs.version.outputs.version != ''
-    runs-on: ubuntu-latest
-    env:
-      VERSION: ${{ needs.version.outputs.version }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - goos: linux
-            goarch: amd64
-          - goos: linux
-            goarch: arm64
-          - goos: windows
-            goarch: amd64
-          - goos: windows
-            goarch: arm64
-          - goos: darwin
-            goarch: amd64
-          - goos: darwin
-            goarch: arm64
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ env.BUILD_SHA }}
-
-      - uses: actions/setup-go@v7
-        with:
-          go-version-file: go.mod
-          cache: true
-
-      # folio is pure Go (the only embedded data comes from //go:embed in
-      # web/server.go), so CGO_ENABLED=0 gives a static binary and lets all
-      # six targets cross-compile from the same ubuntu runner. macOS on Apple
-      # silicon refuses to run unsigned arm64 code; Go's linker ad-hoc signs
-      # darwin/arm64 binaries itself, also when cross-compiling, so no macOS
-      # runner or codesign step is needed.
-      - name: Build
-        env:
-          CGO_ENABLED: "0"
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-        run: |
-          set -euo pipefail
-          BIN=folio
-          if [ "$GOOS" = "windows" ]; then BIN=folio.exe; fi
-          mkdir -p dist
-          go build \
-            -trimpath \
-            -ldflags "-s -w -X main.version=${VERSION}" \
-            -o "dist/${BIN}" \
-            ./cmd/folio/
-
-      - name: Package
-        run: |
-          set -euo pipefail
-          NAME="folio_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}"
-          mkdir -p out
-          cd dist
-          if [ "${{ matrix.goos }}" = "windows" ]; then
-            zip -q "../out/${NAME}.zip" folio.exe
-          else
-            tar -czf "../out/${NAME}.tar.gz" folio
-          fi
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: folio_${{ matrix.goos }}_${{ matrix.goarch }}
-          path: out/*
-          retention-days: 7
-          if-no-files-found: error
-
+  # GoReleaser builds the six targets, packages them (archives, deb, rpm,
+  # apk, Arch), writes and signs SHA256SUMS.txt, publishes the release and
+  # pushes the Homebrew cask and Scoop manifest. .goreleaser.yaml has the
+  # details, and the names folio upgrade depends on.
   release:
-    name: Publish release
-    needs: [version, build]
+    name: Build and publish release
+    needs: [version, test]
     if: needs.version.outputs.version != ''
     runs-on: ubuntu-latest
     # id-token lets cosign get a short-lived signing certificate from
@@ -218,49 +148,34 @@ jobs:
     env:
       VERSION: ${{ needs.version.outputs.version }}
     steps:
+      # GoReleaser reads the version from the tag on HEAD and the previous
+      # release from the tags before it, so it needs the full history.
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.BUILD_SHA }}
+          fetch-depth: 0
 
-      - uses: actions/download-artifact@v8
+      - uses: actions/setup-go@v7
         with:
-          path: out
-          pattern: folio_*
-          merge-multiple: true
-
-      - name: Checksums
-        run: |
-          set -euo pipefail
-          cd out
-          # Match the archives explicitly rather than ./* so the redirect
-          # target can never end up hashing itself.
-          sha256sum folio_* > SHA256SUMS.txt
-          cat SHA256SUMS.txt
+          go-version-file: go.mod
+          cache: true
 
       - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
         with:
           cosign-release: v3.1.4
 
-      # SHA256SUMS.txt pins every archive, so signing it signs the release.
-      # The bundle holds the signature, the certificate naming this workflow
-      # and the transparency log entry: everything needed to verify offline.
-      - name: Sign checksums
-        run: |
-          set -euo pipefail
-          cd out
-          cosign sign-blob --yes \
-            --bundle SHA256SUMS.txt.sigstore.json \
-            SHA256SUMS.txt
+      # A local tag only: the release GoReleaser creates makes the tag on
+      # GitHub, pinned to the merged commit (target_commitish).
+      - name: Tag
+        run: git tag "${VERSION}" "${BUILD_SHA}"
 
-      # gh is preinstalled on GitHub-hosted runners, so this needs no
-      # third-party action. --target pins the tag to the merged commit.
-      - name: Create release
+      - uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
+        with:
+          distribution: goreleaser
+          version: v2.20.2
+          args: release --clean
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          gh release create "${VERSION}" \
-            --target "${BUILD_SHA}" \
-            --title "${VERSION}" \
-            --generate-notes \
-            out/*
+          GITHUB_TOKEN: ${{ github.token }}
+          # Writes the Homebrew tap and the Scoop bucket. While it is unset
+          # the release goes out without them.
+          HOMEBREW_SCOOP_TOKEN: ${{ secrets.HOMEBREW_SCOOP_TOKEN }}

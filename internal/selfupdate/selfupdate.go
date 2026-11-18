@@ -234,6 +234,9 @@ func oldName(exe string) string { return exe + ".old" }
 // checksums against their signature and the build against the checksums,
 // and puts it in place of the binary at exe.
 func Install(ctx context.Context, c *http.Client, rel Release, exe string) error {
+	if Manager(exe) != "" {
+		return managedError(exe)
+	}
 	name := AssetName(rel.Version, runtime.GOOS, runtime.GOARCH)
 	archive, sums, sig := rel.asset(name), rel.asset(checksumsName), rel.asset(bundleName)
 	if archive == nil {
