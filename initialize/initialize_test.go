@@ -1,11 +1,14 @@
 package initialize
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
+	"github.com/christophberger-ailab/foolscap-folio/internal/build"
 	"github.com/christophberger-ailab/foolscap-folio/internal/config"
 )
 
@@ -140,7 +143,7 @@ func TestDryRunWritesNothing(t *testing.T) {
 
 func TestRejectsUnsuitableTrees(t *testing.T) {
 	empty := t.TempDir()
-	write(t, empty, "notes.txt", "x")
+	write(t, empty, "notes.txt", "x") // not empty, so no sample project
 	if _, err := Run(empty, Options{}); err == nil || !strings.Contains(err.Error(), "no content folders") {
 		t.Errorf("empty tree: err = %v", err)
 	}
@@ -148,5 +151,105 @@ func TestRejectsUnsuitableTrees(t *testing.T) {
 	write(t, quarto, "_quarto.yml", "project: {type: website}\n")
 	if _, err := Run(quarto, Options{}); err == nil || !strings.Contains(err.Error(), "folio migrate") {
 		t.Errorf("Quarto tree: err = %v", err)
+	}
+}
+
+// Init writes a sample _brand.yml beside folio.yml, and leaves one that is
+// there alone.
+func TestWritesBrand(t *testing.T) {
+	root := tree(t)
+	res, err := Run(root, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(filepath.Join(root, build.BrandFile))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := build.CheckBrand(b); err != nil {
+		t.Errorf("sample brand does not load: %v", err)
+	}
+	if strings.Contains(string(b), "\nlogo:") {
+		t.Errorf("brand names a logo the project does not have:\n%s", b)
+	}
+	if !slices.Contains(res.Files, build.BrandFile) {
+		t.Errorf("files %q", res.Files)
+	}
+
+	write(t, root, build.BrandFile, "color: {primary: red}\n")
+	res, err = Run(root, Options{Force: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if b, _ := os.ReadFile(filepath.Join(root, build.BrandFile)); string(b) != "color: {primary: red}\n" || slices.Contains(res.Files, build.BrandFile) {
+		t.Errorf("existing brand overwritten: %q, files %q", b, res.Files)
+	}
+
+	root = tree(t)
+	if _, err := Run(root, Options{DryRun: true}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(root, build.BrandFile)); !os.IsNotExist(err) {
+		t.Errorf("dry run wrote the brand: %v", err)
+	}
+}
+
+// In an empty folder -- dot files aside -- init writes a sample project:
+// a home page, a topic with sections and chapters, a logo and its brand.
+// It renders.
+func TestSampleProject(t *testing.T) {
+	root := t.TempDir()
+	write(t, root, ".git/HEAD", "ref: refs/heads/main\n")
+	res, err := Run(root, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range []string{"index.md", "handbook/index.md", "handbook/writing/index.md", "assets/logo.svg", build.BrandFile} {
+		if !slices.Contains(res.Files, f) {
+			t.Errorf("%s not reported among %q", f, res.Files)
+		}
+		if _, err := os.Stat(filepath.Join(root, f)); err != nil {
+			t.Error(err)
+		}
+	}
+	if b, _ := os.ReadFile(filepath.Join(root, build.BrandFile)); !strings.Contains(string(b), "assets/logo.svg") {
+		t.Errorf("sample brand lacks the logo:\n%s", b)
+	}
+	c, err := config.Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Title != filepath.Base(root) { // TempDir's numbered folder
+		t.Errorf("title %q, want the folder's name", c.Title)
+	}
+	if len(c.Topics) != 1 || c.Topics[0].Name != "handbook" {
+		t.Errorf("topics %+v", c.Topics)
+	}
+	sels, err := c.Expand(config.Request{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var log []string
+	if err := build.Run(build.Options{Selections: sels}, func(f string, a ...any) { log = append(log, fmt.Sprintf(f, a...)) }); err != nil {
+		t.Fatalf("%v\n%s", err, strings.Join(log, "\n"))
+	}
+	for _, l := range log {
+		if strings.Contains(l, "warning") || strings.Contains(l, "note:") {
+			t.Errorf("render: %s", l)
+		}
+	}
+	page, err := os.ReadFile(filepath.Join(root, "_output", "web", "handbook", "writing", "index.html"))
+	if err != nil || !strings.Contains(string(page), "site-logo") {
+		t.Errorf("section page without the logo: %v", err)
+	}
+
+	// A dry run in an empty folder shows the sample's folio.yml and writes nothing.
+	empty := t.TempDir()
+	res, err = Run(empty, Options{DryRun: true})
+	if err != nil || !strings.Contains(res.YAML, "handbook:") {
+		t.Fatalf("dry run: %v\n%s", err, res.YAML)
+	}
+	if entries, _ := os.ReadDir(empty); len(entries) != 0 {
+		t.Errorf("dry run wrote %d entries", len(entries))
 	}
 }

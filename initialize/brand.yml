@@ -1,0 +1,54 @@
+# _brand.yml, written by `folio init`: the look of the website, the PDF and
+# a DOCX without a template. It follows brand.yml
+# (https://posit-dev.github.io/brand-yml/); the README's "Brand" section
+# lists what folio reads from it. Change what you like and render again.
+
+color:
+  palette:
+    ink: "#1f2933"
+    blue: "#1f4e79"
+  foreground: ink
+  background: "#ffffff"
+  primary: blue
+
+typography:
+  # A family names an installed font. The PDF uses one only if `fonts`
+  # lists its TrueType files, relative to this file:
+  # fonts:
+  #   - family: Source Sans 3
+  #     source: file
+  #     files: [assets/fonts/SourceSans3-Regular.ttf]
+  base:
+    # family: Source Sans 3
+    size: 16px
+    line-height: 1.6
+  headings:
+    # family: Source Sans 3
+    weight: 600
+    color: blue
+{{- if .Logo}}
+
+# The logo stands in the website's navbar and is its icon; the dark variant
+# replaces it when the reader's system uses the dark color scheme.
+logo:
+  images:
+    mark:
+      light: assets/logo.svg
+      dark: assets/logo-dark.svg
+      alt: Sample logo
+  small: mark
+{{- else}}
+
+# A logo for the website's navbar, a path relative to this file:
+# logo:
+#   small: {light: assets/logo.svg, dark: assets/logo-dark.svg, alt: Our logo}
+{{- end}}
+
+# What folio reads beyond brand.yml: the fonts and sizes of the cover and of
+# the headings by level.
+meta:
+  fonts:
+    title: {size: 36pt}
+    subtitle: {size: 20pt}
+    section:
+      h1: {size: 28pt}

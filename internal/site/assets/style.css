@@ -364,6 +364,8 @@ html:not(.js) .search {
   margin: 3em auto 0;
 }
 .page-footer {
+  /* The smaller text would narrow the em-based column; widen it back. */
+  max-width: calc(var(--measure) / 0.85);
   padding-top: 1em;
   border-top: 1px solid var(--border);
   font-size: 0.85em;

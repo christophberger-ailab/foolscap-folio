@@ -79,7 +79,7 @@ Global flags apply to every command:
 | command                                    | what it does                                                                                        |
 | ------------------------------------------ | --------------------------------------------------------------------------------------------------- |
 | `folio render [<topic>…]`                  | render the project's topic × format × audience matrix                                               |
-| `folio init`                               | write a starter `folio.yml` into a Markdown tree that has none                                      |
+| `folio init`                               | write a starter `folio.yml` and `_brand.yml` into a Markdown tree, or a sample project into an empty folder |
 | `folio migrate`                            | write `folio.yml` from the project's old `_quarto*.yml` files                                       |
 | `folio lint [<topic>]`                     | check the `.qmd` sources (currently: unclosed `:::` fences)                                         |
 | `folio web [<path>]`                       | serve the local sorting, editing and rendering UI                                                   |
@@ -488,6 +488,8 @@ folio init --force       # overwrite an existing folio.yml
 ```
 
 `folio init` writes a starter `folio.yml` into a tree of `.md` or `.qmd` pages that has none yet. It takes the title from the root `index.qmd` or `index.md` (its `title:`, else its first heading), else from the first heading of `README.md`, else from the folder's name; lists every content folder as a topic; adds the `web` format; and spells out where `folio web` and `folio preview` listen. Commented examples show a document format, audiences and `lang`. It refuses to overwrite an existing `folio.yml` (or `qm.yml`) without `--force`, refuses a tree without content folders, sends a tree that still has `_quarto*.yml` files to `folio migrate`, and checks that the result loads.
+
+Beside the `folio.yml` it writes a sample `_brand.yml` -- colors, type sizes and cover sizes, with fonts and a logo as commented examples -- unless the project has a brand file already, which it never overwrites. In an empty folder (dot files such as `.git` aside), `folio init` first writes a sample project to start from: a home page, a `handbook` topic with its preliminaries, two sections and their chapters, and a logo in a light and a dark variant that the sample brand names. Each page explains what its place in the tree makes it, so `folio preview` shows the structure right away.
 
 ### Migrating an existing project
 
