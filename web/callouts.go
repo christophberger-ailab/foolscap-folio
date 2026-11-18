@@ -1,12 +1,15 @@
 package web
 
-// callouts.go — the titles callouts get in the user's languages.
+// callouts.go — the titles callouts get in the user's languages, and the
+// other texts folio puts into a render.
 //
 // A callout without a title of its own is titled with its type's name in
 // the project's language (folio.yml's lang). folio knows English and
 // German; the settings file holds the user's own titles for any language,
 // and those win. They are the user's rather than the project's, so they
 // live in config.cue, and every render and preview reads them from there.
+// The strings, such as the "Part" and "Chapter" that go before section and
+// chapter titles, work the same way.
 
 import (
 	"encoding/json"
@@ -25,6 +28,29 @@ func CalloutTitles() (map[string]map[string]string, error) {
 }
 
 func calloutTitlesIn(path string) (map[string]map[string]string, error) {
+	cfg, err := settingsIn(path)
+	if cfg == nil {
+		return nil, err
+	}
+	return cfg.Callouts, nil
+}
+
+// Strings are the user's strings by language and key, from the settings
+// file; nil when there is no settings file.
+func Strings() (map[string]map[string]string, error) {
+	return stringsIn(defaultConfigFile())
+}
+
+func stringsIn(path string) (map[string]map[string]string, error) {
+	cfg, err := settingsIn(path)
+	if cfg == nil {
+		return nil, err
+	}
+	return cfg.Strings, nil
+}
+
+// settingsIn reads the settings file at path; nil when there is none.
+func settingsIn(path string) (*storedConfig, error) {
 	if path == "" {
 		return nil, nil
 	}
@@ -35,7 +61,7 @@ func calloutTitlesIn(path string) (map[string]map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return cfg.Callouts, nil
+	return &cfg, nil
 }
 
 // defaultCallouts are the titles a fresh settings file starts with: the
@@ -45,6 +71,16 @@ func defaultCallouts() map[string]map[string]string {
 	out := map[string]map[string]string{}
 	for lang, titles := range markdown.DefaultCalloutTitles {
 		out[lang] = maps.Clone(titles)
+	}
+	return out
+}
+
+// defaultStrings are the strings a fresh settings file starts with: the
+// ones folio knows itself.
+func defaultStrings() map[string]map[string]string {
+	out := map[string]map[string]string{}
+	for lang, texts := range config.DefaultStrings {
+		out[lang] = maps.Clone(texts)
 	}
 	return out
 }

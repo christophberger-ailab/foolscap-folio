@@ -46,6 +46,10 @@ type Options struct {
 	// Headings are the fonts of headings by level, from _brand.yml; a
 	// zero name or size keeps the heading style's.
 	Headings [6]Font
+	// SectionHeadings are the fonts of the headings of a section's title
+	// and intro, from _brand.yml's meta.fonts.section; a zero name or
+	// size keeps Headings'.
+	SectionHeadings [6]Font
 	// Warn, if set, receives the problems that do not stop the render,
 	// such as an image that is not there.
 	Warn func(format string, args ...any)

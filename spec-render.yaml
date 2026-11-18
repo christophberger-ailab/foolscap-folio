@@ -50,7 +50,7 @@ constraints:
       1-3: Text inside fenced code blocks is not touched, and any other shortcode is reported once and left in the text
       2: Conditional content the selected format and audience do not show is removed after parsing (see CONDITIONAL in spec.yaml)
       3: The DOCX is written in Go. A format's `template` names a reference DOCX whose styles, page setup, headers, footers and numbering are used and whose body is discarded; a missing template fails before anything is written
-      3-1: 'With `toc: true` the DOCX has a Word contents field, pre-filled with the headings of levels 1 to 3 as links'
+      3-1: 'With `toc: true` the DOCX has a Word contents field, pre-filled with the headings of levels 1 to 3 as links; it follows the preliminaries (see BOOKS 5 in spec.yaml), whose headings it does not list, and it lists a section''s title but not the headings of the section''s intro'
       3-1-1: With --update-toc, folio has LibreOffice (`soffice` or `libreoffice` on the PATH, or its default place on macOS and Windows) lay out a copy of the finished DOCX, cover included, in the background and under a profile of its own, and writes the page of every heading into the contents as Word writes them (dot leader, page field); the document then no longer asks to have its fields updated
       3-1-2: Without --update-toc the entries carry no page numbers and the field is marked out of date, so Word works it out on opening
       3-1-3: With --update-toc and no LibreOffice, or one that fails or does not tell every page, the DOCX is written as without the flag and the render of that combination fails with the reason
@@ -74,7 +74,7 @@ constraints:
       5-2: Without a topic `cover:`, a document has a cover page with the book's title and, if the topic's index page declares `subtitle:`, the subtitle below it in a smaller font; the title is the topic's `title` in folio.yml, else the index page's `title:`
       5-3: '`{name}` placeholders in the title and subtitle resolve against the selection''s variables (as in folio.yml); one without a variable is warned about and the text is shown as written'
       5-4: The book's title appears only on the cover; the document body leaves out its heading, and links to the index page lead to the cover. A topic `cover:` PNG remains the whole cover, without title or subtitle
-      5-5: '`_brand.yml` `meta: fonts:` sets the font (`font`) and size (`size`, in pt or px) of `title`, `subtitle` and `h1` to `h6`, each entry optional; an unknown entry or an unreadable size is an error. The defaults are the heading font at 36pt for the title, the base font at 20pt for the subtitle, and the existing heading styles and sizes. The DOCX names the font; the PDF uses it when `typography: fonts` has TrueType files for that family'
+      5-5: '`_brand.yml` `meta: fonts:` sets the font (`font`) and size (`size`, in pt or px) of `title`, `subtitle` and `h1` to `h6`, each entry optional, and under `section` the same for `h1` to `h6` of a section''s page, which fall back to the normal h1 to h6 settings; an unknown entry (under `section`, anything but `h1` to `h6`) or an unreadable size is an error. The defaults are the heading font at 36pt for the title, the base font at 20pt for the subtitle, and the existing heading styles and sizes. The DOCX names the font; the PDF uses it when `typography: fonts` has TrueType files for that family'
       5-6: '`_brand.yml` `meta: coverpage:` names an SVG cover template, relative to the brand file; for a selection the first of `<name>_{topic}{audience-template}.svg`, `<name>_{topic}.svg`, `<name>{audience-template}.svg` and `<name>.svg` in its folder is used, where `audience-template` is a selection variable; with none there the render warns and the cover has the title alone'
       5-6-1: A topic `cover:` that is not found gives way to the `meta: coverpage:` template, with a warning; without a template the placeholder image stands in for it
       5-6-2: '`{name}` placeholders in the `meta:` fields `coverpage` and `fonts: <role>: font` resolve against the selection''s variables from folio.yml, as in `coverpage: assets/templates/coverpage{audience-template}.svg`; one without a variable fails the render, naming the field'
@@ -87,6 +87,8 @@ constraints:
       7-2: A diagram that cannot be drawn stays a code block, and a warning names its first line and the error
       7-3: Math is not typeset
       8: 'PPTX slide decks are not supported; `::: slide` blocks and `.notes` are dropped'
+      9: 'A format with `section_prefix: true` puts "Part <n> " before each section title, and one with `chapter_prefix: true` puts "Chapter <n> " before each chapter title; sections and chapters are each numbered continuously through the book'
+      9-1: 'The words come from the `strings` map of config.cue, per language (the `lang` of folio.yml), under the keys `section_prefix` and `chapter_prefix`, shipped with `en` (Part, Chapter) and `de` (Teil, Kapitel); a language that is missing falls back to its primary language, then to folio''s built-in strings, then to English, as callout titles do (4-5-1)'
 
   BRAND:
     description: A Quarto brand file, `_brand.yml`, styles the rendered output.
@@ -110,7 +112,7 @@ constraints:
       0: The site looks like a Quarto website in its default theme -- a navbar in the accent color, a plain sidebar and contents list that mark the current entry by the link color, Quarto's text and code colors and its 17px body size
       1: Each topic is one entry in a top navbar; the current topic's page tree is a left sidebar; the headings of the current page are a right "On this page" contents list with scroll-spy; each page has previous/next links
       1-1: The site's home page lists the topics
-      2: Pages are rendered from the same tree and with the same heading demotion as a document, with the same shortcodes and conditional filter
+      2: Pages are rendered from the same tree as a document and keep their headings as written (no demotion by folder depth), with the same shortcodes and conditional filter
       2-1: An image alone in its paragraph with alt text is a `<figure>` with that text as its `<figcaption>`, as Pandoc writes an implicit figure; an image among text or without alt text stays in its paragraph
       2-1-1: A Mermaid diagram (DOCUMENT 7) is inline SVG in a `<div class="mermaid">`, centred, in the site's colors for the light and the dark scheme
       2-2: 'A `::: {.subpages title="..."}` block is replaced, at its position, by a table of the page''s subpages, one row each with the subpage''s title linking to it, the row under the pointer highlighted, as a Quarto listing of type table showing the title field; the `title` attribute is the text of the table''s one header cell, and without it the table has no header'

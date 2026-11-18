@@ -322,11 +322,13 @@ type titleEdit struct {
 	ID      string
 	Text    string
 	Classes []string
+	// Prefix goes before the heading's text, such as "Chapter 3 ".
+	Prefix string
 }
 
 // empty reports whether the edit would leave a heading as it is.
 func (e titleEdit) empty() bool {
-	return e.ID == "" && e.Text == "" && len(e.Classes) == 0
+	return e.ID == "" && e.Text == "" && len(e.Classes) == 0 && e.Prefix == ""
 }
 
 // renderHeading rebuilds a heading line at the given level and applies edit
@@ -344,6 +346,9 @@ func renderHeading(h heading, level int, edit titleEdit) string {
 	if edit.Text != "" {
 		// The replacement brings its own spacing.
 		text, spaced = " "+edit.Text, false
+	}
+	if edit.Prefix != "" {
+		text = " " + edit.Prefix + strings.TrimLeft(text, " \t")
 	}
 	attrs = mergeAttrs(attrs, edit.ID, edit.Classes)
 

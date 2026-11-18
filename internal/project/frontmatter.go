@@ -96,34 +96,3 @@ func SetOrder(src []byte, order int) []byte {
 	out = append(out, '\n')
 	return append(out, src[to:]...)
 }
-
-var atxHeading = regexp.MustCompile(`^(#{1,6}) `)
-
-// ShiftHeadings shifts all ATX headings in the Markdown body by delta
-// levels, clamped to the range 1..6. Frontmatter and fenced code blocks
-// are left untouched.
-func ShiftHeadings(src []byte, delta int) []byte {
-	if delta == 0 {
-		return src
-	}
-	block, body := splitFrontmatter(src)
-	lines := bytes.Split(body, []byte("\n"))
-	inFence := false
-	for i, ln := range lines {
-		trimmed := bytes.TrimLeft(ln, " ")
-		if bytes.HasPrefix(trimmed, []byte("```")) || bytes.HasPrefix(trimmed, []byte("~~~")) {
-			inFence = !inFence
-			continue
-		}
-		if inFence {
-			continue
-		}
-		if m := atxHeading.FindSubmatch(ln); m != nil {
-			level := min(6, max(1, len(m[1])+delta))
-			lines[i] = append(bytes.Repeat([]byte("#"), level), ln[len(m[1]):]...)
-		}
-	}
-	out := make([]byte, len(block), len(src))
-	copy(out, block)
-	return append(out, bytes.Join(lines, []byte("\n"))...)
-}

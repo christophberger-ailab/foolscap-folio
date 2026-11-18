@@ -53,11 +53,43 @@ type brand struct {
 	} `yaml:"typography"`
 	// Meta holds what folio reads beyond the brand.yml standard: the fonts
 	// and sizes of the cover's title and subtitle and the headings by
-	// level (title, subtitle, h1 to h6), and the cover page template.
+	// level (title, subtitle, h1 to h6, and section: h1 to h6 for the
+	// headings of a section's title and intro), and the cover page
+	// template.
 	Meta struct {
-		Fonts     map[string]metaFont `yaml:"fonts"`
-		Coverpage string              `yaml:"coverpage"`
+		Fonts     metaFonts `yaml:"fonts"`
+		Coverpage string    `yaml:"coverpage"`
 	} `yaml:"meta"`
+}
+
+// metaFonts are the entries of meta.fonts by role. The entries of its
+// section mapping are the roles section-h1 to section-h6.
+type metaFonts map[string]metaFont
+
+func (m *metaFonts) UnmarshalYAML(n *yaml.Node) error {
+	var raw map[string]yaml.Node
+	if err := n.Decode(&raw); err != nil {
+		return err
+	}
+	*m = metaFonts{}
+	for key, v := range raw {
+		if key != "section" {
+			var f metaFont
+			if err := v.Decode(&f); err != nil {
+				return err
+			}
+			(*m)[key] = f
+			continue
+		}
+		var section map[string]metaFont
+		if err := v.Decode(&section); err != nil {
+			return fmt.Errorf("section: %w", err)
+		}
+		for level, f := range section {
+			(*m)[sectionRole+level] = f
+		}
+	}
+	return nil
 }
 
 // metaFont is a font family and a size, such as "36pt", in meta.fonts.
@@ -66,15 +98,20 @@ type metaFont struct {
 	Size string `yaml:"size"`
 }
 
+// sectionRole prefixes the roles of the headings in a section.
+const sectionRole = "section-"
+
 // metaRoles are the entries of meta.fonts, which are font roles of the PDF
 // as well.
-var metaRoles = []string{"title", "subtitle", "h1", "h2", "h3", "h4", "h5", "h6"}
+var metaRoles = []string{"title", "subtitle", "h1", "h2", "h3", "h4", "h5", "h6",
+	"section-h1", "section-h2", "section-h3", "section-h4", "section-h5", "section-h6"}
 
 // checkMeta reports an unknown meta.fonts entry or an unreadable size.
 func (b *brand) checkMeta() error {
 	for role, f := range b.Meta.Fonts {
 		if !slices.Contains(metaRoles, role) {
-			return fmt.Errorf("%s: meta: fonts: unknown entry %q, want one of %s", BrandFile, role, strings.Join(metaRoles, ", "))
+			return fmt.Errorf("%s: meta: fonts: unknown entry %q, want one of %s", BrandFile,
+				strings.Replace(role, sectionRole, "section: ", 1), strings.Join(metaRoles, ", "))
 		}
 		if _, err := parseSize(f.Size); err != nil {
 			return fmt.Errorf("%s: meta: fonts: %s: %w", BrandFile, role, err)
@@ -142,19 +179,22 @@ func (b *brand) font(role string) string {
 	return fontName(b.Meta.Fonts[role].Font)
 }
 
-// headings returns the fonts of the headings by level for the DOCX, and
-// the sizes by role for the PDF.
-func (b *brand) headings() ([6]docx.Font, map[string]float64) {
-	var fonts [6]docx.Font
-	sizes := map[string]float64{}
+// headings returns the fonts of the headings by level for the DOCX, those
+// of the headings in a section, and the sizes by role for the PDF.
+func (b *brand) headings() (fonts, section [6]docx.Font, sizes map[string]float64) {
+	sizes = map[string]float64{}
 	for i := range fonts {
-		role := fmt.Sprintf("h%d", i+1)
-		fonts[i] = docx.Font{Name: b.font(role), Size: b.size(role, 0)}
-		if fonts[i].Size > 0 {
-			sizes[role] = fonts[i].Size
+		for _, h := range []struct {
+			role string
+			font *docx.Font
+		}{{fmt.Sprintf("h%d", i+1), &fonts[i]}, {fmt.Sprintf("%sh%d", sectionRole, i+1), &section[i]}} {
+			*h.font = docx.Font{Name: b.font(h.role), Size: b.size(h.role, 0)}
+			if h.font.Size > 0 {
+				sizes[h.role] = h.font.Size
+			}
 		}
 	}
-	return fonts, sizes
+	return fonts, section, sizes
 }
 
 // loadBrand reads the project's brand file, or else the user's, whose path

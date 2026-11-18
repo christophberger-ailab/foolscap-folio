@@ -12,6 +12,12 @@ Der Titel einer Seite stammt in dieser Reihenfolge aus:
 
 Der Attributblock einer Überschrift, etwa `{.unnumbered}`, wird aus dem Titel weggelassen. Ein Quarto-Span wie `[Polizei-]{.pol}` wird als das Symbol angezeigt, das seine Klasse im aktiven [eigenen Vorschau-Stylesheet](preview.md) trägt, gefolgt vom Text des Spans. Spans, deren Klasse kein Symbol hat, werden so angezeigt, wie sie geschrieben sind.
 
+## Nummerierung
+
+Die `index.md` im Projektstamm ist die Startseite. Sie steht zuoberst, ohne Nummer, und ist die einzige Seite, die kein `order:` braucht. Themenseiten (die Ordner der obersten Ebene) werden nicht nummeriert; ein Thema ohne `order:` zeigt aber weiterhin ⚠. Abschnitte werden je Thema mit 1, 2, … nummeriert, Kapitel mit 1.1, 1.2 und so weiter tiefer im Baum.
+
+Jede Quelldatei soll mit einer h1 beginnen. In einem gedruckten Dokument (DOCX, PDF) bestimmt die Stelle einer Seite im Baum, wie ihre Überschriften gesetzt werden, und eine Überschrift, die tiefer als h6 läge, wird zu hervorgehobenem Text. Eine Seite, deren Überschriften auf ihrer Ebene als h7 oder tiefer erschienen, bekommt einen hellgrauen Zeilenhintergrund. Ein Tooltip nennt, welche Überschrift zu tief ist. Die Seiten darüber sind ebenfalls grau, mit einem Tooltip, dass eine Seite darunter zu tiefe Überschriften hat.
+
 ## Entwürfe
 
 Eine Seite mit `draft: true` im Frontmatter wird ausgegraut. Sie gehört zum Projekt, aber nicht zu dem, was ein Rendering veröffentlicht. Du kannst sie weiterhin öffnen, verschieben und durchsuchen.
@@ -54,13 +60,13 @@ Seiten aus früheren Versionen schreiben `qm:` statt `folio:`. Sie werden weiter
 Ziehe eine Seite am Griff `⠿`.
 
 - Legst du sie zwischen ihren Geschwisterseiten ab, wird das `order`-Frontmatter der betroffenen Seiten neu geschrieben.
-- Legst du sie unter einem anderen Elternelement ab, wird zusätzlich ihre Datei auf der Platte umbenannt, und die Markdown-Überschriftenebenen der verschobenen Seite werden an die neue Tiefe angepasst.
+- Legst du sie unter einem anderen Elternelement ab, wird zusätzlich ihre Datei auf der Platte umbenannt. Die Markdown-Überschriftenebenen der Seite bleiben unverändert: Du bestimmst sie selbst.
 - Wird die geöffnete Seite verschoben, folgt ihr der Editor zum neuen Pfad. Dein ungespeicherter Text bleibt unberührt, und Autosave schreibt weiter in die richtige Datei.
 
 ## Seiten anlegen
 
 - Tippe oben einen Dateinamen (ohne `.md`) und drücke dann `＋ Page`.
-- Eine neue Seite hat kein `title` im Frontmatter, nur ihr `order`. Der Baum zeigt sie unter ihrem Dateinamen, bis du ihr eine Überschrift gibst, die dann ihr Titel wird.
+- Eine neue Seite hat kein `title` im Frontmatter, nur ihr `order`. Sie beginnt mit einer Überschrift der Ebene 1 (`# Name`) in einem `::: explanation`-Block, unabhängig von ihrer Stelle im Baum, und diese Überschrift ist ihr Titel.
 - Die Schaltfläche `＋` in einer Zeile fügt unter dieser Seite eine Unterseite hinzu. Du wirst nach dem Namen gefragt.
 
 ## Seiten löschen

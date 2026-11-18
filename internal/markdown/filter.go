@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/yuin/goldmark/ast"
+
+	"github.com/christophberger-ailab/foolscap-folio/internal/config"
 )
 
 // Keep decides whether content carrying the given classes survives a
@@ -203,6 +205,14 @@ func HeadingID(h *ast.Heading) string { return AttrsOf(h).ID }
 // turns into.
 func IsPageBreak(d *Div) bool { return d.Attrs.Has("pagebreak") || d.Attrs.Has("folio-pagebreak") }
 
+// SectionClass is the class of the div that holds a section's own page in
+// a book, whose headings the renderers set in the section's fonts.
+const SectionClass = "folio-section"
+
+// TOCClass is the class of the empty div that marks where a book's
+// contents go: after its preliminaries.
+const TOCClass = "folio-toc"
+
 // Callout is a Quarto callout block.
 type Callout struct {
 	// Type is note, tip, warning, important or caution; "" for a plain
@@ -247,23 +257,9 @@ var DefaultCalloutTitles = map[string]map[string]string{
 // one. Within either table a language tag falls back to its primary
 // language, so "de-AT" finds "de".
 func CalloutTitles(own map[string]map[string]string, lang string) map[string]string {
-	lang = strings.ToLower(lang)
-	primary, _, _ := strings.Cut(strings.ReplaceAll(lang, "_", "-"), "-")
-	lower := map[string]map[string]string{}
-	for k, v := range own {
-		lower[strings.ToLower(k)] = v
-	}
-	own = lower
 	out := map[string]string{}
 	for _, typ := range calloutTypes {
-		for _, t := range []map[string]string{
-			own[lang], own[primary], DefaultCalloutTitles[lang], DefaultCalloutTitles[primary], DefaultCalloutTitles["en"],
-		} {
-			if title := t[typ]; title != "" {
-				out[typ] = title
-				break
-			}
-		}
+		out[typ] = config.Localize(own, DefaultCalloutTitles, lang, typ)
 	}
 	return out
 }

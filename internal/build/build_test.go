@@ -49,6 +49,44 @@ func TestDocumentTranslatesCalloutTitles(t *testing.T) {
 	}
 }
 
+// A format's section_prefix and chapter_prefix number the document's
+// sections and chapters in the project's language (issue #96).
+func TestFlattenPrefixesSectionsAndChapters(t *testing.T) {
+	root := t.TempDir()
+	for name, body := range map[string]string{
+		"folio.yml":                "lang: de\nformats:\n  handout: {type: docx, section_prefix: true, chapter_prefix: true}\n",
+		"book/index.md":            "# Book\n",
+		"book/part/index.md":       "---\norder: 1\n---\n# Grundlagen\n",
+		"book/part/chapter.md":     "---\norder: 1\n---\n# Einstieg\n",
+		"book/part/chapter/sub.md": "# Detail\n",
+	} {
+		p := filepath.Join(root, name)
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	cfg, err := config.Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sels, err := cfg.Expand(config.Request{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	text, _, err := Flatten(sels[0], nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"# Teil 1 Grundlagen", "# Kapitel 1 Einstieg", "\n## Detail"} {
+		if !strings.Contains(text, want) {
+			t.Errorf("missing %q:\n%s", want, text)
+		}
+	}
+}
+
 // A render styles the website, the DOCX and the PDF by the brand file: the
 // project's, or else the user's (Config.UserBrand).
 func TestRenderAppliesTheBrand(t *testing.T) {

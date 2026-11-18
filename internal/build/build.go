@@ -2,14 +2,15 @@
 // audience combination, without Quarto, Pandoc or LaTeX.
 //
 // A document (DOCX, PDF) is one topic folder flattened into one Markdown
-// text by internal/bookmaker — pages in folder order, headings demoted by
-// folder depth, in-book links turned into anchors — with its shortcodes
+// text by internal/bookmaker — pages in folder order, the topic's index as
+// preliminaries, sections and chapters below it, the headings of deeper
+// pages demoted, in-book links turned into anchors — with its shortcodes
 // resolved, parsed by internal/markdown, stripped of the conditional
 // content the selection does not show, and written by internal/docx or
 // laid out by internal/docrender.
 //
-// A website is rendered page by page by internal/site, from the same tree
-// and with the same demotion.
+// A website is rendered page by page by internal/site, from the same tree,
+// with every page's headings as written.
 package build
 
 import (
@@ -165,14 +166,14 @@ func Render(sel config.Selection, o Options, log Logf) error {
 		return fmt.Errorf("topic %s: cover: %w", sel.Topic.Name, err)
 	}
 	defer done()
-	headings, sizes := brand.headings()
+	headings, section, sizes := brand.headings()
 	for _, t := range sel.Format.Type {
 		out := filepath.Join(dir, stem+"."+t)
 		switch t {
 		case config.TypeDOCX:
 			err = docx.Write(out, doc, docx.Options{
 				Root: sel.Config.Root, Template: template, Title: book.Title, Lang: lang, TOC: sel.Format.TOC,
-				Look: docx.Look(look), Headings: headings, Warn: warn(log),
+				Look: docx.Look(look), Headings: headings, SectionHeadings: section, Warn: warn(log),
 			})
 			if err == nil {
 				err = docrender.CoverDOCX(out, page)
@@ -281,12 +282,15 @@ func Flatten(sel config.Selection, log Logf) (string, Book, error) {
 	if err != nil {
 		return "", Book{}, err
 	}
+	section, chapter := sel.Prefixes()
 	res, err := bookmaker.Flatten(tree, bookmaker.Options{
 		ProjectRoot:   root,
 		Title:         sel.Topic.Title,
 		RewriteLinks:  true,
 		WrapAudience:  true,
 		ExtractSlides: true,
+		SectionPrefix: section,
+		ChapterPrefix: chapter,
 	})
 	if err != nil {
 		return "", Book{}, err

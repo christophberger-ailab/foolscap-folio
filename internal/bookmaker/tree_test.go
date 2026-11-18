@@ -21,18 +21,18 @@ func loadTestTree(t *testing.T) *Node {
 	return root
 }
 
-func TestLoadTreeOrderAndLevels(t *testing.T) {
+func TestLoadTreeOrderAndDepths(t *testing.T) {
 	root := loadTestTree(t)
 
 	type entry struct {
 		rel   string
-		level int
+		depth int
 	}
 	var got []entry
-	root.Walk(func(n *Node) { got = append(got, entry{n.Rel, n.Level}) })
+	root.Walk(func(n *Node) { got = append(got, entry{n.Rel, n.Depth}) })
 
 	want := []entry{
-		{"book", 1},
+		{"book", 0},
 		// Siblings sort by `order:`; a directory takes the order of its
 		// index.qmd, which is Quarto's "index sorts at the parent level".
 		{"book/erster", 1},

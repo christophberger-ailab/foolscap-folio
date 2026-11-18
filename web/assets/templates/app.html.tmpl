@@ -488,11 +488,14 @@
 {{define "pages"}}<ul class="children" data-parent="{{.Parent}}">
 {{range .Pages}}{{if not .Hidden}}{{template "node" .}}{{end}}{{end}}</ul>{{end}}
 
-{{define "node"}}<li class="page {{if .Order}}ordered{{else}}unordered{{end}}{{if .BadFences}} bad-fences{{end}}{{if .Draft}} draft{{end}}{{if .HasVisibleChildren}} has-children{{end}}" data-path="{{.Path}}" data-key="{{if .Path}}{{.Path}}{{else}}{{.Dir}}{{end}}">
-  <div class="row">
+{{/* The home page and the topics carry no number: the numbers count a
+     book's sections (1, 2) and their chapters (1.1). A page whose headings
+     go beyond h6 in print is greyed, with the reason as its tooltip. */}}
+{{define "node"}}<li class="page {{if .Order}}ordered{{else}}unordered{{end}}{{if .Home}} home{{end}}{{if .BadFences}} bad-fences{{end}}{{if .Draft}} draft{{end}}{{if .TooDeep}} too-deep{{end}}{{if .HasVisibleChildren}} has-children{{end}}" data-path="{{.Path}}" data-key="{{if .Path}}{{.Path}}{{else}}{{.Dir}}{{end}}">
+  <div class="row"{{if .TooDeep}} title="{{.TooDeep}}"{{end}}>
     <span class="toggle" title="Collapse or expand"></span>
     {{if .Path}}<span class="drag-handle" title="Drag to move">⠿</span>{{end}}
-    <span class="num"{{if not .Order}} title="Not numbered: the page has no order in its frontmatter"{{end}}></span>
+    <span class="num"{{if and (not .Order) (not .Home)}} title="Not numbered: the page has no order in its frontmatter"{{end}}></span>
     {{if .Marker}}<span class="marker">{{.Marker}}</span>{{end}}
     {{range .Flags}}<span class="marker flag" title="{{.Title}}">{{.Emoji}}</span>{{end}}
     {{if .Path}}<a class="title" href="#" hx-get="/content?path={{.Path}}" hx-target="#content">{{.Title}}</a>

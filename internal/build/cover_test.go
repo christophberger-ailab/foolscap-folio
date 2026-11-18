@@ -99,7 +99,7 @@ func TestDefaultCover(t *testing.T) {
 	if sub.Text != "Sub" || sub.Size != 18 || !sub.Below {
 		t.Errorf("subtitle %+v", sub)
 	}
-	headings, sizes := b.headings()
+	headings, _, sizes := b.headings()
 	if headings[1].Name != "Aptos" || headings[1].Size != 16 || sizes["h2"] != 16 {
 		t.Errorf("headings %v, sizes %v", headings, sizes)
 	}

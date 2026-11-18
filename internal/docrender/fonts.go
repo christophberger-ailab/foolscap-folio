@@ -29,10 +29,12 @@ var notoEmoji []byte
 // FontRoles are the faces the PDF sets text in. Options.Fonts may replace
 // any of them with a TrueType file; the others stay Go fonts. Headings
 // without a font of their own use the bold face; the cover's title and the
-// headings by level (h1 to h6) without one use the heading face, and the
-// cover's subtitle the regular one.
+// headings by level (h1 to h6) without one use the heading face, the
+// headings in a section (section-h1 to section-h6) the heading of their
+// level, and the cover's subtitle the regular one.
 var FontRoles = []string{"regular", "bold", "italic", "bolditalic", "heading", "mono",
-	"title", "subtitle", "h1", "h2", "h3", "h4", "h5", "h6"}
+	"title", "subtitle", "h1", "h2", "h3", "h4", "h5", "h6",
+	"section-h1", "section-h2", "section-h3", "section-h4", "section-h5", "section-h6"}
 
 // fallback sets the roles without a font of their own in paths to the face
 // they default to.
@@ -46,6 +48,9 @@ func (fs fontSet) fallback(paths map[string]string) {
 	use("subtitle", "regular")
 	for _, role := range []string{"title", "h1", "h2", "h3", "h4", "h5", "h6"} {
 		use(role, "heading")
+	}
+	for i := 1; i <= 6; i++ {
+		use(fmt.Sprintf("section-h%d", i), fmt.Sprintf("h%d", i))
 	}
 }
 

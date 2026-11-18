@@ -143,36 +143,37 @@ Read it in this order.
 
 ### 4.1 The tree — `tree.go`
 
-`LoadTree` (`tree.go:99`) reads a content folder into a `Node` tree. A `Node`
-(`tree.go:30`) is either a directory (which may carry an `index.qmd` as its own
-content) or a standalone page.
+`LoadTree` reads a content folder into a `Node` tree. A `Node` is either a
+directory (which may carry an `index.qmd` as its own content) or a standalone
+page.
 
 Three rules are worth noticing:
 
-- **Heading level comes from folder depth.** `levelForDepth` (`tree.go:140`)
-  maps depth onto a heading level: the book root's own index page and the first
-  level of subfolders are both chapters (level 1), each further nesting level
-  adds one, capped at 6.
+- **Depth says what a node is in print.** `Node.Depth` is how far below the
+  book root a node sits: 0 is the book root, whose index page is the book's
+  preliminaries; 1 is a section; 2 is a chapter; anything deeper is part of a
+  chapter. Nothing is derived from depth when the tree is loaded; `renderPage`
+  reads it when it renders.
 - **Ordering follows Quarto's own rule** (`spec.yaml` ORDERS): a directory
   takes the `order:` of its `index.qmd` and sorts at its *parent's* level
-  (`sortKey`, `tree.go:65`); ties fall back to a case-insensitive name compare
-  (`sortNodes`, `tree.go:219`).
+  (`sortKey`); ties fall back to a case-insensitive name compare
+  (`sortNodes`).
 - **What Quarto ignores, the bookmaker ignores**: names starting with `.` or
-  `_` (`skipEntry`, `tree.go:246`), and directories holding no `.qmd` anywhere
+  `_` (`skipEntry`), and directories holding no `.qmd` anywhere
   below them, which are media folders and must not become empty chapters
-  (`prune`, `tree.go:114`).
+  (`prune`).
 
-`audienceOf` (`tree.go:309`) reads the `_FW`/`_POL` suffix off a name;
-`humanise` (`tree.go:319`) turns a slug into a readable heading for a page with
-no title. `BookFolders` (`tree.go:305`) lists a project's content folders,
+`audienceOf` reads the `_FW`/`_POL` suffix off a name;
+`humanise` turns a slug into a readable heading for a page with
+no title. `BookFolders` lists a project's content folders,
 skipping media directories and sub-projects that carry their own
 `folio.yml` (`HasProjectConfig`) — it backs the "the project has: …" hint in error messages.
 
 ### 4.2 Front matter — `frontmatter.go`
 
-`splitFrontMatter` (`frontmatter.go:42`) tolerates a BOM and leading blank
+`splitFrontMatter` tolerates a BOM and leading blank
 lines, accepts `---` or `...` as the terminator, and treats an *unterminated*
-block as body rather than guessing. `noOrder` (`frontmatter.go:27`) is the sort
+block as body rather than guessing. `noOrder` is the sort
 key for pages without an `order:` — a large constant, so they sort last.
 
 Only `title` and `order` are kept. Everything else in a page's front matter is
@@ -180,49 +181,49 @@ website metadata that means nothing once the pages are one document.
 
 ### 4.3 Anchors — `slug.go`
 
-`anchorID` (`slug.go:19`) derives a heading identifier from the node's path,
+`anchorID` derives a heading identifier from the node's path,
 prefixed `bm-` to stay clear of Quarto's reserved cross-reference prefixes
 (`sec-`, `fig-`, …), which would turn the heading into a numbered reference.
-Path slugs are not injective, so `assignAnchors` (`slug.go:50`) walks the tree
+Path slugs are not injective, so `assignAnchors` walks the tree
 in render order and deduplicates with a counter — which also makes the ids
 stable for a given source tree.
 
 ### 4.4 The flattening itself — `flatten.go`
 
-`Flatten` (`flatten.go:76`) is the entry point: assign anchors, mark the root
+`Flatten` is the entry point: assign anchors, mark the root
 as the book root, build the link target table, render.
 
 Read the doc comment above it before the code. The generated documents
 deliberately carry **no YAML front matter**: a `---` closing an inlined block
 would read as a Setext underline and the document would be titled `title: …`.
 
-`renderNode` (`flatten.go:101`) recurses depth-first and returns *two* strings
+`renderNode` recurses depth-first and returns *two* strings
 side by side: the book text and the slide text. (Document renders ask for slide
 extraction only so that `::: slide` blocks stay out of the book; the deck itself
 is not built, PPTX being unsupported for now.) Audience wrapping happens here
-(`flatten.go:131`): content from an `_FW`/`_POL` folder is wrapped in a
+: content from an `_FW`/`_POL` folder is wrapped in a
 matching `::: fw` / `::: pol` div so the project's content filter can select it
 at render time (it is a conditional div like any other, kept when the selected
 audience is named `fw` or lists the class) — once per audience change, not once per nesting level, which is
 what `parentAudience` tracks.
 
-`renderPage` (`flatten.go:149`) is the subtle part. It has to decide whether a
+`renderPage` is the subtle part. It has to decide whether a
 page already carries its own title heading, because pages come in both shapes:
 some repeat the front-matter title as a heading inside every content div,
 others give only sub-headings. Treating the shallowest heading as the page
 title in the second case would promote a section to chapter rank. So a declared
 title counts as present only when a heading at the shallowest level actually
-spells it out (`echoesTitle`, `flatten.go:246`). If it does not, a heading is
+spells it out (`echoesTitle`). If it does not, a heading is
 generated and the body's headings stay below it.
 
-Heading levels are **demoted by folder depth**, not normalised: a page keeps the
-levels it was written with, plus the node's depth minus one (`delta` in
-`renderPage`). Pages in the topic folder and a subfolder's `index.qmd` keep their
-headings; each deeper folder adds one level. The website needs the same logic
-page by page, so `Pages` and `PageMarkdown` render a single node's own page
-with the same demotion and no link rewriting.
+Heading levels are not normalised: a page keeps the levels it was written with.
+In print, `renderPage` computes `delta = max(Depth-2, 0)`, so sections and
+chapters keep their headings and only nodes below chapter depth are demoted. A
+website keeps every page's headings as written: `Pages` and `PageMarkdown` render
+a single node's own page with no link rewriting and set the unexported `site`
+option, which makes `delta` 0.
 
-`preparePage` (`flatten.go:197`) is the per-page pipeline, and the order of its
+`preparePage` is the per-page pipeline, and the order of its
 steps is load-bearing:
 
 1. `balanceFences` — make the page's markup self-contained.
@@ -235,7 +236,7 @@ steps is load-bearing:
    the page is part of a book or a site page the page's folder is no longer
    known.
 
-`shiftHeadings` (`flatten.go:283`) applies the level delta and attaches the
+`shiftHeadings` applies the level delta and attaches the
 anchor to the page's own title heading — per *block*, not per page: sibling
 content divs (`::: explanation`, `::: tutorial`) typically repeat the heading
 verbatim and only some survive the content filter, so each repetition claims

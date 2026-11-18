@@ -55,6 +55,9 @@ type storedConfig struct {
 	// Callouts are the titles of callouts by language and type (see
 	// callouts.go).
 	Callouts map[string]map[string]string `json:"callouts"`
+	// Strings are the texts folio puts into a render, by language and
+	// key (see callouts.go).
+	Strings map[string]map[string]string `json:"strings"`
 }
 
 // previewConfig is the Markdown preview's own settings. The stylesheets
@@ -97,6 +100,12 @@ const configSchema = `// -------------------------------------------------------
 	// (English and German), and last to English.
 	callouts: {[string]: #Callouts}
 
+	// The texts folio puts into a document, per language, with the same
+	// fallbacks as the callout titles. A format of folio.yml with
+	// section_prefix or chapter_prefix set puts the prefix and the number
+	// before the titles of its sections or chapters: "Part 2 Title".
+	strings: {[string]: #Strings}
+
 	// Where folio web listens is the project's to say, in folio.yml.
 	// Older versions kept it here; what is left of that is ignored.
 	web?: _
@@ -119,6 +128,11 @@ const configSchema = `// -------------------------------------------------------
 	warning?:   string
 	important?: string
 	caution?:   string
+}
+
+#Strings: {
+	section_prefix?: string
+	chapter_prefix?: string
 }
 
 #Preview: {
@@ -296,6 +310,7 @@ func defaultConfig() storedConfig {
 		Editor:   editorConfig{Command: defaultEditorCommand, Image: defaultImageEditorCommand()},
 		Update:   updateConfig{Source: selfupdate.DefaultSource, Check: checkDaily},
 		Callouts: defaultCallouts(),
+		Strings:  defaultStrings(),
 	}
 }
 
@@ -334,6 +349,9 @@ func (c *storedConfig) normalize() {
 	}
 	if c.Callouts == nil {
 		c.Callouts = defaultCallouts()
+	}
+	if c.Strings == nil {
+		c.Strings = defaultStrings()
 	}
 	if c.Copyedit.Selected == nil {
 		c.Copyedit.Selected = []string{}

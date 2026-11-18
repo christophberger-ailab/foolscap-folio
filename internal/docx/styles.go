@@ -124,6 +124,16 @@ func (s *styleSet) heading(level int) string {
 	return s.need("paragraph", id, body, fmt.Sprintf("heading %d", level), fmt.Sprintf("Heading %d", level))
 }
 
+// unlistedHeading is the style of a heading the contents do not list,
+// such as one in a section's intro: the heading of its level, but at no
+// outline level, so that Word leaves it out when it rebuilds the contents
+// from the heading styles.
+func (s *styleSet) unlistedHeading(level int) string {
+	body := fmt.Sprintf(`<w:basedOn w:val="%s"/><w:next w:val="%s"/><w:qFormat/><w:pPr><w:outlineLvl w:val="9"/></w:pPr>`,
+		s.heading(level), s.normal())
+	return s.need("paragraph", fmt.Sprintf("UnlistedHeading%d", level), body, fmt.Sprintf("Unlisted Heading %d", level))
+}
+
 // body is the style of ordinary paragraphs: "Body Text" if the document has
 // it, else none (Normal).
 func (s *styleSet) body() string { return s.find("paragraph", "Body Text") }

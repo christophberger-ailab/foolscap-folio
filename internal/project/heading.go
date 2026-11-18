@@ -18,6 +18,24 @@ var atxHeadingText = regexp.MustCompile(`^#{1,6}[ \t]+(.*)$`)
 // So the block is matched only when it is not preceded by `]`.
 var headingAttrs = regexp.MustCompile(`(^|[^\]])\{[^{}]*\}[ \t]*$`)
 
+// maxHeadingLevel returns the deepest level of the ATX headings in src's
+// body, outside fenced code blocks, or 0 when it has none.
+func maxHeadingLevel(src []byte) int {
+	_, body := splitFrontmatter(src)
+	deepest, inFence := 0, false
+	for _, ln := range bytes.Split(body, []byte("\n")) {
+		trimmed := bytes.TrimLeft(ln, " ")
+		if bytes.HasPrefix(trimmed, []byte("```")) || bytes.HasPrefix(trimmed, []byte("~~~")) {
+			inFence = !inFence
+			continue
+		}
+		if !inFence && atxHeadingText.Match(trimmed) {
+			deepest = max(deepest, len(trimmed)-len(bytes.TrimLeft(trimmed, "#")))
+		}
+	}
+	return deepest
+}
+
 // FirstHeading returns the text of the first ATX Markdown heading in src's
 // body, ignoring the frontmatter and any fenced code blocks. It returns ""
 // when the body has no heading. The optional trailing "#" closing sequence

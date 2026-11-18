@@ -176,7 +176,7 @@ func (b *builder) load() error {
 			continue
 		}
 		title, body := splitFront(string(data))
-		n := &bookmaker.Node{Name: "index", Rel: "index", Level: 1,
+		n := &bookmaker.Node{Name: "index", Rel: "index",
 			Page: &bookmaker.Page{File: file, Rel: name, Body: body}}
 		n.Page.Title = title
 		bookmaker.Pages(n, "")

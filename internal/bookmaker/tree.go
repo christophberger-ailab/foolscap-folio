@@ -39,8 +39,12 @@ type Node struct {
 	// Rel is the node's path relative to the project root, forward-slashed
 	// and without a trailing slash.
 	Rel string
-	// Level is the heading level this node's content is normalised to.
-	Level int
+	// Depth is how far below the book root the node sits, which says what
+	// it is in print (issue #96): 0 is the book root, whose index page is
+	// the book's preliminaries; 1 is a section (a folder's index page, or
+	// a page directly in the root); 2 is a chapter; deeper nodes are
+	// parts of a chapter.
+	Depth int
 	// Audience is "fw", "pol" or "" and is derived from the name suffix.
 	Audience string
 	// Anchor is the unique heading identifier this node's page carries in
@@ -173,33 +177,16 @@ func prune(node *Node, err error) (*Node, error) {
 	return node, nil
 }
 
-// levelForDepth maps a folder depth relative to the book root onto a heading
-// level. The book root's own index page and the first level of subfolders
-// both become chapters (level 1); every further level of nesting adds one
-// heading level. Levels are capped at 6, the deepest heading Markdown has.
-func levelForDepth(depth int) int {
-	switch {
-	case depth < 1:
-		return 1
-	case depth > 6:
-		return 6
-	default:
-		return depth
-	}
-}
-
 func loadDir(dir, projectRoot string, depth int) (*Node, error) {
 	rel, err := relSlash(projectRoot, dir)
 	if err != nil {
 		return nil, err
 	}
-	level := levelForDepth(depth)
-
 	node := &Node{
 		Dir:      dir,
 		Name:     filepath.Base(dir),
 		Rel:      rel,
-		Level:    level,
+		Depth:    depth,
 		Audience: audienceOf(filepath.Base(dir)),
 	}
 
@@ -207,8 +194,6 @@ func loadDir(dir, projectRoot string, depth int) (*Node, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	childLevel := levelForDepth(depth + 1)
 
 	for _, e := range entries {
 		name := e.Name()
@@ -243,7 +228,7 @@ func loadDir(dir, projectRoot string, depth int) (*Node, error) {
 		node.Children = append(node.Children, &Node{
 			Name:     base,
 			Rel:      joinRel(rel, base),
-			Level:    childLevel,
+			Depth:    depth + 1,
 			Audience: audienceOf(base),
 			Page:     page,
 		})

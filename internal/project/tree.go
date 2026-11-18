@@ -2,6 +2,7 @@ package project
 
 import (
 	"bytes"
+	"fmt"
 	"io/fs"
 	"os"
 	"path"
@@ -27,7 +28,15 @@ type Page struct {
 	Marker    string // emoji marker from a _FW/_POL suffix (own or inherited)
 	Flags     []Flag // status flags from the frontmatter and the body, see PageFlags
 	Hidden    bool   // the page's frontmatter says `hide: true`
-	Children  []*Page
+	Home      bool   // the root index page, the website's home page
+	// TooDeep, if set, says why the page is marked: its headings, or
+	// those of a page below it, would go beyond h6 in print at their
+	// level of the tree (see markTooDeep).
+	TooDeep  string
+	Children []*Page
+
+	// maxHeading is the deepest heading level the page's body has.
+	maxHeading int
 }
 
 // Emoji markers for the _FW and _POL name suffixes.
@@ -236,13 +245,14 @@ func Load(root string) (*Tree, error) {
 		}
 		fm := ParseFrontmatter(src)
 		p := &Page{
-			Path:      f,
-			Title:     fm.Title,
-			Order:     fm.Order,
-			Draft:     fm.Draft,
-			Flags:     pageFlagsOf(src, fm),
-			Hidden:    isHidden(fm),
-			BadFences: !BalancedFences(src),
+			Path:       f,
+			Title:      fm.Title,
+			Order:      fm.Order,
+			Draft:      fm.Draft,
+			Flags:      pageFlagsOf(src, fm),
+			Hidden:     isHidden(fm),
+			BadFences:  !BalancedFences(src),
+			maxHeading: maxHeadingLevel(src),
 		}
 		if p.Title == "" {
 			if h := FirstHeading(src); h != "" {
@@ -305,9 +315,39 @@ func Load(root string) (*Tree, error) {
 	}
 	t := &Tree{Root: root, Pages: groups["."]}
 	sortPages(t.Pages)
+	// The root index page is the home page. It comes first and needs no
+	// order (issue #96).
+	for i, p := range t.Pages {
+		if p.Path != "" && p.Dir == "" && isIndexPage(p.Path) {
+			p.Home = true
+			t.Pages = append(append([]*Page{p}, t.Pages[:i]...), t.Pages[i+1:]...)
+			break
+		}
+	}
 	markPages(t.Pages, "")
+	markTooDeep(t.Pages, 0)
 	hideEmptyDirs(t.Pages)
 	return t, nil
+}
+
+// markTooDeep marks the pages whose headings would go beyond h6 in print,
+// and the pages above them, and reports whether it marked any. depth is
+// the pages' level in the tree: 0 for the topics, 1 for their sections, 2
+// for chapters. Print demotes the headings of a page below a chapter by
+// one level for each level further down (see bookmaker.Flatten).
+func markTooDeep(pages []*Page, depth int) bool {
+	marked := false
+	for _, p := range pages {
+		if level := p.maxHeading + max(depth-2, 0); p.maxHeading > 0 && level > 6 {
+			p.TooDeep = fmt.Sprintf("Headings too deep: at this level of the tree, the page's h%d renders as h%d. "+
+				"Print output sets headings beyond h6 as emphasized text.", p.maxHeading, level)
+		}
+		if markTooDeep(p.Children, depth+1) && p.TooDeep == "" {
+			p.TooDeep = "Headings too deep: a page below renders headings as h7 or deeper in print."
+		}
+		marked = marked || p.TooDeep != ""
+	}
+	return marked
 }
 
 // hideEmptyDirs hides a synthetic directory node whose pages are all

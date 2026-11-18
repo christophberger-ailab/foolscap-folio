@@ -317,6 +317,40 @@ func TestMetaFonts(t *testing.T) {
 	}
 }
 
+// meta.fonts.section styles the headings of a section's title and intro
+// (issue #96): the PDF's section-h1 to section-h6 roles and the DOCX's
+// section headings.
+func TestMetaSectionFonts(t *testing.T) {
+	yml := brandYML + "meta:\n  fonts:\n    h1: {size: 20pt}\n    section:\n      h1: {font: Corporate Mono, size: 24pt}\n      h2: {size: 16pt}\n"
+	b, err := loadBrand(brandProject(t, yml), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	paths, _, err := b.fonts(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasSuffix(paths["section-h1"], "Mono.ttf") || paths["section-h2"] != "" {
+		t.Errorf("paths %v", paths)
+	}
+	headings, section, sizes := b.headings()
+	if headings[0].Size != 20 || section[0].Name != "Corporate Mono" || section[0].Size != 24 || section[1].Size != 16 {
+		t.Errorf("headings %v, section %v", headings, section)
+	}
+	if sizes["h1"] != 20 || sizes["section-h1"] != 24 || sizes["section-h2"] != 16 {
+		t.Errorf("sizes %v", sizes)
+	}
+	for name, yml := range map[string]string{
+		"unknown entry": "meta:\n  fonts:\n    section:\n      title: {size: 10pt}\n",
+		"size":          "meta:\n  fonts:\n    section:\n      h1: {size: large}\n",
+		"not a mapping": "meta:\n  fonts:\n    section: big\n",
+	} {
+		if _, err := loadBrand(brandProject(t, yml), ""); err == nil {
+			t.Errorf("%s: accepted", name)
+		}
+	}
+}
+
 // Theme colors may have a light and a dark variant (issue #75); folio uses
 // the light one.
 func TestBrandColorVariants(t *testing.T) {

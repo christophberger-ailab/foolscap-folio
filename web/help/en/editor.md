@@ -24,7 +24,7 @@ The heading above the editor shows the page's path. The `✎` button after it tu
 
 ## Moves while you edit
 
-If you move or create pages in the tree while a page is open, the tree changes `order:` and heading levels in that file. Your next autosave keeps both your text and the move. An `order:` that you typed into the frontmatter yourself is kept over the one the tree wrote. When this happens you are told, and `↻ Reload` brings the editor in line with the file.
+If you move or create pages in the tree while a page is open, the tree changes `order:` in that file. Your next autosave keeps both your text and the move. An `order:` that you typed into the frontmatter yourself is kept over the one the tree wrote. When this happens you are told, and `↻ Reload` brings the editor in line with the file.
 
 ## Conflicts
 

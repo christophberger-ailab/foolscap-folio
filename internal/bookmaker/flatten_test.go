@@ -246,27 +246,115 @@ func TestFlattenWithoutSlideBlocks(t *testing.T) {
 func TestFlattenHeadingLevels(t *testing.T) {
 	res := flattenTestBook(t)
 
+	// Each tree level has a meaning in print (issue #96): the topic's
+	// index is the book's preliminaries, the level below holds sections,
+	// the next chapters, and only what lies deeper is demoted.
 	tests := []struct{ heading, want string }{
-		// The book root's index becomes the first chapter.
+		// The book root's index keeps its own levels.
 		{"Test Book", "# "},
-		// First-level folders are chapters, deeper ones nest.
+		// A section's headings stay as written.
 		{"Erster Abschnitt", "# "},
-		{"Alpha-Seite", "## "},
-		// Headings are demoted by folder depth, not normalised: the
-		// page writes `##`, two folders down that is `####`.
-		{"Tiefe Seite", "#### "},
-		// A sub-heading inside a page keeps its relative depth.
-		{"Unterpunkt", "### "},
+		// So do a chapter's.
+		{"Alpha-Seite", "# "},
+		{"Unterpunkt", "## "},
+		{"Beta-Seite", "## "},
+		// One level below a chapter, headings go down one level: the
+		// page writes `##`.
+		{"Tiefe Seite", "### "},
 		// A page whose title lives only in the front matter gets a
-		// generated chapter heading; its own sections stay below it.
+		// generated heading; its own sections stay below it.
 		{"Zweiter Abschnitt", "# "},
 		{"Ein Unterpunkt", "## "},
 	}
 
 	for _, tc := range tests {
 		if !containsHeading(res.Content, tc.want, tc.heading) {
-			t.Errorf("expected %q at level %q", tc.heading, strings.TrimSpace(tc.want))
+			t.Errorf("expected %q at level %q:\n%s", tc.heading, strings.TrimSpace(tc.want), res.Content)
 		}
+	}
+}
+
+// A section's own page goes into a folio-section div, which the renderers
+// style from _brand.yml's meta.fonts.section; its children stay outside.
+func TestFlattenWrapsSections(t *testing.T) {
+	res := flattenTestBook(t)
+	want := ":::: " + SectionClass + "\n::: explanation\n# Erster Abschnitt {#bm-book-erster}\n\n" +
+		"Einleitung zum ersten Abschnitt.\n:::\n::::\n\n::: explanation\n# Alpha-Seite"
+	if !strings.Contains(res.Content, want) {
+		t.Errorf("section not wrapped on its own:\n%s", res.Content)
+	}
+}
+
+// The contents go after the preliminaries: the flattened book marks the
+// place right after the topic's index page.
+func TestFlattenMarksTheContents(t *testing.T) {
+	res := flattenTestBook(t)
+	i := strings.Index(res.Content, "::: "+TOCClass+"\n:::")
+	if i < 0 {
+		t.Fatalf("no contents marker:\n%s", res.Content)
+	}
+	if j := strings.Index(res.Content, "Willkommen."); j < 0 || j > i {
+		t.Errorf("the preliminaries do not come before the contents marker")
+	}
+	if j := strings.Index(res.Content, "Erster Abschnitt"); j < i {
+		t.Errorf("the first section comes before the contents marker")
+	}
+}
+
+// With prefixes, sections are titled "Part n" and chapters "Chapter n",
+// numbered through the book.
+func TestFlattenPrefixes(t *testing.T) {
+	root := loadTestTree(t)
+	res, err := Flatten(root, Options{ProjectRoot: testProject, WrapAudience: true, ExtractSlides: true,
+		SectionPrefix: "Teil", ChapterPrefix: "Kapitel"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		"# Teil 1 Erster Abschnitt {#bm-book-erster}",
+		"# Kapitel 1 Alpha-Seite {#bm-book-erster-alpha}",
+		"## Kapitel 2 Beta-Seite {#bm-book-erster-beta}",
+		"# Teil 2 Zweiter Abschnitt",
+		"# Teil 3 Nur Feuerwehr",
+		"## Kapitel 3 Feuerwehr-Detailseite",
+	} {
+		if !strings.Contains(res.Content, want) {
+			t.Errorf("missing %q:\n%s", want, res.Content)
+		}
+	}
+	if strings.Contains(res.Content, "Kapitel 1 Tiefe") || strings.Contains(res.Content, "Teil 1 Test Book") {
+		t.Errorf("a prefix went to a page that is neither section nor chapter:\n%s", res.Content)
+	}
+}
+
+// Demoting below h6 sets the heading as emphasized text, in place of the
+// h7, h8 and h9 Markdown does not have, and says so.
+func TestFlattenMocksHeadingsBeyondSix(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, dir+"/book/index.md", "# B\n")
+	deep := dir + "/book/s/c/d1/d2/d3"
+	writeFile(t, dir+"/book/s/index.md", "# S\n")
+	writeFile(t, dir+"/book/s/c/index.md", "# C\n")
+	writeFile(t, dir+"/book/s/c/d1/index.md", "# D1\n")
+	writeFile(t, dir+"/book/s/c/d1/d2/index.md", "# D2\n")
+	writeFile(t, deep+"/index.md", "# D3\n\n#### Four\n\n##### Five\n\n###### Six\n")
+
+	root, err := LoadTree(dir+"/book", dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := Flatten(root, Options{ProjectRoot: dir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// d3 is three levels below its chapter: `#` becomes `####`.
+	for _, want := range []string{"#### D3 {#", "\n**Four**\n", "\n***Five***\n", "\n*Six*\n"} {
+		if !strings.Contains(res.Content, want) {
+			t.Errorf("missing %q:\n%s", want, res.Content)
+		}
+	}
+	if len(res.Warnings) != 3 || !strings.Contains(strings.Join(res.Warnings, "\n"), "level 7,") {
+		t.Errorf("warnings = %v, want one per heading beyond level 6", res.Warnings)
 	}
 }
 
@@ -389,7 +477,7 @@ func TestFlattenDirectoryWithoutIndex(t *testing.T) {
 	if !containsHeading(res.Content, "# ", "Ohne index") {
 		t.Errorf("missing generated folder heading:\n%s", res.Content)
 	}
-	if !containsHeading(res.Content, "### ", "Seite") {
+	if !containsHeading(res.Content, "## ", "Seite") {
 		t.Errorf("child page is at the wrong level:\n%s", res.Content)
 	}
 }

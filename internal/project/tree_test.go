@@ -226,3 +226,65 @@ func TestLoadMarkdownPages(t *testing.T) {
 		t.Error("unexpected marker")
 	}
 }
+
+// The root index page is the home page: the tree lists it first, whatever
+// its order says, and it needs none (issue #96).
+func TestLoadPutsTheHomePageFirst(t *testing.T) {
+	root := t.TempDir()
+	for name, body := range map[string]string{
+		"index.md":       "# Home\n",
+		"book/index.md":  "---\norder: 1\n---\n# Book\n",
+		"other/index.md": "---\norder: 2\n---\n# Other\n",
+	} {
+		writeTestFile(t, root, name, body)
+	}
+	tree := load(t, root)
+	if got := paths(tree.Pages); !reflect.DeepEqual(got, []string{"index.md", "book/index.md", "other/index.md"}) {
+		t.Fatalf("root = %v", got)
+	}
+	if !tree.Pages[0].Home || tree.Pages[1].Home {
+		t.Error("want only the root index marked as the home page")
+	}
+}
+
+// A page whose headings would go beyond h6 in print, at its tree level, is
+// marked, and so are the pages above it (issue #96). Below a chapter, each
+// level of the tree adds one to a heading's level.
+func TestLoadMarksHeadingsTooDeep(t *testing.T) {
+	root := t.TempDir()
+	for name, body := range map[string]string{
+		"book/index.md":     "---\norder: 1\n---\n# Book\n",
+		"book/s/index.md":   "---\norder: 1\n---\n# Section\n\n###### Six\n",
+		"book/s/c/index.md": "---\norder: 1\n---\n# Chapter\n\n###### Six\n",
+		"book/s/c/fine.md":  "---\norder: 1\n---\n# Fine\n\n##### Five\n",
+		"book/s/c/deep.md":  "---\norder: 2\n---\n# Deep\n\n###### Six\n\n```\n####### not a heading\n```\n",
+		"book/s/c/code.md":  "---\norder: 3\n---\n# Code\n\n```\n###### in code\n```\n",
+		"book/s/other.md":   "---\norder: 2\n---\n# Other\n",
+	} {
+		writeTestFile(t, root, name, body)
+	}
+	tree := load(t, root)
+	for path, want := range map[string]bool{
+		"book/index.md": true, "book/s/index.md": true, "book/s/c/index.md": true,
+		"book/s/c/deep.md": true, "book/s/c/fine.md": false, "book/s/c/code.md": false, "book/s/other.md": false,
+	} {
+		p := tree.Find(path)
+		if got := p.TooDeep != ""; got != want {
+			t.Errorf("%s: marked = %v (%q), want %v", path, got, p.TooDeep, want)
+		}
+	}
+	if got := tree.Find("book/s/c/deep.md").TooDeep; !strings.Contains(got, "h7") {
+		t.Errorf("tooltip %q does not name the level", got)
+	}
+}
+
+func writeTestFile(t *testing.T, root, name, body string) {
+	t.Helper()
+	p := filepath.Join(root, filepath.FromSlash(name))
+	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}

@@ -19,7 +19,7 @@ History: I was looking for a tool that can produces websites and PDF/DOCX from t
 
 *Caveat emptor: 97.853% (well, more or less) of the text below is AI slop, so please go easy on it. I may eventually go through it piece by piece and make it more legible.*
 
-- **One tree, many outputs.** The folder structure and the `order:` front matter of the pages decide the order and the nesting of every output. A website, a DOCX and a PDF all come from the same pages, with the headings demoted to the level the folder depth implies.
+- **One tree, many outputs.** The folder structure and the `order:` front matter of the pages decide the order and the nesting of every output. A website, a DOCX and a PDF all come from the same pages, with the headings kept as you wrote them.
 
 - **A three-axis render matrix.** A render is addressed by *topic* (what), *format* (how) and *audience* (for whom). One file, `folio.yml`, declares them; `folio render` builds any part of the matrix, and `folio web` does the same from a panel.
 - **Conditional content.** A block or span can be marked for a format (`explanation`) or an audience (`pol`); a render keeps only what the selection shows.
@@ -113,11 +113,11 @@ folio web --addr :9000       # listen elsewhere
 
 A project can name its own address in its `folio.yml` (`web: {baseurl: localhost, port: 8200}`, see [`folio.yml`](#folioyml)); `--addr` still wins over it.
 
-The UI shows the project's page tree, reorders pages by drag and drop (which rewrites the `order:` front matter and shifts the moved page's headings), creates (from a template marked `status: new`), edits and deletes pages with a live Markdown preview, searches the whole project, and runs renders in the background from the same flow `folio render` uses. The render selection and the page last open are remembered per project in the settings file (below).
+The UI shows the project's page tree, reorders pages by drag and drop (which rewrites the `order:` front matter and renames files, and leaves the page's headings alone), creates (from a template marked `status: new`), edits and deletes pages with a live Markdown preview, searches the whole project, and runs renders in the background from the same flow `folio render` uses. The render selection and the page last open are remembered per project in the settings file (below).
 
 A ```` ```{mermaid} ```` block is drawn in the preview as it is in a render: the server draws it with the same renderer and the preview shows the diagram, so it looks as it does on the website. A plain ```` ```mermaid ```` block stays code, as in a render.
 
-A page marked `draft: true` in its front matter is greyed out in the tree: it is there, but it is not part of what a render publishes yet. A few front matter keys of folio's own mark a page in the tree: `status: new` shows 🆕, `status: deprecated` (or `obsolete`, or `old`) shows 🗑️, `review: "what to review"` shows 👀 with the text as its tooltip, and `hide: true` leaves the page out of the tree. A `==TODO==` anywhere in the page, `<!-- ==TODO== -->` included, shows 🚧. A new page starts with `status: new` and an `::: explanation` div headed by its name, at the heading level of its place in the tree. A page written for one audience — an `_FW` or `_POL` suffix on its name or on a folder above it — is previewed inside that audience's `::: fw` / `::: pol` div, the way the flattener wraps it, so the custom preview stylesheet tints and marks the whole page just as it marks such a block written into the page by hand.
+A page marked `draft: true` in its front matter is greyed out in the tree: it is there, but it is not part of what a render publishes yet. A few front matter keys of folio's own mark a page in the tree: `status: new` shows 🆕, `status: deprecated` (or `obsolete`, or `old`) shows 🗑️, `review: "what to review"` shows 👀 with the text as its tooltip, and `hide: true` leaves the page out of the tree. A `==TODO==` anywhere in the page, `<!-- ==TODO== -->` included, shows 🚧. A new page starts with `status: new` and an `::: explanation` div headed by its name as a level-1 heading (`# name`). A page written for one audience — an `_FW` or `_POL` suffix on its name or on a folder above it — is previewed inside that audience's `::: fw` / `::: pol` div, the way the flattener wraps it, so the custom preview stylesheet tints and marks the whole page just as it marks such a block written into the page by hand.
 
 Beside the editor sit the Markdown preview and a copyedit pane. The *Preview* and *Copyedit* buttons show and hide each on its own; with both shown they stand side by side, a pane's head dragged onto the other swaps them, and every divider can be dragged to resize. The copyedit pane lists the editing tasks configured under *Config → Copyedit: Editing tasks* — each one a prompt with a title, "Passive voice", "Shorten sentences". Clicking one sends the text the editor holds, unsaved edits and all, to the model selected in the pane's dropdown, and answers with a list of suggestions: what to change, what to put there instead, and why. Each suggestion's passage is highlighted in the editor, and clicking the suggestion scrolls to it; a Back button returns to the task list and takes the highlights off the text.
 
@@ -194,7 +194,7 @@ update: {
 
 ### Settings
 
-Everything the UI remembers between runs lives in one file, `<user config dir>/folio/config.cue`: the projects opened before, the render selection and last open page per project, which preview stylesheet is active, the copyediting setup, the external editors' command lines, and where to look for updates. The preview stylesheets themselves belong to the project, in `assets/styles/folio/`: they mark the project's own topics and audiences, and a website of every topic links `all.css` (or `all.scss`) from there. A settings directory from before the rename, `<user config dir>/qm/`, is moved to `folio/` on the first start.
+Everything the UI remembers between runs lives in one file, `<user config dir>/folio/config.cue`: the projects opened before, the render selection and last open page per project, which preview stylesheet is active, the copyediting setup, the external editors' command lines, and where to look for updates, and the `strings` (per language) that prefix section and chapter titles. The preview stylesheets themselves belong to the project, in `assets/styles/folio/`: they mark the project's own topics and audiences, and a website of every topic links `all.css` (or `all.scss`) from there. A settings directory from before the rename, `<user config dir>/qm/`, is moved to `folio/` on the first start.
 
 The file is CUE because it carries its own schema. The definitions are written into it above the settings, so the file says what belongs in it and in what shape, and every read is checked against them:
 
@@ -242,7 +242,7 @@ anything else HTML). More keys: `show` (the conditional classes the format
 keeps), `toc` (a table of contents in a document), `template` (a reference
 DOCX), `dir` (output directory below `output`; default the format's name),
 `file` (a document's file name without extension; default `{topic}`, plus
-`-{audience}` when the project has more than one audience), `css` (a website
+`-{audience}` when the project has more than one audience), `section_prefix` and `chapter_prefix` (a document: `true` puts "Part 1 " before each section title and "Chapter 1 " before each chapter title, see Heading levels), `css` (a website
 only: stylesheets, project-relative, that every page links after the site's
 own), `topics` and `audiences` (restrict the matrix from the format's side)
 and `vars`.
@@ -338,9 +338,22 @@ A `::: slide` div and a `.notes` div are always dropped. PPTX slide decks are no
 
 The project's Lua filters no longer run. What an audience filter did there is done by `show:`.
 
-### Heading demotion
+### Heading levels
 
-Folder structure and `order:` drive every output; there is no distinction between a "book" and a "website". Pages that lie directly in a topic's folder, and the `index.qmd` of a subfolder (which sorts among its *parent's* pages), use their headings as written. Every deeper folder level adds one heading level. A page that writes `##` two levels below the topic folder therefore ends up as `####`. A page whose front-matter `title:` is not spelled out by a heading at its top level gets a generated title heading, and its own headings stay below it.
+Folder structure and `order:` drive every output; there is no distinction between a "book" and a "website". folio never changes the heading levels of a page when you move it in the tree: you control them, and each source file is expected to start with an h1 (this is not enforced). A page whose front-matter `title:` is not spelled out by a heading at its top level gets a generated title heading, and its own headings stay below it.
+
+A website keeps the headings of every page as written. A DOCX or PDF gives each level of the tree below a topic a meaning:
+
+- **Preliminaries** (depth 0): the topic folder's `index.md`. Its title and subtitle go on the cover. Its body is set after the cover and before the table of contents, and its headings are not listed in the contents.
+- **Sections** (depth 1): the other `.md` files directly in the topic folder, and the `index.md` of the topic's subfolders. Headings are kept as written. The h1 of a section's own page is the section title; the rest of that page is the section's intro. The contents list the section's title but not the headings of its intro. Section headings are set in the fonts of `meta: fonts: section:` in the brand file (below).
+- **Chapters** (depth 2): the `index.md` of the sections' subfolders, and the other files in the topic's subfolders. Headings are kept as written, h1 to h6.
+- **Depth 3 and deeper**: headings are demoted by the depth minus two levels. A heading that would end up beyond h6 is logged as a warning and set as emphasized text: h7 bold, h8 bold italics, h9 and deeper italics.
+
+In the DOCX the headings of a section's intro and of the preliminaries use their own styles, "Unlisted Heading 2" to "Unlisted Heading 6", based on Heading 2 to 6 but with the outline level of body text, so that Word leaves them out when it refreshes the contents.
+
+With `section_prefix: true` in a format, each section title gets "Part 1 " in front of it, and with `chapter_prefix: true` each chapter title gets "Chapter 1 ". Sections and chapters are each numbered continuously through the book. The words come from the `strings` map in the settings file (`config.cue`), per language (the `lang` of folio.yml), under the keys `section_prefix` and `chapter_prefix`. It ships with `en` (Part, Chapter) and `de` (Teil, Kapitel). A language that is missing falls back to its primary language, then to folio's built-in strings, then to English, as for callout titles.
+
+In the folio web tree, the root `index.md` is the home page. It is listed first, without a number, and it is the only page that needs no `order:`. Topic pages are not numbered. Sections are numbered 1, 2, … within each topic, and chapters 1.1, 1.2, and so on deeper down. A page whose headings would render as h7 or deeper in print at its place in the tree gets a light grey row with a tooltip, and the pages above it are greyed as well.
 
 ### The website
 
@@ -446,10 +459,13 @@ meta:
     title:    {font: "Aptos Display", size: 36pt}
     subtitle: {font: "Aptos", size: 20pt}
     h1:       {size: 24pt}          # h1 to h6 set the headings likewise
+    section:                        # the headings of a section's page in a document
+      h1: {font: "Aptos Display", size: 24pt}
+      h2: {size: 16pt}
   coverpage: /assets/templates/cover.svg
 ```
 
-Every entry is optional; sizes are in pt (default) or px. `coverpage` and the font names may use `{name}` placeholders from folio.yml, as `coverpage: assets/templates/cover{audience-template}.svg` does; a placeholder without a variable fails the render. The DOCX names the font; the PDF uses it if `typography: fonts` lists TrueType files for the family, as for the other brand fonts. Without a template the title (36pt, in the headings font and color) and the subtitle (20pt, in the base font) are centred on a blank page.
+Every entry is optional; sizes are in pt (default) or px. `section` takes `h1` to `h6` with a font and a size each, and an unset one falls back to the normal setting for that heading level. An unknown entry under `section` or an unreadable size is an error. `coverpage` and the font names may use `{name}` placeholders from folio.yml, as `coverpage: assets/templates/cover{audience-template}.svg` does; a placeholder without a variable fails the render. The DOCX names the font; the PDF uses it if `typography: fonts` lists TrueType files for the family, as for the other brand fonts. Without a template the title (36pt, in the headings font and color) and the subtitle (20pt, in the base font) are centred on a blank page.
 
 For a template, folio looks for `cover_{topic}{audience-template}.svg`, `cover_{topic}.svg`, `cover{audience-template}.svg` and then `cover.svg` in the template's folder (relative to the brand file; `audience-template` is a variable, such as `_DEV`). The elements with the id `title` and `subtitle` are placeholders: folio takes them out and sets the title and subtitle in their place. A `<text>` placeholder, as design tools export one, passes on its position, color, font family and size (each unless `meta: fonts:` sets it), and the text starts on its baseline and wraps before the page's edge; any other element passes on the box it covers and its color. A template without one of them shows no title or subtitle there, and the render log says so. The rest of the template is drawn as an image, as SVG images are.
 
@@ -516,7 +532,7 @@ main.go                 command wiring: flags, registration
 internal/cli/           the exit-status guard every command body is wrapped in
 internal/config/        folio.yml: formats, audiences, topics, the render matrix, selections
 internal/foliocore/        front matter, page scans, ordering, and the old Quarto profiles, for migrate
-internal/bookmaker/     folder tree → one flat document, headings demoted by depth
+internal/bookmaker/     folder tree → one flat document, headings demoted by depth in print
 internal/markdown/      the Markdown parser (goldmark plus divs, spans, attributes, callouts) and the conditional filter
 internal/shortcode/     include, var, pagebreak
 internal/build/         a render: flatten, parse, filter, write; the brand
