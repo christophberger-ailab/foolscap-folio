@@ -1,2 +1,3 @@
 *.code-workspace
 _internal_notes
+/dist/

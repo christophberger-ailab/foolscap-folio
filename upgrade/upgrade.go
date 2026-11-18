@@ -85,6 +85,10 @@ func Run(ctx context.Context, o Options) error {
 		fmt.Fprintf(o.Out, "folio %s is available (you have %s).\n", rel.Version, o.Current)
 	}
 	printChanges(ctx, o, rel)
+	if m := selfupdate.Manager(o.Exe); m != "" {
+		fmt.Fprintf(o.Out, "folio was installed by a package manager; update it with %s.\n", m)
+		return nil
+	}
 	if o.CheckOnly {
 		return nil
 	}

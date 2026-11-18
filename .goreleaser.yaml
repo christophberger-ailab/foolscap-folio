@@ -1,0 +1,129 @@
+# GoReleaser builds, packages, signs and publishes a folio release. It runs
+# in .github/workflows/release.yml, which works out the version, tags the
+# merged commit locally and then calls `goreleaser release`.
+#
+# Three names here are a contract with `folio upgrade` (spec-upgrade.yaml
+# SECURITY 2 and 6): the archives are folio_<tag>_<os>_<arch>.tar.gz (.zip on
+# Windows), the checksums are SHA256SUMS.txt, and their Sigstore bundle is
+# SHA256SUMS.txt.sigstore.json, signed by release.yml on main. Change none of
+# them without changing internal/selfupdate as well, or installed copies stop
+# updating.
+#
+# The Homebrew tap and the Scoop bucket are separate repositories, written
+# with the token in the HOMEBREW_SCOOP_TOKEN secret. Until that secret is set
+# the manifests are built but not pushed, so a release never fails for want
+# of it.
+version: 2
+
+project_name: folio
+
+builds:
+  - id: folio
+    main: ./cmd/folio
+    binary: folio
+    # Pure Go: a static binary for every target, all cross-compiled on one
+    # Linux runner. Go's linker ad-hoc signs darwin/arm64 binaries itself, so
+    # Apple silicon runs them without a codesign step.
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{ .Tag }}
+    goos: [linux, windows, darwin]
+    goarch: [amd64, arm64]
+
+archives:
+  - id: folio
+    ids: [folio]
+    name_template: "folio_{{ .Tag }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: SHA256SUMS.txt
+  algorithm: sha256
+
+# Keyless: cosign gets a short-lived certificate from Sigstore that names
+# this workflow run (the job has id-token: write). SHA256SUMS.txt pins every
+# other file, so signing it signs the release.
+signs:
+  - id: checksums
+    cmd: cosign
+    artifacts: checksum
+    signature: "${artifact}.sigstore.json"
+    args:
+      - sign-blob
+      - --yes
+      - --bundle=${signature}
+      - ${artifact}
+
+nfpms:
+  - id: packages
+    ids: [folio]
+    package_name: folio
+    vendor: Christoph Berger
+    maintainer: Christoph Berger <3835890+christophberger@users.noreply.github.com>
+    homepage: https://github.com/christophberger-ailab/foolscap-folio
+    description: Manage and render a Markdown documentation tree.
+    license: BSD-3-Clause
+    formats: [deb, rpm, apk, archlinux]
+    section: utils
+    bindir: /usr/bin
+    # folio web and folio init work with git repositories; the other
+    # commands do without.
+    recommends: [git]
+    contents:
+      - src: LICENSE
+        dst: /usr/share/licenses/folio/LICENSE
+      - src: README.md
+        dst: /usr/share/doc/folio/README.md
+
+homebrew_casks:
+  - name: folio
+    ids: [folio]
+    repository:
+      owner: christophberger-ailab
+      name: homebrew-tap
+      token: '{{ envOrDefault "HOMEBREW_SCOOP_TOKEN" "" }}'
+    skip_upload: '{{ if eq (envOrDefault "HOMEBREW_SCOOP_TOKEN" "") "" }}true{{ end }}'
+    homepage: https://github.com/christophberger-ailab/foolscap-folio
+    description: Manage and render a Markdown documentation tree
+    license: BSD-3-Clause
+    commit_msg_template: "folio {{ .Tag }}"
+    # The binary is not signed with a Developer ID, so macOS would refuse to
+    # run it from a quarantined download. Lift the quarantine, as
+    # GoReleaser's docs suggest for unsigned casks.
+    hooks:
+      post:
+        install_steps: |
+          on_macos do
+            run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ .StagedPath }}/folio"]
+          end
+
+scoops:
+  - name: folio
+    ids: [folio]
+    repository:
+      owner: christophberger-ailab
+      name: scoop-bucket
+      token: '{{ envOrDefault "HOMEBREW_SCOOP_TOKEN" "" }}'
+    skip_upload: '{{ if eq (envOrDefault "HOMEBREW_SCOOP_TOKEN" "") "" }}true{{ end }}'
+    homepage: https://github.com/christophberger-ailab/foolscap-folio
+    description: Manage and render a Markdown documentation tree
+    license: BSD-3-Clause
+    commit_msg_template: "folio {{ .Tag }}"
+
+# GitHub's own notes, listing the merged pull requests, as before: folio
+# upgrade and folio web show them.
+changelog:
+  use: github-native
+
+release:
+  name_template: "{{ .Tag }}"
+  target_commitish: "{{ .FullCommit }}"

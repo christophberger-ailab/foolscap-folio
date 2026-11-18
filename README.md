@@ -38,7 +38,17 @@ On the origin of the paper format, Wikipedia [writes](https://en.wikipedia.org/w
 
 ## Install
 
-Pre-built binaries for Linux, macOS and Windows (amd64 and arm64) are attached to each [release](../../releases). Download, unpack, put `folio` on your `PATH`.
+With a package manager:
+
+```sh
+brew install christophberger-ailab/tap/folio          # macOS and Linux (Homebrew)
+scoop bucket add folio https://github.com/christophberger-ailab/scoop-bucket
+scoop install folio                                   # Windows (Scoop)
+```
+
+On Linux, each [release](../../releases) also carries `.deb`, `.rpm`, `.apk` and Arch (`.pkg.tar.zst`) packages for amd64 and arm64; install the one for your system with `apt install ./folio_….deb`, `dnf install ./folio_….rpm`, `apk add --allow-untrusted ./folio_….apk` or `pacman -U ./folio_….pkg.tar.zst`. A folio installed this way is updated by its package manager (`brew upgrade folio`, `scoop update folio`, …); `folio upgrade` points there rather than replacing a file the package manager owns.
+
+Or by hand: pre-built binaries for Linux, macOS and Windows (amd64 and arm64) are attached to each release. Download, unpack, put `folio` on your `PATH`.
 
 On macOS, a binary downloaded with a browser is quarantined, and Gatekeeper refuses to start it because it is not notarized. Clear the flag once after unpacking:
 
