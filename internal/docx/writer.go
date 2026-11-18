@@ -29,14 +29,14 @@ type writer struct {
 	lead string        // XML to put at the start of the next paragraph
 	err  error
 
-	rels     []relationship
-	relIDs   map[string]string // external URL -> relationship ID
-	media    []mediaFile
-	bmID     int
-	drawID   int
+	rels   []relationship
+	relIDs map[string]string // external URL -> relationship ID
+	media  []mediaFile
+	bmID   int
+	drawID int
 	// prelims is true while the writer is in a book's preliminaries,
 	// before the contents marker.
-	prelims bool
+	prelims  bool
 	imgTypes map[string]string // extension -> content type
 
 	// numbering
