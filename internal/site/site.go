@@ -52,15 +52,18 @@ type Options struct {
 	// the font files it refers to: name below _site/fonts to source file.
 	BrandCSS   string
 	BrandFonts map[string]string
-	// Logo is the image file, absolute, shown in the navbar before the
-	// title and used as the site's icon; "" for none. LogoAlt is its
-	// alternative text.
-	Logo, LogoAlt string
+	// Logo is shown in the navbar before the title and is the site's icon.
+	Logo Logo
 	// Expand expands shortcodes in a page's Markdown; may be nil.
 	Expand func(string) (string, error)
 	// Log receives warnings and progress; may be nil.
 	Log func(format string, args ...any)
 }
+
+// Logo is the site's logo: image files, absolute, for the light and the
+// dark color scheme, and their alternative text. Without Light there is
+// no logo; without Dark the light one serves both schemes.
+type Logo struct{ Light, Dark, Alt string }
 
 // pageInfo is one page of the site.
 type pageInfo struct {
@@ -94,7 +97,7 @@ type builder struct {
 	copied  map[string]bool
 	tmpl    *template.Template
 	labels  labels
-	logo    string   // OutDir-relative path of the logo, "" for none
+	logo    Logo     // OutDir-relative paths of the logo's files
 	css     []string // OutDir-relative paths of the extra stylesheets
 	outAbs  string
 	rootAbs string
@@ -130,8 +133,11 @@ func Build(o Options) error {
 		b.o.Lang = "en"
 	}
 	b.labels = labelsFor(b.o.Lang)
-	if o.Logo != "" {
-		b.logo = "_site/logo" + strings.ToLower(filepath.Ext(o.Logo))
+	if o.Logo.Light != "" {
+		b.logo = Logo{Light: "_site/logo" + strings.ToLower(filepath.Ext(o.Logo.Light)), Alt: o.Logo.Alt}
+		if o.Logo.Dark != "" {
+			b.logo.Dark = "_site/logo-dark" + strings.ToLower(filepath.Ext(o.Logo.Dark))
+		}
 	}
 	for i, c := range o.CSS {
 		name := strings.TrimSuffix(filepath.Base(c), filepath.Ext(c))

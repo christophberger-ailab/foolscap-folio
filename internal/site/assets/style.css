@@ -137,6 +137,12 @@ a:hover {
   width: auto;
   max-width: 12em;
 }
+/* A logo with a dark variant shows the one that fits the color scheme. */
+.logo-dark { display: none; }
+@media (prefers-color-scheme: dark) {
+  .logo-light { display: none; }
+  .logo-dark { display: block; }
+}
 .topics ul {
   list-style: none;
   margin: 0;

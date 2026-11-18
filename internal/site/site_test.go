@@ -351,7 +351,7 @@ func TestLogo(t *testing.T) {
 	root, out := project(t)
 	write(t, root, "assets/logo mark.svg", "<svg/>")
 	o := opts(root, out)
-	o.Logo, o.LogoAlt = filepath.Join(root, "assets", "logo mark.svg"), `Acme "Inc"`
+	o.Logo = Logo{Light: filepath.Join(root, "assets", "logo mark.svg"), Alt: `Acme "Inc"`}
 	if err := Build(o); err != nil {
 		t.Fatal(err)
 	}
@@ -362,6 +362,25 @@ func TestLogo(t *testing.T) {
 	if got := read(t, out, "_site/logo.svg"); got != "<svg/>" {
 		t.Errorf("logo = %q", got)
 	}
+
+	hasNot(t, "light only", page, "logo-dark")
+
+	// A dark variant takes the light one's place in the dark color scheme.
+	root, out = project(t)
+	write(t, root, "assets/light.png", "L")
+	write(t, root, "assets/dark.PNG", "D")
+	o = opts(root, out)
+	o.Logo = Logo{Light: filepath.Join(root, "assets", "light.png"), Dark: filepath.Join(root, "assets", "dark.PNG"), Alt: "Acme"}
+	if err := Build(o); err != nil {
+		t.Fatal(err)
+	}
+	has(t, "dark", read(t, out, "index.html"),
+		`<img class="site-logo logo-light" src="_site/logo.png" alt="Acme"><img class="site-logo logo-dark" src="_site/logo-dark.png" alt="Acme">Test Site</a>`,
+		`<link rel="icon" href="_site/logo.png">`)
+	if got := read(t, out, "_site/logo-dark.png"); got != "D" {
+		t.Errorf("dark logo = %q", got)
+	}
+	has(t, "dark css", read(t, out, "_site/style.css"), ".logo-dark")
 
 	root, out = project(t)
 	if err := Build(opts(root, out)); err != nil {

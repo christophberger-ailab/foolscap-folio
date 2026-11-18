@@ -29,12 +29,16 @@ func (b *builder) writeStatic() error {
 			return err
 		}
 	}
-	if b.logo != "" {
-		data, err := os.ReadFile(b.o.Logo)
+	for _, f := range [][2]string{{b.o.Logo.Light, b.logo.Light}, {b.o.Logo.Dark, b.logo.Dark}} {
+		src, dst := f[0], f[1]
+		if dst == "" {
+			continue
+		}
+		data, err := os.ReadFile(src)
 		if err != nil {
 			return err
 		}
-		if err := os.WriteFile(filepath.Join(b.outAbs, filepath.FromSlash(b.logo)), data, 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(b.outAbs, filepath.FromSlash(dst)), data, 0o644); err != nil {
 			return err
 		}
 	}

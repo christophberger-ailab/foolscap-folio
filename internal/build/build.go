@@ -361,7 +361,7 @@ func renderSite(sel config.Selection, dir string, dryRun bool, log Logf) error {
 		return err
 	}
 	brandCSS, brandFonts, notes := brand.css()
-	logo, logoAlt, logoNotes := brand.logo()
+	logo, logoNotes := brand.logo()
 	notes = append(notes, logoNotes...)
 	for _, n := range notes {
 		log("note: %s", n)
@@ -371,7 +371,6 @@ func renderSite(sel config.Selection, dir string, dryRun bool, log Logf) error {
 		BrandCSS:      brandCSS,
 		BrandFonts:    brandFonts,
 		Logo:          logo,
-		LogoAlt:       logoAlt,
 		Root:          sel.Config.Root,
 		OutDir:        dir,
 		Title:         sel.Config.Title,

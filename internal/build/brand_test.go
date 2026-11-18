@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/christophberger-ailab/foolscap-folio/internal/site"
 	"golang.org/x/image/font/gofont/gobold"
 	"golang.org/x/image/font/gofont/goitalic"
 	"golang.org/x/image/font/gofont/gomedium"
@@ -248,37 +249,45 @@ func TestUserBrand(t *testing.T) {
 }
 
 // The website's logo is the brand's small one, else the medium, else the
-// large; each is a path, the name of an image, or light and dark variants.
+// large; each is a path, the name of an image, or light and dark variants,
+// and the whole logo may be a single path. The dark variant is the one the
+// dark color scheme shows.
 func TestBrandLogo(t *testing.T) {
-	for name, c := range map[string]struct{ yml, file, alt string }{
-		"path":      {"logo:\n  small: fonts/Mono.ttf\n  large: fonts/Sans.woff2\n", "Mono.ttf", ""},
-		"named":     {"logo:\n  images:\n    mark: {path: fonts/Sans.woff2, alt: The mark}\n  medium: mark\n", "Sans.woff2", "The mark"},
-		"light":     {"logo:\n  large: {light: fonts/Mono.ttf, dark: fonts/Sans.woff2}\n", "Mono.ttf", ""},
-		"with alt":  {"logo:\n  small: {path: fonts/Mono.ttf, alt: Mono}\n", "Mono.ttf", "Mono"},
-		"none":      {"color:\n  primary: blue\n", "", ""},
-		"missing":   {"logo:\n  small: nope.png\n", "", ""},
-		"outside":   {"logo:\n  small: ../x.png\n", "", ""},
-		"not image": {"logo:\n  small: [1, 2]\n", "", ""},
+	for name, c := range map[string]struct{ yml, light, dark, alt string }{
+		"path":       {"logo:\n  small: fonts/Mono.ttf\n  large: fonts/Sans.woff2\n", "Mono.ttf", "", ""},
+		"single":     {"logo: fonts/Mono.ttf\n", "Mono.ttf", "", ""},
+		"named":      {"logo:\n  images:\n    mark: {path: fonts/Sans.woff2, alt: The mark}\n  medium: mark\n", "Sans.woff2", "", "The mark"},
+		"light":      {"logo:\n  large: {light: fonts/Mono.ttf, dark: fonts/Sans.woff2}\n", "Mono.ttf", "Sans.woff2", ""},
+		"dark only":  {"logo:\n  small: {dark: fonts/Sans.woff2}\n", "Sans.woff2", "Sans.woff2", ""},
+		"named dark": {"logo:\n  images:\n    a: fonts/Mono.ttf\n    b: fonts/Sans.woff2\n  small: {light: a, dark: b}\n", "Mono.ttf", "Sans.woff2", ""},
+		"with alt":   {"logo:\n  small: {path: fonts/Mono.ttf, alt: Mono}\n", "Mono.ttf", "", "Mono"},
+		"none":       {"color:\n  primary: blue\n", "", "", ""},
+		"missing":    {"logo:\n  small: nope.png\n", "", "", ""},
+		"outside":    {"logo:\n  small: ../x.png\n", "", "", ""},
+		"not image":  {"logo:\n  small: [1, 2]\n", "", "", ""},
+		"bad dark":   {"logo:\n  small: {light: fonts/Mono.ttf, dark: nope.png}\n", "Mono.ttf", "", ""},
 	} {
 		root := brandProject(t, c.yml)
 		b, err := loadBrand(root, "")
 		if err != nil {
 			t.Fatalf("%s: %v", name, err)
 		}
-		file, alt, notes := b.logo()
-		want := ""
-		if c.file != "" {
-			want = filepath.Join(root, "fonts", c.file)
+		l, notes := b.logo()
+		at := func(f string) string {
+			if f == "" {
+				return ""
+			}
+			return filepath.Join(root, "fonts", f)
 		}
-		if file != want || alt != c.alt {
-			t.Errorf("%s: logo %q (%q), want %q (%q)", name, file, alt, want, c.alt)
+		if l.Light != at(c.light) || l.Dark != at(c.dark) || l.Alt != c.alt {
+			t.Errorf("%s: logo %+v, want %q, %q (%q)", name, l, c.light, c.dark, c.alt)
 		}
-		if wantNote := name == "missing" || name == "outside"; (len(notes) > 0) != wantNote {
+		if wantNote := name == "missing" || name == "outside" || name == "bad dark"; (len(notes) > 0) != wantNote {
 			t.Errorf("%s: notes %q", name, notes)
 		}
 	}
 	var none *brand
-	if file, alt, notes := none.logo(); file != "" || alt != "" || notes != nil {
+	if l, notes := none.logo(); l != (site.Logo{}) || notes != nil {
 		t.Error("no brand: a logo")
 	}
 }
