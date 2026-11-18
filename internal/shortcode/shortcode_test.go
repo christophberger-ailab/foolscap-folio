@@ -1,6 +1,7 @@
 package shortcode
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -123,5 +124,42 @@ func TestRelativeIncludes(t *testing.T) {
 		if got := ResolveInclude(tc[0], tc[1]); got != tc[2] {
 			t.Errorf("ResolveInclude(%q, %q) = %q, want %q", tc[0], tc[1], got, tc[2])
 		}
+	}
+}
+
+// {{name}} is a variable reference anywhere in a line, as {{< var name >}}
+// is, except in code: fenced blocks and inline code spans stay as written.
+// An undefined name stays as written, reported once.
+func TestVariableReferences(t *testing.T) {
+	var warnings []string
+	sc := New(t.TempDir(), map[string]string{"date": "5. März 2026", "metadata.version": "1.2", "topic": "book"},
+		func(f string, a ...any) { warnings = append(warnings, fmt.Sprintf(f, a...)) })
+	in := strings.Join([]string{
+		"As of {{date}}, v{{metadata.version}} of {{ topic }}.",
+		"Code `{{date}}` and ``a `{{date}}` b`` and after `x` {{date}}.",
+		"Unknown {{nope}} and {{nope}}; not names: {{.Field}} {{ }} {{1x}}.",
+		"Shortcode {{< var date >}} still works.",
+		"```",
+		"{{date}}",
+		"```",
+	}, "\n")
+	out, err := sc.Expand(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := strings.Join([]string{
+		"As of 5. März 2026, v1.2 of book.",
+		"Code `{{date}}` and ``a `{{date}}` b`` and after `x` 5. März 2026.",
+		"Unknown {{nope}} and {{nope}}; not names: {{.Field}} {{ }} {{1x}}.",
+		"Shortcode 5. März 2026 still works.",
+		"```",
+		"{{date}}",
+		"```",
+	}, "\n")
+	if out != want {
+		t.Errorf("got\n%s\nwant\n%s", out, want)
+	}
+	if len(warnings) != 1 || !strings.Contains(warnings[0], "nope") {
+		t.Errorf("warnings = %q", warnings)
 	}
 }

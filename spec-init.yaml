@@ -31,4 +31,5 @@ constraints:
       6-1: The comments show an example of a page `footer`
       7: In a folder that holds nothing but dot files (such as `.git`), init first writes a sample project embedded in the binary -- a home page, one topic with its preliminaries, sections and chapters, and a logo with a light and a dark variant -- whose pages explain what their place in the tree means; the title is still the folder's name. With --dry-run nothing is written and the sample's folio.yml is printed
       8: A project without `_brand.yml` (or `_brand.yaml`) gets a sample one -- palette, colors, type and cover sizes, with commented font examples -- that is checked to load before it is written; the sample project's names its logo, any other project's shows the logo as a commented example. An existing brand file is never overwritten, not even with --force, and --dry-run writes none
+      8-1: If the user's global `_brand.yml` (beside config.cue) exists, the sample brand starts with a prominent comment warning that it overrides that file, naming it
       9: The command prints each file it wrote

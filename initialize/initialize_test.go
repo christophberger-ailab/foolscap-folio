@@ -253,3 +253,31 @@ func TestSampleProject(t *testing.T) {
 		t.Errorf("dry run wrote %d entries", len(entries))
 	}
 }
+
+// With a global brand file, the project's sample brand warns up front
+// that it overrides that one; without one, it does not.
+func TestBrandWarnsAboutGlobalBrand(t *testing.T) {
+	global := filepath.Join(t.TempDir(), build.BrandFile)
+	for name, c := range map[string]struct {
+		user string
+		warn bool
+	}{
+		"global":    {global, true},
+		"no file":   {filepath.Join(t.TempDir(), build.BrandFile), false},
+		"no config": {"", false},
+	} {
+		write(t, filepath.Dir(global), build.BrandFile, "color: {primary: red}\n")
+		root := tree(t)
+		if _, err := Run(root, Options{UserBrand: c.user}); err != nil {
+			t.Fatal(err)
+		}
+		b, _ := os.ReadFile(filepath.Join(root, build.BrandFile))
+		head := string(b)[:min(len(b), 600)]
+		if got := strings.Contains(head, "WARNING") && strings.Contains(head, global); got != c.warn {
+			t.Errorf("%s: warning %v, want %v:\n%s", name, got, c.warn, b)
+		}
+		if err := build.CheckBrand(b); err != nil {
+			t.Errorf("%s: %v", name, err)
+		}
+	}
+}

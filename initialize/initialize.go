@@ -28,7 +28,8 @@ import (
 
 // Register wires the `init` command into start. It shares --force and
 // --dry-run with `migrate`, whichever of the two is registered first.
-func Register(projectFlag *string) {
+// userBrand returns the path of the user's global brand file.
+func Register(projectFlag *string, userBrand func() string) {
 	force := boolFlag("force", "Overwrite an existing folio.yml")
 	dryRun := boolFlag("dry-run", "Print the folio.yml instead of writing it")
 	start.Add(&start.Command{
@@ -48,7 +49,7 @@ func Register(projectFlag *string) {
 			if err != nil {
 				return fmt.Errorf("cannot resolve project path: %w", err)
 			}
-			res, err := Run(root, Options{Force: force(), DryRun: dryRun()})
+			res, err := Run(root, Options{Force: force(), DryRun: dryRun(), UserBrand: userBrand()})
 			if err != nil {
 				return err
 			}
@@ -79,6 +80,9 @@ func boolFlag(name, usage string) func() bool {
 type Options struct {
 	Force  bool // overwrite an existing folio.yml
 	DryRun bool // do not write the file
+	// UserBrand is the user's global brand file, which a project's own
+	// overrides; "" for none.
+	UserBrand string
 }
 
 // Result is what Run produced.
@@ -146,7 +150,7 @@ func Run(root string, opts Options) (*Result, error) {
 	if opts.DryRun {
 		return &Result{YAML: res.YAML}, nil
 	}
-	wrote, err := writeBrand(root, empty)
+	wrote, err := writeBrand(root, empty, opts.UserBrand)
 	if err != nil {
 		return nil, err
 	}
@@ -198,15 +202,25 @@ func writeSample(dir string) ([]string, error) {
 
 // writeBrand writes the sample brand file into root unless the project has
 // one, and reports whether it did. The sample project's brand names its
-// logo.
-func writeBrand(root string, logo bool) (bool, error) {
+// logo. If the user's global brand file exists, the sample warns that it
+// overrides it.
+func writeBrand(root string, logo bool, user string) (bool, error) {
 	for _, name := range []string{build.BrandFile, "_brand.yaml"} {
 		if _, err := os.Stat(filepath.Join(root, name)); err == nil {
 			return false, nil
 		}
 	}
 	var b strings.Builder
-	if err := brandTmpl.Execute(&b, struct{ Logo bool }{logo}); err != nil {
+	data := struct {
+		Logo   bool
+		Global string
+	}{Logo: logo}
+	if user != "" {
+		if st, err := os.Stat(user); err == nil && !st.IsDir() {
+			data.Global = user
+		}
+	}
+	if err := brandTmpl.Execute(&b, data); err != nil {
 		return false, err
 	}
 	if err := build.CheckBrand([]byte(b.String())); err != nil {

@@ -22,6 +22,7 @@ import (
 //	{{< include path/file.md >}}    the file's text, in place
 //	{{< pagebreak >}}               a page break (see the page-break marker below)
 //	{{< var name >}}                a profile variable or a `_variables.yml` value
+//	{{name}}                        the same, outside inline code spans
 //
 // An include path starting with '/' is project-absolute; any other path
 // is relative to the folder of the file holding the include. Text passed to
@@ -172,6 +173,16 @@ func (s *Expander) inline(line string) string {
 		s.reportOnce("var "+name, "undefined variable %q in {{< var %s >}}; it is left as written", name, name)
 		return m
 	})
+	line = outsideCode(line, func(text string) string {
+		return nameRef.ReplaceAllStringFunc(text, func(m string) string {
+			name := nameRef.FindStringSubmatch(m)[1]
+			if v, ok := s.vars[name]; ok {
+				return v
+			}
+			s.reportOnce("var "+name, "undefined variable %q in {{%s}}; it is left as written", name, name)
+			return m
+		})
+	})
 	for _, m := range shortcodeAny.FindAllStringSubmatch(line, -1) {
 		if m[1] == "var" || m[1] == "include" || m[1] == "pagebreak" {
 			continue
@@ -189,8 +200,62 @@ func (s *Expander) reportOnce(key, format string, args ...any) {
 	s.warn(format, args...)
 }
 
-// varRef matches a `{{< var name >}}` shortcode.
-var varRef = regexp.MustCompile(`\{\{<\s*var\s+([^\s>]+)\s*>\}\}`)
+// varRef matches a `{{< var name >}}` shortcode, nameRef the short form
+// `{{name}}`.
+var (
+	varRef  = regexp.MustCompile(`\{\{<\s*var\s+([^\s>]+)\s*>\}\}`)
+	nameRef = regexp.MustCompile(`\{\{\s*([A-Za-z][\w.-]*)\s*\}\}`)
+)
+
+// outsideCode returns line with f applied to the text between its inline
+// code spans, which stay as written. A span opens with a run of backticks
+// and closes with the next run of the same length; a run without one is
+// text.
+func outsideCode(line string, f func(string) string) string {
+	var b strings.Builder
+	text := 0 // start of the text not yet written
+	for i := 0; i < len(line); {
+		if line[i] != '`' {
+			i++
+			continue
+		}
+		n := 1
+		for i+n < len(line) && line[i+n] == '`' {
+			n++
+		}
+		end := closingRun(line[i+n:], n)
+		if end < 0 {
+			i += n
+			continue
+		}
+		end += i + n + n
+		b.WriteString(f(line[text:i]))
+		b.WriteString(line[i:end])
+		i, text = end, end
+	}
+	b.WriteString(f(line[text:]))
+	return b.String()
+}
+
+// closingRun returns the index in s of the first run of exactly n
+// backticks, or -1.
+func closingRun(s string, n int) int {
+	for i := 0; i < len(s); {
+		if s[i] != '`' {
+			i++
+			continue
+		}
+		j := i
+		for j < len(s) && s[j] == '`' {
+			j++
+		}
+		if j-i == n {
+			return i
+		}
+		i = j
+	}
+	return -1
+}
 
 // codeFence tracks whether a line belongs to a fenced code block.
 type codeFence struct {

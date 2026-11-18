@@ -1,3 +1,11 @@
+{{- if .Global -}}
+# ############################################################################
+# WARNING: this project has its own brand file now. It OVERRIDES your global
+# brand file, {{.Global}}, which no longer applies to this project.
+# To keep your global brand, delete this file.
+# ############################################################################
+
+{{end -}}
 # _brand.yml, written by `folio init`: the look of the website, the PDF and
 # a DOCX without a template. It follows brand.yml
 # (https://posit-dev.github.io/brand-yml/); the README's "Brand" section
