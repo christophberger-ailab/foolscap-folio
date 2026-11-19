@@ -2291,9 +2291,11 @@ mark.folio-todo-hidden {
   border-bottom-color: var(--warn);
 }
 
-/* The toggles carry their state: pressed means the pane is shown, vim on. */
+/* The toggles carry their state: pressed means the pane is shown, vim or
+   spellchecking on. */
 .pane-toggle[aria-pressed="true"],
-.vim-toggle[aria-pressed="true"] {
+.vim-toggle[aria-pressed="true"],
+.spell-toggle[aria-pressed="true"] {
   background: var(--accent-bg);
   border-color: var(--accent);
   color: var(--accent);

@@ -547,20 +547,21 @@
        the browsers that restore anyway. */ -}}
   {{/* data-callout-titles: what preview.js titles callouts by, in the
        project's language (see calloutTitlesJSON). */ -}}
-  <form class="edit-form" autocomplete="off" data-callout-titles="{{.CalloutTitles}}" hx-post="/save" hx-trigger="input delay:1s from:find textarea" hx-swap="none">
+  <form class="edit-form" autocomplete="off" data-callout-titles="{{.CalloutTitles}}" data-lang="{{.Lang}}" hx-post="/save" hx-trigger="input delay:1s from:find textarea" hx-swap="none">
     <input type="hidden" id="content-path" name="path" value="{{.Path}}">
     {{/* The newline right after the tag is dropped by the HTML parser, so
          a page whose text starts with one keeps it instead of losing it on
          the next save. */ -}}
     <textarea name="body" class="file-content" autocomplete="off">
 {{.Body}}</textarea>
-    {{/* The vim toggle sits below the editor and inside the editor's own
+    {{/* The vim and spellcheck toggles sit below the editor and inside the editor's own
          column: it belongs to the text it acts on, and a button under the
          text is out of the way of the text. CodeMirror mounts on the
          textarea and puts itself in the textarea's place, so the toggle
          stays below the editor either way. */ -}}
     <div class="editor-toolbar">
       <button type="button" class="vim-toggle" id="vim-toggle" aria-pressed="false" title="Vim keybindings in the editor">⌨ Vim Mode</button>
+      <button type="button" class="spell-toggle" id="spell-toggle" aria-pressed="false" title="The browser's spellchecker in the editor, in the project's language">✓ Spellcheck</button>
     </div>
   </form>
 </div>
