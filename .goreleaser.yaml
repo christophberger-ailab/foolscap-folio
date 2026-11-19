@@ -12,7 +12,9 @@
 # The Homebrew tap and the Scoop bucket are separate repositories, written
 # with the token in the HOMEBREW_SCOOP_TOKEN secret. Until that secret is set
 # the manifests are built but not pushed, so a release never fails for want
-# of it.
+# of it. GoReleaser takes a repository token only as a lone {{ .Env.NAME }},
+# without template functions; skip_upload is checked first, so the variable
+# may be unset when there is nothing to push.
 version: 2
 
 project_name: folio
@@ -90,7 +92,7 @@ homebrew_casks:
     repository:
       owner: christophberger-ailab
       name: homebrew-tap
-      token: '{{ envOrDefault "HOMEBREW_SCOOP_TOKEN" "" }}'
+      token: "{{ .Env.HOMEBREW_SCOOP_TOKEN }}"
     skip_upload: '{{ if eq (envOrDefault "HOMEBREW_SCOOP_TOKEN" "") "" }}true{{ end }}'
     homepage: https://github.com/christophberger-ailab/foolscap-folio
     description: Manage and render a Markdown documentation tree
@@ -112,7 +114,7 @@ scoops:
     repository:
       owner: christophberger-ailab
       name: scoop-bucket
-      token: '{{ envOrDefault "HOMEBREW_SCOOP_TOKEN" "" }}'
+      token: "{{ .Env.HOMEBREW_SCOOP_TOKEN }}"
     skip_upload: '{{ if eq (envOrDefault "HOMEBREW_SCOOP_TOKEN" "") "" }}true{{ end }}'
     homepage: https://github.com/christophberger-ailab/foolscap-folio
     description: Manage and render a Markdown documentation tree

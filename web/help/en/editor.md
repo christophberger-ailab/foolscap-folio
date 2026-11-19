@@ -43,7 +43,7 @@ The `⌨ Vim Mode` button below the editor switches Vim keybindings on and off. 
 
 ## Comments
 
-Select some text and a `+` appears in the narrow rail to the right of the editor, level with the selection. Click it, or press `Ctrl-Alt-M`, to comment on the selection. Two HTML comments are written around it, and the cursor is placed where you type the comment:
+Select some text and a `+` appears in the narrow rail to the right of the editor, level with the selection. Click it, or press `Ctrl-Alt-M`, to comment on the selection. Two HTML comments are written around it. `Ctrl-Alt-M` places the cursor where you type the comment; the `+` brings the [comments pane](panes.md) to the front instead, with a field for the new comment ready to type into:
 
 ```
 <!-- << {#c4k2x9 author="Ana" date="2026-11-03"} Your comment goes here -->the selected text<!-- >> {#c4k2x9} -->
@@ -52,7 +52,7 @@ Select some text and a `+` appears in the narrow rail to the right of the editor
 - `<<` opens the commented passage and holds the comment, `>>` closes it. A render drops HTML comments, so comments never show up in a render.
 - The comment is signed with your name and today's date. Set the name under `Config` → [`Comments: Your name`](settings.md); without one, your login name is used. The id pairs the two ends, so passages commented by different people may overlap.
 - Spaces and line breaks at the ends of the selection stay outside the passage, and so does a heading, quote, or list marker in front of it.
-- In Vim mode you land in Insert mode, ready to type.
+- With `Ctrl-Alt-M` in Vim mode you land in Insert mode, ready to type.
 - `Ctrl-Z` removes a comment you just added.
 - The [preview](preview.md) highlights the passage and shows the comment when you hover over it.
 

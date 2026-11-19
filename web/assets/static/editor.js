@@ -464,7 +464,7 @@ function mountCommentRail() {
     evt.preventDefault();
   });
   commentButton.addEventListener('click', function () {
-    addComment(cm);
+    addComment(cm, true);
   });
   rail.appendChild(commentButton);
   replyButton = document.createElement('button');
@@ -675,9 +675,11 @@ function commentRange(instance) {
 // addComment writes the comment markers around the selection and leaves
 // the cursor where the comment's text goes. In Vim mode it leaves Visual
 // mode first and enters Insert mode after, so typing writes the comment.
-// The edit goes through CodeMirror like a typed one: it is autosaved, the
-// preview follows, and Ctrl-Z takes it back in one step.
-function addComment(instance) {
+// With inPane -- the rail's "+" -- the comment is written in the Comments
+// pane instead: the pane comes to the front with the new comment in edit
+// mode. The edit goes through CodeMirror like a typed one: it is
+// autosaved, the preview follows, and Ctrl-Z takes it back in one step.
+function addComment(instance, inPane) {
   instance = instance || cm;
   if (!instance || !instance.somethingSelected()) {
     return;
@@ -699,6 +701,19 @@ function addComment(instance) {
     var at = instance.indexFromPos(range.from) + start.before.length;
     instance.setCursor(instance.posFromIndex(at));
   });
+  // A comment the pane does not list, as in the front matter, is written
+  // in the editor all the same.
+  var from = instance.indexFromPos(range.from);
+  var index = inPane ? findCommentMarkers(instance.getValue()).filter(function (marker) {
+    return marker.kind === 'start';
+  }).findIndex(function (marker) {
+    return marker.from === from;
+  }) : -1;
+  if (index >= 0) {
+    openPane('comments');
+    startCommentEdit(index, -1);
+    return;
+  }
   instance.focus();
   if (vim && instance.state.vim && !instance.state.vim.insertMode) {
     CodeMirror.Vim.handleKey(instance, 'i', 'mapping');

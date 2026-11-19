@@ -32,6 +32,7 @@ The `Panes ▾` menu in the top bar lists every pane, with a tick beside the ope
 
 The comments pane lists the [comments](editor.md) of the page in the editor, in the order they stand, each with who wrote it and when, its text, the passage it is about, and its replies. It follows the editor as you type.
 
+- A comment you add with the editor's `+` opens here, in a field ready to type into.
 - Click a comment or a reply, anywhere but on its buttons, to put the cursor at its text in the editor.
 - `Edit`, shown on the comments and replies signed with [your name](settings.md), turns the text into a field right in the pane, so you do not have to write among the markers in the page. `Save` or `Enter` writes it into the page; `Cancel` or `Escape` leaves the comment as it was.
 - `Reply` opens the same field for a new reply. It is written after the last reply, signed with your name and the date, when you save it; a reply left empty is not written.

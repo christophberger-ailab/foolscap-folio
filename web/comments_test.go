@@ -48,3 +48,19 @@ func TestCommentsEditableInPane(t *testing.T) {
 		}
 	}
 }
+
+// A comment added with the rail's "+" is written in the Comments pane: the
+// pane comes to the front with the new comment in edit mode, its field
+// having the focus (spec-web.yaml 14-8-6). Ctrl-Alt-M still leaves the
+// cursor in the editor.
+func TestPlusCommentsInPane(t *testing.T) {
+	src, err := assets.ReadFile("assets/static/editor.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"addComment(cm, true)", "openPane('comments')", "startCommentEdit(index, -1)", "'Ctrl-Alt-M': addComment"} {
+		if !assetContains("assets/static/editor.js", string(src), want) {
+			t.Errorf("editor.js does not write a new comment in the pane, missing %q", want)
+		}
+	}
+}
