@@ -2145,6 +2145,12 @@ document.body.addEventListener('click', function (evt) {
     return;
   }
 
+  // Spellcheck toggle: switch the browser's spellchecker in the editor.
+  if (evt.target.closest('#spell-toggle')) {
+    toggleSpell();
+    return;
+  }
+
   // A path in the Git pane: htmx fetches the diff into the pane; the
   // mark is what says whose diff is standing there, since the pane keeps
   // showing it while the user reads on down the list.

@@ -89,10 +89,15 @@ func defaultStrings() map[string]map[string]string {
 // title in the open project's language, as JSON. The caller must hold
 // s.mu.
 func (s *server) calloutTitlesJSON() string {
-	lang := ""
-	if cfg, err := config.Load(s.root); err == nil {
-		lang = cfg.Lang
-	}
-	b, _ := json.Marshal(markdown.CalloutTitles(s.cfg.Callouts, lang))
+	b, _ := json.Marshal(markdown.CalloutTitles(s.cfg.Callouts, s.projectLang()))
 	return string(b)
+}
+
+// projectLang is the open project's `lang:`, or "" when it sets none. The
+// caller must hold s.mu.
+func (s *server) projectLang() string {
+	if cfg, err := config.Load(s.root); err == nil {
+		return cfg.Lang
+	}
+	return ""
 }

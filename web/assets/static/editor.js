@@ -13,10 +13,12 @@
 // preview.js and app.js already use.
 
 var VIM_KEY = 'vimMode';
+var SPELL_KEY = 'spellcheck';
 
-// vimOn is the remembered choice; cm is the editor mounted on the page
-// currently open, or null when no page is.
+// vimOn and spellOn are the remembered choices; cm is the editor mounted on
+// the page currently open, or null when no page is.
 var vimOn = localStorage.getItem(VIM_KEY) === 'on';
+var spellOn = localStorage.getItem(SPELL_KEY) === 'on';
 var cm = null;
 
 // editorMode is Quarto Markdown as CodeMirror sees it: a YAML frontmatter
@@ -62,10 +64,23 @@ function initEditor() {
   if (area.value !== area.defaultValue) {
     area.value = area.defaultValue;
   }
+  mountEditor(area);
+}
 
+// mountEditor puts CodeMirror on area and wires it up. It is the part of
+// initEditor that toggleSpell repeats on the page already open.
+//
+// Spellchecking is the browser's own. CodeMirror lets the browser check
+// only what it types into a contenteditable element, and that input style
+// cannot be switched on a running editor, so it is chosen here, at mount:
+// with spellchecking off the editor keeps its hidden textarea, exactly as
+// it was before the toggle existed.
+function mountEditor(area) {
   cm = CodeMirror.fromTextArea(area, {
     mode: editorMode,
     lineWrapping: true,
+    inputStyle: spellOn ? 'contenteditable' : 'textarea',
+    spellcheck: spellOn,
     keyMap: vimOn ? 'vim' : 'default',
     extraKeys: {
       Enter: 'newlineAndIndentContinueMarkdownList',
@@ -94,6 +109,7 @@ function initEditor() {
 
   cm.addOverlay(todoOverlay);
   applyVim();
+  applySpell(area);
   // A page opened while a search is running arrives with its hits already
   // marked, and scrolled to the first of them.
   applySearchHighlight();
@@ -1071,6 +1087,55 @@ function applyVim() {
   if (button) {
     button.setAttribute('aria-pressed', vimOn ? 'true' : 'false');
   }
+}
+
+// applySpell brings the toggle button in line with spellOn and tells the
+// browser which language the page is in: the project's `lang:`, which the
+// edit form carries. Firefox and Safari pick the dictionary by it; Chrome
+// checks against the languages set in its own settings.
+function applySpell(area) {
+  if (cm) {
+    var lang = area.form && area.form.dataset.lang;
+    if (lang) {
+      cm.getInputField().setAttribute('lang', lang);
+    }
+  }
+  var button = document.getElementById('spell-toggle');
+  if (button) {
+    button.setAttribute('aria-pressed', spellOn ? 'true' : 'false');
+  }
+}
+
+// toggleSpell switches spellchecking and remembers the choice. The editor
+// has to be mounted again to change its input style (see mountEditor);
+// what the user sees of it -- the text, the selection, the scroll position,
+// the copyedit marks -- is carried over, so the switch is not felt as a
+// reload.
+function toggleSpell() {
+  spellOn = !spellOn;
+  localStorage.setItem(SPELL_KEY, spellOn ? 'on' : 'off');
+  if (!cm) {
+    applySpell(null);
+    return;
+  }
+  var area = cm.getTextArea();
+  var selections = cm.listSelections();
+  var scroll = cm.getScrollInfo();
+  var marks = copyeditMarks.map(function (mark) {
+    return mark ? mark.find() : null;
+  });
+  var active = copyeditActive;
+  // The comment rail's row holds the editor; CodeMirror can only take
+  // itself off the page from beside its textarea, where it was mounted.
+  commentRow.replaceWith(cm.getWrapperElement());
+  commentRow = null;
+  cm.toTextArea(); // writes the text back into area
+  mountEditor(area);
+  cm.setSelections(selections);
+  cm.scrollTo(scroll.left, scroll.top);
+  copyeditActive = active;
+  paintCopyeditMarks(marks);
+  cm.focus();
 }
 
 // The Vim keymap binds Ctrl-C to Esc, as Vim does, and so swallows the
