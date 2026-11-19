@@ -1,7 +1,7 @@
 // Foolscap Folio - the dock beside the editor (plain ES6, no build step)
 //
 // The panes beside the editor -- the preview, the copyedit tool, the
-// comments, the render and Git panes, and the help -- stand in a dock of
+// comments, the render, Git, and Images panes, and the help -- stand in a dock of
 // tabbed groups. A group shows one of its panes at a time, the one whose
 // tab is active. Dragging a tab onto another group's tabs moves it there;
 // dropping it on a group's edge splits the group, putting the pane beside
@@ -36,6 +36,7 @@ var PANES = {
   comments: { label: 'Comments', id: 'comments-pane', scroll: '#comments-list', empty: '' },
   render: { label: 'Render', id: 'render-pane', scroll: '.render-body', empty: 'Open a project to render it.' },
   git: { label: 'Git', id: 'git-pane', scroll: '#git-body', empty: 'Open a project to see its changes.' },
+  images: { label: 'Images', id: 'images-pane', scroll: '#images-list', empty: 'Open a project to see its images.' },
   help: { label: 'Help', id: 'help-pane', scroll: '#help', empty: '' }
 };
 var PANE_NAMES = Object.keys(PANES);

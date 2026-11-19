@@ -335,6 +335,9 @@ document.addEventListener('folio-shown', function (evt) {
   if (name === 'comments') {
     updateComments();
   }
+  if (name === 'images') {
+    updateImages();
+  }
 });
 
 // The comments pane
@@ -581,6 +584,134 @@ document.addEventListener('click', function (evt) {
     startCommentEdit(index, 'new');
   } else if (evt.target.closest('.comments-remove')) {
     removeComment();
+  }
+});
+
+// The images pane
+//
+// The images pane lists the images under assets/images, fetched from
+// /images whenever it comes into view and whenever /watch says an image
+// changed on disk. It shows them as a list, as small thumbnails, or as
+// large ones, one to a row, sorted by name or by date modified, either
+// way round; both choices are remembered. The button at an image's top
+// right corner -- the "+" of the comment rail -- writes a link to it at
+// the editor's cursor (insertImageLink).
+
+var IMAGES_VIEW_KEY = 'imagesView';
+var IMAGES_SORT_KEY = 'imagesSort';
+var imagesList = []; // what /images last answered
+
+// sortImages returns the images in the order picked: "name-asc",
+// "name-desc", "modified-asc", or "modified-desc". Names compare as people
+// read them, ignoring case and counting numbers as numbers; images
+// modified at once follow their names, A to Z, either way round.
+function sortImages(images, order) {
+  var parts = order.split('-');
+  var sign = parts[1] === 'desc' ? -1 : 1;
+  var byName = function (a, b) {
+    return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+  };
+  return images.slice().sort(function (a, b) {
+    if (parts[0] === 'modified') {
+      return sign * (a.modified - b.modified) || byName(a, b);
+    }
+    return sign * byName(a, b);
+  });
+}
+
+function storedChoice(key, select) {
+  var saved = null;
+  try {
+    saved = localStorage.getItem(key);
+  } catch (e) {
+    // Storage off: the default stands.
+  }
+  if (saved && select.querySelector('option[value="' + saved + '"]')) {
+    select.value = saved;
+  }
+  return select.value;
+}
+
+// showImages lays the images last fetched out in the view and order
+// picked.
+function showImages() {
+  var list = document.getElementById('images-list');
+  var view = document.getElementById('images-view');
+  var sort = document.getElementById('images-sort');
+  if (!list || !view || !sort) {
+    return;
+  }
+  list.className = 'images-list ' + storedChoice(IMAGES_VIEW_KEY, view);
+  list.innerHTML = '';
+  if (!imagesList.length) {
+    list.appendChild(emptyNote('No images under assets/images.'));
+    return;
+  }
+  sortImages(imagesList, storedChoice(IMAGES_SORT_KEY, sort)).forEach(function (img) {
+    var li = document.createElement('li');
+    li.className = 'images-item';
+    li.dataset.path = img.path;
+    li.title = img.name + '\nModified ' + new Date(img.modified).toLocaleString();
+    var thumb = document.createElement('img');
+    thumb.loading = 'lazy';
+    thumb.alt = '';
+    thumb.src = '/media/' + img.path.split('/').map(encodeURIComponent).join('/') + '?v=' + img.modified;
+    li.appendChild(thumb);
+    li.appendChild(textBlock('span', 'images-name', img.name));
+    var add = textBlock('button', 'comment-add image-insert', '+');
+    add.type = 'button';
+    add.title = 'Insert a link to this image at the cursor';
+    li.appendChild(add);
+    list.appendChild(li);
+  });
+}
+
+// updateImages fetches the list anew and shows it.
+function updateImages() {
+  if (!document.getElementById('images-list')) {
+    return;
+  }
+  fetch('/images').then(function (resp) {
+    return resp.ok ? resp.json() : { images: [] };
+  }).then(function (data) {
+    imagesList = data.images || [];
+    showImages();
+  }).catch(function () {
+    // The server is gone or restarting; the next showing tries again.
+  });
+}
+
+document.addEventListener('change', function (evt) {
+  var key = { 'images-view': IMAGES_VIEW_KEY, 'images-sort': IMAGES_SORT_KEY }[evt.target.id];
+  if (!key) {
+    return;
+  }
+  try {
+    localStorage.setItem(key, evt.target.value);
+  } catch (e) {
+    // Storage off: the choice lasts until the next reload.
+  }
+  showImages();
+});
+
+// A press must not take the focus away from the editor, or the cursor the
+// link goes to with it.
+document.addEventListener('mousedown', function (evt) {
+  if (evt.target.closest && evt.target.closest('#images-list .image-insert')) {
+    evt.preventDefault();
+  }
+});
+
+document.addEventListener('click', function (evt) {
+  var add = evt.target.closest && evt.target.closest('#images-list .image-insert');
+  if (add) {
+    insertImageLink(add.closest('.images-item').dataset.path);
+  }
+});
+
+document.body.addEventListener('folio-media-changed', function () {
+  if (paneShown('images')) {
+    updateImages();
   }
 });
 

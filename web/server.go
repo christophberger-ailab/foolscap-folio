@@ -156,6 +156,7 @@ func newServer(configFile string) (*server, error) {
 	s.mux.HandleFunc("GET /search", s.search)
 	s.mux.HandleFunc("GET /complete", s.complete)
 	s.mux.HandleFunc("GET /media/{path...}", s.media)
+	s.mux.HandleFunc("GET /images", s.images)
 	s.mux.HandleFunc("POST /save", s.save)
 	s.mux.HandleFunc("POST /diagram", s.diagram)
 	s.mux.HandleFunc("POST /render", s.startRender)
@@ -686,7 +687,7 @@ func (s *server) watch(w http.ResponseWriter, r *http.Request) {
 
 // mediaChangedEvent is the event /watch raises in the browser when an
 // image in the project changed on disk.
-const mediaChangedEvent = "qm-media-changed"
+const mediaChangedEvent = "folio-media-changed"
 
 // apply runs op on a freshly loaded tree and responds with the updated
 // tree. Errors from op appear as a banner above the (reverted) tree.

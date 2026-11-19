@@ -1,12 +1,13 @@
 # The panes beside the editor
 
-Beside the editor stands a dock with six panes, each behind a tab:
+Beside the editor stands a dock with seven panes, each behind a tab:
 
 - `Preview` shows the [Markdown preview](preview.md).
 - `Copyedit` shows the [copyediting tool](copyedit.md).
 - `Comments` lists the comments of the page (see below).
 - `Render` [renders the project](render.md).
 - `Git` shows [the changes since the last commit](git.md).
+- `Images` lists the project's images (see below).
 - `Help` shows this help.
 
 ## Tabs and groups
@@ -38,6 +39,17 @@ The comments pane lists the [comments](editor.md) of the page in the editor, in 
 - While a field is open, the list does not follow the editor. If the comment was changed in the editor meanwhile, your text is not saved and you are told so.
 - `Ctrl-Z` in the editor takes a saved edit or reply back.
 - `Remove` removes the comment and its replies after asking; the commented text stays.
+
+## The images pane
+
+The images pane lists the images in the project's `assets/images` folder and its subfolders. Above the list you find:
+
+- The view menu: `List` shows each image's name with a tiny thumbnail, `Small thumbnails` shows a grid, and `Large thumbnails` shows one image per row, as wide as the pane.
+- The sort menu: by name or by the date modified, each ascending (↑) or descending (↓).
+
+Click the `+` at an image's top right corner to insert a link to it at the cursor in the editor, such as `![](/assets/images/diagram.png)`. The cursor lands between the brackets, so you can type the image's description right away. `Ctrl-Z` takes the link back.
+
+The list follows the folder: an image you add, change, or delete shows up there. Files and folders whose names start with `.` or `_` are left out. If you used folio before this pane existed, open it from the `Panes ▾` menu.
 
 ## The help pane
 
