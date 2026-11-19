@@ -42,6 +42,7 @@ Der Bildbereich listet die Bilder im Ordner `assets/images` des Projekts und sei
 
 - Das Ansichtsmenü: `List` zeigt den Namen jedes Bilds mit einem winzigen Vorschaubild, `Small thumbnails` zeigt ein Raster, und `Large thumbnails` zeigt ein Bild pro Zeile, so breit wie der Bereich.
 - Das Sortiermenü: nach Name oder Änderungsdatum, jeweils aufsteigend (↑) oder absteigend (↓).
+- Das Suchfeld: Tippe einen Teil eines Dateinamens, und die Liste zeigt nur noch die Bilder, deren Name ihn enthält, ohne auf Groß- und Kleinschreibung zu achten. Leere das Feld, um wieder alle zu sehen.
 
 Ein Klick auf das `+` oben rechts an einem Bild fügt an der Cursorposition im Editor einen Link darauf ein, etwa `![](/assets/images/diagramm.png)`. Der Cursor steht danach zwischen den eckigen Klammern, sodass du gleich die Bildbeschreibung tippen kannst. `Strg-Z` nimmt den Link zurück.
 

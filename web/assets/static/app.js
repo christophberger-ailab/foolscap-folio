@@ -619,6 +619,16 @@ function sortImages(images, order) {
   });
 }
 
+// filterImages keeps the images whose name -- the path inside
+// assets/images -- contains the query, ignoring case; a blank query keeps
+// them all.
+function filterImages(images, query) {
+  var q = query.trim().toLowerCase();
+  return images.filter(function (img) {
+    return img.name.toLowerCase().indexOf(q) >= 0;
+  });
+}
+
 function storedChoice(key, select) {
   var saved = null;
   try {
@@ -647,7 +657,13 @@ function showImages() {
     list.appendChild(emptyNote('No images under assets/images.'));
     return;
   }
-  sortImages(imagesList, storedChoice(IMAGES_SORT_KEY, sort)).forEach(function (img) {
+  var search = document.getElementById('images-search');
+  var found = filterImages(imagesList, search ? search.value : '');
+  if (!found.length) {
+    list.appendChild(emptyNote('No images match the search.'));
+    return;
+  }
+  sortImages(found, storedChoice(IMAGES_SORT_KEY, sort)).forEach(function (img) {
     var li = document.createElement('li');
     li.className = 'images-item';
     li.dataset.path = img.path;
@@ -692,6 +708,12 @@ document.addEventListener('change', function (evt) {
     // Storage off: the choice lasts until the next reload.
   }
   showImages();
+});
+
+document.body.addEventListener('input', function (evt) {
+  if (evt.target.id === 'images-search') {
+    showImages();
+  }
 });
 
 // A press must not take the focus away from the editor, or the cursor the

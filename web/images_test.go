@@ -94,7 +94,7 @@ func TestImagesSkipsSymlinks(t *testing.T) {
 func TestImagesPaneComesWithTheProject(t *testing.T) {
 	srv, _ := testServer(t)
 	body := post(t, srv, "/open", url.Values{"path": {fixture(t)}}).Body.String()
-	for _, want := range []string{`id="images-pane" data-pane="images"`, `id="images-view"`, `id="images-sort"`, `id="images-list"`} {
+	for _, want := range []string{`id="images-pane" data-pane="images"`, `id="images-view"`, `id="images-sort"`, `id="images-search"`, `id="images-list"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("open does not bring %s", want)
 		}
@@ -104,7 +104,7 @@ func TestImagesPaneComesWithTheProject(t *testing.T) {
 	}
 	for file, wants := range map[string][]string{
 		"assets/static/dock.js":   {"images: { label: 'Images', id: 'images-pane'"},
-		"assets/static/app.js":    {"function updateImages(", "insertImageLink("},
+		"assets/static/app.js":    {"function updateImages(", "insertImageLink(", "function filterImages("},
 		"assets/static/editor.js": {"function insertImageLink("},
 		"assets/static/app.css":   {".images-list", ".images-list.large", ".images-list.small", ".image-insert"},
 	} {
@@ -158,6 +158,26 @@ for (const order of ["name-asc", "name-desc", "modified-asc", "modified-desc"]) 
 	want := "name-asc:a.png,b.png,C.png\nname-desc:C.png,b.png,a.png\nmodified-asc:C.png,a.png,b.png\nmodified-desc:a.png,b.png,C.png\n"
 	if got := runNode(t, script); got != want {
 		t.Errorf("sortImages:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+// UI.14-10-5: the search box keeps the images whose name -- their path
+// inside assets/images -- contains the text typed, ignoring case; a blank
+// field keeps them all.
+func TestFilterImages(t *testing.T) {
+	script := jsFunc(t, "assets/static/app.js", "filterImages") + `
+const imgs = [{name: "Cover.png"}, {name: "shots/cover-back.jpg"}, {name: "map.svg"}];
+for (const q of ["cover", "SHOTS/", " ", "ver-b", "nope"]) {
+  console.log(JSON.stringify(q) + ":" + filterImages(imgs, q).map(i => i.name).join(","));
+}`
+	want := `"cover":Cover.png,shots/cover-back.jpg
+"SHOTS/":shots/cover-back.jpg
+" ":Cover.png,shots/cover-back.jpg,map.svg
+"ver-b":shots/cover-back.jpg
+"nope":
+`
+	if got := runNode(t, script); got != want {
+		t.Errorf("filterImages:\n%s\nwant:\n%s", got, want)
 	}
 }
 
