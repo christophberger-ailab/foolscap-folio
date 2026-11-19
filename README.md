@@ -383,7 +383,8 @@ An HTML format builds a site with a layout like Quarto's:
 - previous/next links at the foot of a page;
 - a full text search field in the navbar (`/` focuses it): a fuzzy search
   with [Fuse.js](https://www.fusejs.io/) over the titles and text of all pages,
-  run in the browser from an index written at render time, showing each hit
+  run in the browser from an index written at render time, in web workers so
+  that the page never freezes while it searches, showing each hit
   with a highlighted snippet; the query and its hits stay when a hit is opened
   or the list is closed, for as long as the browser tab is open, and a button
   in the field clears them;

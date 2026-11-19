@@ -129,6 +129,7 @@ constraints:
       6: A search field in the navbar searches the titles and text of all pages of the site, in the browser, without a server
       6-1: The render writes the index -- each page's title, URL, topic, and visible text, after the conditional filter -- to `_site/search.js`, a script rather than JSON, so the search works from file:// too
       6-2: The search is Fuse.js, embedded in the binary and written to `_site/fuse.min.js`; it and the index are loaded only when the field gets the focus
+      6-2-1: The search runs in web workers (`_site/search-worker.js`, up to four), each indexing its share of the pages, so neither loading the index nor typing a query blocks the page; their hits are merged into the order a single search would give. Where the browser does not start a worker (pages opened from file:// in some browsers) or a worker fails, the search runs on the page itself, with the same hits
       6-3: The search is fuzzy, ignores case and diacritics, and ranks a hit in a title above one in the text; a query shorter than two characters searches nothing
       6-4: The hits are listed below the field, at most ten, each with its page title, its topic, and a snippet of the text around the match with the matched words marked; a query without hits says so
       6-5: Up and Down select a hit, and open the closed list again; Enter opens the selected one or the first; Escape closes the list and keeps the query; "/" anywhere on the page puts the focus into the field

@@ -258,12 +258,14 @@ func TestSearch(t *testing.T) {
 		t.Fatal(err)
 	}
 	has(t, "fuse", read(t, out, "_site/fuse.min.js"), "Fuse.js v7")
+	// the worker loads Fuse.js and the index next to it, where there is no window
+	has(t, "worker", read(t, out, "_site/search-worker.js"), "importScripts('fuse.min.js', 'search.js')")
 	idx := read(t, out, "_site/search.js")
-	if !strings.HasPrefix(idx, "window.folioSearch=") {
-		t.Fatalf("index does not define window.folioSearch: %.60s", idx)
+	if !strings.HasPrefix(idx, "self.folioSearch=") {
+		t.Fatalf("index does not define self.folioSearch: %.60s", idx)
 	}
 	var docs []struct{ T, U, S, B string }
-	if err := json.Unmarshal([]byte(strings.TrimSuffix(strings.TrimPrefix(idx, "window.folioSearch="), ";\n")), &docs); err != nil {
+	if err := json.Unmarshal([]byte(strings.TrimSuffix(strings.TrimPrefix(idx, "self.folioSearch="), ";\n")), &docs); err != nil {
 		t.Fatal(err)
 	}
 	by := map[string]struct{ T, U, S, B string }{}

@@ -370,7 +370,10 @@ spy, off-canvas sidebar, search) are embedded; the layout is in em throughout, w
 breakpoints at 75em and 50em. `search.go` collects each rendered page's visible
 text (`htmlText`) into the search index, written as `_site/search.js` beside the
 embedded Fuse.js (`assets/fuse.min.js`, Apache-2.0, `assets/fuse.LICENSE`);
-`site.js` loads both when the search field first gets the focus.
+`site.js` loads both when the search field first gets the focus, into up to four
+web workers (`assets/search-worker.js`) that each index a share of the pages; their
+hits are merged by score. Where no worker starts (file:// in Chromium), `site.js`
+loads the scripts into the page and searches there.
 
 ### 5.5 `internal/docx`
 
