@@ -58,15 +58,13 @@ func htmlText(s string) string {
 	}
 }
 
-// writeSearch writes the search index as a script, not as JSON: a page
-// opened from file:// may load a script but not fetch a file. It sets
-// self.folioSearch, which is the window on a page and the global scope in
-// the search worker, which loads it with importScripts.
+// writeSearch writes the search index as a script, which the page loads
+// when the search field first gets the focus.
 func (b *builder) writeSearch(dir string) error {
 	data, err := json.Marshal(b.search)
 	if err != nil {
 		return err
 	}
-	js := append(append([]byte("self.folioSearch="), data...), ";\n"...)
+	js := append(append([]byte("window.folioSearch="), data...), ";\n"...)
 	return os.WriteFile(filepath.Join(dir, "search.js"), js, 0o644)
 }

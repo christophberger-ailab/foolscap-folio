@@ -257,15 +257,18 @@ func TestSearch(t *testing.T) {
 	if err := Build(opts(root, out)); err != nil {
 		t.Fatal(err)
 	}
-	has(t, "fuse", read(t, out, "_site/fuse.min.js"), "Fuse.js v7")
-	// the worker loads Fuse.js and the index next to it, where there is no window
-	has(t, "worker", read(t, out, "_site/search-worker.js"), "importScripts('fuse.min.js', 'search.js')")
+	// Fuse.js's web worker search: the class for the page and the script its workers run
+	has(t, "fuse", read(t, out, "_site/fuse-worker.mjs"), "Fuse.js v7.5", "class FuseWorker")
+	has(t, "worker", read(t, out, "_site/fuse.worker.mjs"), "Fuse.js v7.5", "self.onmessage")
+	if _, err := os.Stat(filepath.Join(out, "_site/fuse.min.js")); err == nil {
+		t.Error("the search on the page, fuse.min.js, is still written")
+	}
 	idx := read(t, out, "_site/search.js")
-	if !strings.HasPrefix(idx, "self.folioSearch=") {
-		t.Fatalf("index does not define self.folioSearch: %.60s", idx)
+	if !strings.HasPrefix(idx, "window.folioSearch=") {
+		t.Fatalf("index does not define window.folioSearch: %.60s", idx)
 	}
 	var docs []struct{ T, U, S, B string }
-	if err := json.Unmarshal([]byte(strings.TrimSuffix(strings.TrimPrefix(idx, "self.folioSearch="), ";\n")), &docs); err != nil {
+	if err := json.Unmarshal([]byte(strings.TrimSuffix(strings.TrimPrefix(idx, "window.folioSearch="), ";\n")), &docs); err != nil {
 		t.Fatal(err)
 	}
 	by := map[string]struct{ T, U, S, B string }{}

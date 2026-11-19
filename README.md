@@ -392,7 +392,8 @@ An HTML format builds a site with a layout like Quarto's:
   sidebar becomes off-canvas at 50em and narrower;
 - all text sizes and the 42em text column are in `em`, so the page scales with
   the reader's font size; dark mode follows the system setting; print styles;
-- all links are relative, so the site works from `file://` and below any URL prefix.
+- all links are relative, so the site works from `file://` (except the search,
+  which needs the site served over HTTP) and below any URL prefix.
 
 Callouts, tables, footnotes, definition lists and images are drawn by the site's own stylesheet. Links between pages of a topic (`/dispatcher/a/`, `/dispatcher/a/index.qmd`, …) are rewritten to the generated pages. With several audiences, a site goes to `<output>/<format>-<audience>` unless the format's `dir` contains a placeholder. A site that should show every audience's content at once, each marked by its class, is a format restricted to one audience whose `show:` lists the others:
 

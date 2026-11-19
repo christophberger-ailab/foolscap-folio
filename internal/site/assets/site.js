@@ -39,11 +39,9 @@
   }
 
   // Search. Fuse.js and the index are loaded on first use, so a reader who
-  // never searches does not download them. The search runs in web workers,
-  // each holding a share of the pages, so a large site neither freezes the
-  // page while it is indexed nor while the reader types. Where a page may
-  // not start workers (file:// in some browsers) it runs on the page, from
-  // scripts rather than fetched files, which file:// allows.
+  // never searches does not download them. The search runs in Fuse.js's web
+  // workers, which share the pages between them, so neither indexing nor
+  // typing on a large site freezes the page.
   var box = document.querySelector('.search');
   if (box) search(box);
 
@@ -56,8 +54,7 @@
     var options = {
       keys: [{ name: 't', weight: 3 }, { name: 'b', weight: 1 }],
       ignoreLocation: true, ignoreFieldNorm: true, threshold: 0.2,
-      minMatchCharLength: 2, includeMatches: true, includeScore: true,
-      ignoreDiacritics: true
+      minMatchCharLength: 2, includeMatches: true, ignoreDiacritics: true
     };
     var radius = 70, max = 10, key = 'folio-search';
 
@@ -86,55 +83,16 @@
     function load() {
       if (find || loading) return;
       loading = true;
-      workers(function (ok) { if (ok) { loading = false; run(); } else local(); });
-    }
-    // local searches on the page itself.
-    function local() {
-      find = null;
-      script('_site/fuse.min.js', function () {
-        script('_site/search.js', function () {
-          var fuse = new window.Fuse(window.folioSearch || [], options);
-          find = function (q, done) { done(fuse.search(q, { limit: max })); };
-          loading = false;
-          run();
-        });
-      });
-    }
-    // workers starts the search workers and reports whether they all came
-    // up. Each one returns its best hits for a query; they are merged by
-    // score, then by page order, as a single search would rank them. A
-    // worker that fails, now or later, hands the search back to the page.
-    function workers(ready) {
-      var n = Math.min(navigator.hardwareConcurrency || 2, 4), pool = [], up = 0;
-      var id = 0, want = 0, got = [], cb = null, failed = false;
-      function fail() {
-        if (failed) return;
-        failed = true;
-        pool.forEach(function (w) { w.terminate(); });
-        if (up < n) ready(false); else { loading = true; local(); }
-      }
-      try {
-        for (var i = 0; i < n; i++) {
-          var w = new Worker(base + '_site/search-worker.js');
-          w.onerror = fail;
-          w.onmessage = function (e) {
-            var m = e.data;
-            if (m.ready) { if (++up === n) { find = query; ready(true); } return; }
-            if (m.id !== want) return;
-            got.push(m.hits);
-            if (got.length < n) return;
-            var hits = [].concat.apply([], got);
-            hits.sort(function (a, b) { return a.score - b.score || a.i - b.i; });
-            cb(hits.slice(0, max));
+      script('_site/search.js', function () {
+        // relative to this script, in _site/
+        import('./fuse-worker.mjs').then(function (m) {
+          var fuse = new m.FuseWorker(window.folioSearch || [], options);
+          find = function (q, done) {
+            fuse.search(q, { limit: max }).then(done, function (e) { console.error('search:', e); });
           };
-          w.postMessage({ options: options, shard: i, of: n });
-          pool.push(w);
-        }
-      } catch (e) { fail(); }
-      function query(q, done) {
-        want = ++id; got = []; cb = done;
-        pool.forEach(function (w) { w.postMessage({ id: want, q: q, limit: max }); });
-      }
+          run();
+        }, function (e) { console.error('search:', e); });
+      });
     }
 
     // snippet is the body text around its longest match, with the matches
