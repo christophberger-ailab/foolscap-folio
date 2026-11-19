@@ -2798,3 +2798,93 @@ mark.folio-todo-hidden {
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+/* Images pane: the images under assets/images as a list, as small
+   thumbnails in a grid, or as large ones, one to a row and as wide as the
+   pane. The "+" at each image's top right corner is the comment rail's. */
+
+.images-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.4rem 0.4rem 0.4rem 0.6rem;
+}
+
+.images-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0 0.4rem 0.5rem 0.6rem;
+  list-style: none;
+  font-size: 0.85rem;
+}
+
+.images-item {
+  position: relative;
+}
+
+.images-item img {
+  display: block;
+  object-fit: contain;
+  background: color-mix(in srgb, var(--border) 40%, transparent);
+}
+
+.images-name {
+  overflow-wrap: anywhere;
+}
+
+.images-item .image-insert {
+  top: 4px;
+  right: 4px;
+  left: auto;
+  transform: none;
+}
+
+.images-list.list .images-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2rem;
+  padding: 2px 30px 2px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.images-list.list .images-item img {
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: none;
+}
+
+.images-list.list .images-item .image-insert {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.images-list.small {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+  gap: 0.5rem;
+}
+
+.images-list.small .images-item img {
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+.images-list.small .images-name {
+  display: block;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.images-list.large .images-item {
+  margin-bottom: 0.8rem;
+}
+
+.images-list.large .images-item img {
+  width: 100%;
+  height: auto;
+}

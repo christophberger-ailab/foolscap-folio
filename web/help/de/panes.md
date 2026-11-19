@@ -1,12 +1,13 @@
 # Die Bereiche neben dem Editor
 
-Neben dem Editor steht ein Dock mit sechs Bereichen, jeder hinter einem Tab:
+Neben dem Editor steht ein Dock mit sieben Bereichen, jeder hinter einem Tab:
 
 - `Preview` zeigt die [Markdown-Vorschau](preview.md).
 - `Copyedit` zeigt das [Lektorat-Werkzeug](copyedit.md).
 - `Comments` listet die Kommentare der Seite (siehe unten).
 - `Render` [rendert das Projekt](render.md).
 - `Git` zeigt [die Änderungen seit dem letzten Commit](git.md).
+- `Images` listet die Bilder des Projekts (siehe unten).
 - `Help` zeigt diese Hilfe.
 
 ## Tabs und Gruppen
@@ -34,6 +35,17 @@ Der Kommentarbereich listet die [Kommentare](editor.md) der Seite im Editor, in 
 - Ein Klick auf einen Kommentar setzt den Cursor im Editor an seinen Text.
 - `Reply` schreibt eine signierte und datierte Antwort in den Editor, wo du sie tippst.
 - `Remove` entfernt nach Rückfrage den Kommentar und seine Antworten; der kommentierte Text bleibt.
+
+## Der Bildbereich
+
+Der Bildbereich listet die Bilder im Ordner `assets/images` des Projekts und seinen Unterordnern. Über der Liste findest du:
+
+- Das Ansichtsmenü: `List` zeigt den Namen jedes Bilds mit einem winzigen Vorschaubild, `Small thumbnails` zeigt ein Raster, und `Large thumbnails` zeigt ein Bild pro Zeile, so breit wie der Bereich.
+- Das Sortiermenü: nach Name oder Änderungsdatum, jeweils aufsteigend (↑) oder absteigend (↓).
+
+Ein Klick auf das `+` oben rechts an einem Bild fügt an der Cursorposition im Editor einen Link darauf ein, etwa `![](/assets/images/diagramm.png)`. Der Cursor steht danach zwischen den eckigen Klammern, sodass du gleich die Bildbeschreibung tippen kannst. `Strg-Z` nimmt den Link zurück.
+
+Die Liste folgt dem Ordner: ein Bild, das du hinzufügst, änderst oder löschst, erscheint dort entsprechend. Dateien und Ordner, deren Name mit `.` oder `_` beginnt, fehlen. Hast du folio schon vor diesem Bereich benutzt, öffne ihn über das Menü `Panes ▾`.
 
 ## Der Hilfebereich
 

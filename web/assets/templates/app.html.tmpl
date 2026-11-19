@@ -466,6 +466,7 @@
   {{template "help"}}
   {{template "render" .}}
   {{template "git" .}}
+  {{template "images" .}}
 </div>{{end}}
 
 {{/* The comments pane lists the comments of the page in the editor, which
@@ -473,6 +474,26 @@
 {{define "comments"}}<section class="side-pane comments-pane" id="comments-pane" data-pane="comments" hidden>
   <div class="comments-list" id="comments-list"></div>
 </section>{{end}}
+
+{{/* The images pane lists the images under assets/images, which app.js
+     fetches from /images and lays out in the view and order picked. It
+     belongs to the project, like the Render and Git panes. */}}
+{{define "images"}}{{if .Root}}<section class="side-pane images-pane" id="images-pane" data-pane="images" hidden>
+  <div class="images-toolbar">
+    <select id="images-view" aria-label="View" title="View">
+      <option value="list">List</option>
+      <option value="small">Small thumbnails</option>
+      <option value="large">Large thumbnails</option>
+    </select>
+    <select id="images-sort" aria-label="Sort by" title="Sort by">
+      <option value="name-asc">Name ↑</option>
+      <option value="name-desc">Name ↓</option>
+      <option value="modified-asc">Modified ↑</option>
+      <option value="modified-desc">Modified ↓</option>
+    </select>
+  </div>
+  <ul class="images-list list" id="images-list"></ul>
+</section>{{end}}{{end}}
 
 {{/* The editor's place while no page is open. The panes stand beside it
      in the dock as they stand beside the editor. */}}

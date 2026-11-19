@@ -1330,3 +1330,36 @@ document.addEventListener('load', function (evt) {
     followEditor();
   }
 }, true);
+
+// imageLink is the Markdown image link to an image of the project, given
+// by its path from the project root. The link is website-absolute, as the
+// pages address their media, and wrapped in CommonMark's "<...>" form when
+// the path holds a character that would otherwise end it (see
+// insertLinkDest). The description, between the brackets, is left empty.
+function imageLink(path) {
+  var dest = '/' + path;
+  return '![](' + (/[\s<>()]/.test(dest) ? '<' + dest + '>' : dest) + ')';
+}
+
+// insertImageLink writes the link to an image at the cursor -- over the
+// selection, if there is one -- and leaves the cursor between the
+// brackets, where the image's description goes; in Vim mode in Insert
+// mode, as addComment does. It is what the Images pane's buttons do.
+function insertImageLink(path) {
+  if (!cm) {
+    return;
+  }
+  var vim = vimOn && CodeMirror.Vim;
+  if (vim && cm.state.vim && cm.state.vim.visualMode) {
+    CodeMirror.Vim.handleKey(cm, '<Esc>', 'mapping');
+  }
+  cm.operation(function () {
+    var from = cm.indexFromPos(cm.getCursor('from'));
+    cm.replaceSelection(imageLink(path));
+    cm.setCursor(cm.posFromIndex(from + 2));
+  });
+  cm.focus();
+  if (vim && cm.state.vim && !cm.state.vim.insertMode) {
+    CodeMirror.Vim.handleKey(cm, 'i', 'mapping');
+  }
+}
