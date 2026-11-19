@@ -369,8 +369,10 @@ copies the project files they point at. `subpages.go` replaces a page's
 spy, off-canvas sidebar, search) are embedded; the layout is in em throughout, with its
 breakpoints at 75em and 50em. `search.go` collects each rendered page's visible
 text (`htmlText`) into the search index, written as `_site/search.js` beside the
-embedded Fuse.js (`assets/fuse.min.js`, Apache-2.0, `assets/fuse.LICENSE`);
-`site.js` loads both when the search field first gets the focus.
+embedded Fuse.js 7.5 web worker build (`assets/fuse-worker.mjs`, the `FuseWorker`
+class, and `assets/fuse.worker.mjs`, the script its workers run; Apache-2.0,
+`assets/fuse.LICENSE`). `site.js` loads the index and imports `FuseWorker` when
+the search field first gets the focus; the workers each index a share of the pages.
 
 ### 5.5 `internal/docx`
 
