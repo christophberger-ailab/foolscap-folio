@@ -47,6 +47,7 @@ The images pane lists the images in the project's `assets/images` folder and its
 
 - The view menu: `List` shows each image's name with a tiny thumbnail, `Small thumbnails` shows a grid, and `Large thumbnails` shows one image per row, as wide as the pane.
 - The sort menu: by name or by the date modified, each ascending (↑) or descending (↓).
+- The search box: type part of a file name, and the list keeps only the images whose name contains it, ignoring case. Clear the box to see them all again.
 
 Click the `+` at an image's top right corner to insert a link to it at the cursor in the editor, such as `![](/assets/images/diagram.png)`. The cursor lands between the brackets, so you can type the image's description right away. `Ctrl-Z` takes the link back.
 

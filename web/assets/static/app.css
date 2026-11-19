@@ -2810,6 +2810,11 @@ mark.folio-todo-hidden {
   padding: 0.4rem 0.4rem 0.4rem 0.6rem;
 }
 
+.images-search {
+  flex: 1;
+  min-width: 8rem;
+}
+
 .images-list {
   flex: 1;
   min-height: 0;
