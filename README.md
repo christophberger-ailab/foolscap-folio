@@ -592,6 +592,14 @@ resvg, change its version in `internal/svgimage/resvg/Cargo.toml` and run
 `wasm32-unknown-unknown` target (`rustup target add wasm32-unknown-unknown`).
 Update `internal/svgimage/resvg/THIRD_PARTY.md` with it.
 
+`.github/workflows/vulncheck.yml` checks the dependencies for known
+vulnerabilities on every push and pull request and once a day: Go with
+govulncheck, resvg's `Cargo.lock` and the embedded Fuse.js with osv-scanner.
+Fuse.js is a copied file (`internal/site/assets/fuse.min.js`);
+`internal/site/package.json` and its lockfile name its version for the scan.
+To update Fuse.js, replace the file, change the version there and run
+`npm install --package-lock-only` in `internal/site`.
+
 Releases are cut by `.github/workflows/release.yml` when a pull request is
 merged into `main` (a push to `main` that is not a PR merge releases nothing):
 it vets, tests, cross-compiles the six targets (Linux, macOS and Windows,

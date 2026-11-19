@@ -1,0 +1,8 @@
+{
+  "name": "folio-site-assets",
+  "private": true,
+  "description": "Not built with npm: assets/fuse.min.js is a copy of Fuse.js. This file and package-lock.json name that version so that the vulnerability scan (.github/workflows/vulncheck.yml) sees it. Change the version here, run `npm install --package-lock-only`, and replace the file in assets/ together; fuse_test.go checks that they match.",
+  "dependencies": {
+    "fuse.js": "7.1.0"
+  }
+}
