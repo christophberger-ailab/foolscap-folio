@@ -173,7 +173,40 @@ func layoutPDF(ctx context.Context, path string, bb []Block, o Options) error {
 			return err
 		}
 	}
+	if o.Footer != nil {
+		footer, err := FromMarkdown(o.Footer)
+		if err != nil {
+			return fmt.Errorf("footer: %w", err)
+		}
+		if err = w.footer(footer, first, last); err != nil {
+			return err
+		}
+	}
 	return p.WritePdf(path)
+}
+
+// footer draws the page footer's paragraphs on the pages first to last,
+// in the bottom margin, left of the page number.
+func (w *pdfWriter) footer(bb []Block, first, last int) error {
+	const size = 8.5
+	inset := w.inset
+	defer func() { w.inset = inset }()
+	w.inset = -pageH // the footer never breaks the page
+	for page := first; page <= last; page++ {
+		if err := w.p.SetPage(page); err != nil {
+			return err
+		}
+		w.y = pageH - 31
+		for _, b := range bb {
+			if len(b.Runs) == 0 {
+				continue
+			}
+			if err := w.paragraph(b.Runs, size, margin, pageW-2*margin-40); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // splitTOC separates the blocks before the contents marker from those
@@ -260,15 +293,13 @@ func (w *pdfWriter) body(bb []Block) error {
 		size := 11.0
 		left := w.left + float64(b.Indent)*15
 		if b.Level > 0 {
-			size = math.Max(12, 23-float64(b.Level)*2)
+			size = w.headingSize(b)
 			role := fmt.Sprintf("h%d", min(b.Level, 6))
-			if s := w.sizes[role]; s > 0 {
-				size = s
-			}
 			if b.Section {
 				role = "section-" + role
-				if s := w.sizes[role]; s > 0 {
-					size = s
+				// A section's title opens a page, as a book's part does.
+				if b.Level == 1 && w.y > w.top() {
+					w.newPage()
 				}
 			}
 			w.y += 12
@@ -293,6 +324,28 @@ func (w *pdfWriter) body(bb []Block) error {
 		}
 	}
 	return nil
+}
+
+// sectionScale is how much larger than a chapter's title a section's is,
+// unless the brand sets its size.
+const sectionScale = 4.0 / 3
+
+// headingSize is the font size of the heading b: the brand's for its role
+// (see FontRoles), else the default for its level, a section's title
+// larger than a chapter's.
+func (w *pdfWriter) headingSize(b Block) float64 {
+	role := fmt.Sprintf("h%d", min(b.Level, 6))
+	size := math.Max(12, 23-float64(b.Level)*2)
+	if s := w.sizes[role]; s > 0 {
+		size = s
+	}
+	if b.Section && b.Level == 1 {
+		size *= sectionScale
+	}
+	if s := w.sizes["section-"+role]; b.Section && s > 0 {
+		size = s
+	}
+	return size
 }
 
 const (

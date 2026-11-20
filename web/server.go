@@ -273,6 +273,9 @@ type contentView struct {
 	// CalloutTitles are every callout type's title in the project's
 	// language, as JSON, for the preview to title callouts by.
 	CalloutTitles string
+	// Variables are what the preview resolves the page's variables
+	// against, as JSON.
+	Variables string
 	// Lang is the project's language, which the editor tells the browser
 	// so that its spellchecker picks the matching dictionary.
 	Lang string
@@ -399,6 +402,7 @@ func (s *server) lastPage() *contentView {
 		CSSFiles:      s.cssFiles(),
 		ActiveCSS:     s.activeCSS(),
 		CalloutTitles: s.calloutTitlesJSON(),
+		Variables:     s.variablesJSON(rel),
 		Lang:          s.projectLang(),
 		Copyedit:      s.copyeditPaneView(),
 	}
@@ -935,6 +939,7 @@ func (s *server) content(w http.ResponseWriter, r *http.Request) {
 		CSSFiles:      s.cssFiles(),
 		ActiveCSS:     s.activeCSS(),
 		CalloutTitles: s.calloutTitlesJSON(),
+		Variables:     s.variablesJSON(rel),
 		Lang:          s.projectLang(),
 		Copyedit:      s.copyeditPaneView(),
 	})

@@ -176,7 +176,7 @@ func TestPreviewStripsHeadingAttributes(t *testing.T) {
 	}
 	for _, want := range []string{
 		"function stripHeadingAttrs(body)",
-		"renderBlocks(convertDivs(stripHeadingAttrs(page.body), lineMap), lineMap, page.offset)",
+		"renderBlocks(convertDivs(stripHeadingAttrs(resolveVariables(page.body, vars)), lineMap), lineMap, page.offset)",
 	} {
 		if !assetContains("assets/static/preview.js", string(preview), want) {
 			t.Errorf("preview.js does not strip heading attributes, missing %q", want)

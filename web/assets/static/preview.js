@@ -25,8 +25,10 @@
 //   - a `==TODO==` is shown as a marker in the editor's TODO color, also
 //     where it sits inside an HTML comment, which renders as nothing
 //     (see markTodos),
+//   - `{{< var name >}}` and `{{name}}` show the page's variables (see
+//     resolveVariables),
 //   - everything else is CommonMark/GFM as the embedded marked library reads
-//     it. Shortcodes, citations, and math stay as written.
+//     it. Other shortcodes, citations, and math stay as written.
 
 // divFence matches a Pandoc fenced-div line, codeFence a fenced code
 // block delimiter. Both mirror the patterns the bookmaker uses on the Go
@@ -172,6 +174,83 @@ function divAttrs(attrs) {
     }
   });
   return out;
+}
+
+// varRef matches `{{< var name >}}`, nameRef the short form `{{name}}`,
+// as on the Go side (internal/shortcode).
+var varRef = /\{\{<\s*var\s+([^\s>]+)\s*>\}\}/g;
+var nameRef = /\{\{\s*([A-Za-z][\w.-]*)\s*\}\}/g;
+
+// resolveVariables puts the values of vars in place of the variables of
+// body, as a render does: not in fenced code blocks, and `{{name}}` not in
+// inline code spans either. A name without a value stays as written.
+function resolveVariables(body, vars) {
+  if (!vars || body.indexOf("{{") < 0) {
+    return body;
+  }
+  var put = function (m, name) {
+    // A value keeps to its line, so the lines still match the source's.
+    if (!Object.prototype.hasOwnProperty.call(vars, name)) {
+      return m;
+    }
+    return String(vars[name]).replace(/\n/g, " ");
+  };
+  var fence = null; // the open code fence's delimiter, if any
+  return body
+    .split("\n")
+    .map(function (line) {
+      var code = line.match(codeFence);
+      if (fence !== null) {
+        if (
+          code &&
+          code[1].charAt(0) === fence.charAt(0) &&
+          code[1].length >= fence.length &&
+          code[2].trim() === ""
+        ) {
+          fence = null;
+        }
+        return line;
+      }
+      if (code) {
+        fence = code[1];
+        return line;
+      }
+      return outsideCode(line.replace(varRef, put), function (text) {
+        return text.replace(nameRef, put);
+      });
+    })
+    .join("\n");
+}
+
+// outsideCode returns line with f applied to the text between its inline
+// code spans, which stay as written. A span opens with a run of backticks
+// and closes with the next run of the same length; a run without one is
+// text.
+function outsideCode(line, f) {
+  var runs = line.split(/(`+)/); // text at even indexes, runs at odd ones
+  var out = "";
+  var text = "";
+  for (var i = 0; i < runs.length; i++) {
+    if (i % 2 === 0) {
+      text += runs[i];
+      continue;
+    }
+    var close = -1;
+    for (var j = i + 2; j < runs.length; j += 2) {
+      if (runs[j] === runs[i]) {
+        close = j;
+        break;
+      }
+    }
+    if (close < 0) {
+      text += runs[i];
+      continue;
+    }
+    out += f(text) + runs.slice(i, close + 1).join("");
+    text = "";
+    i = close;
+  }
+  return out + f(text);
 }
 
 // stripHeadingAttrs removes the Pandoc attribute block from every ATX
@@ -1554,7 +1633,7 @@ function drawDiagrams(root) {
 // what the image paths resolve against, and what says which target group
 // the page belongs to. titles, if given, are the callout titles in the
 // page's language, by type.
-function renderPreview(el, text, pagePath, titles) {
+function renderPreview(el, text, pagePath, titles, vars) {
   if (typeof marked === "undefined") {
     // asset missing: show the source
     el.textContent = text;
@@ -1573,7 +1652,7 @@ function renderPreview(el, text, pagePath, titles) {
   }
   var lineMap = [];
   var body = renderBlocks(
-    convertDivs(stripHeadingAttrs(page.body), lineMap),
+    convertDivs(stripHeadingAttrs(resolveVariables(page.body, vars)), lineMap),
     lineMap,
     page.offset,
   );

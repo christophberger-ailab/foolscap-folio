@@ -1,12 +1,15 @@
 package build
 
 import (
+	"bytes"
 	"cmp"
+	"encoding/xml"
 	"fmt"
 	"image/color"
 	"math"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/christophberger-ailab/foolscap-folio/internal/config"
@@ -65,6 +68,7 @@ func coverPage(sel config.Selection, b *brand, book Book, image string, log Logf
 	if err != nil {
 		return c, done, err
 	}
+	data = resolveXML(variables(sel, log, nil), "cover page template "+rel(sel.Config.Root, tpl), log)(data)
 	rest, slots, err := svgimage.Cut(data, "title", "subtitle")
 	if err != nil {
 		return c, done, fmt.Errorf("cover page template %s: %w", rel(sel.Config.Root, tpl), err)
@@ -193,4 +197,31 @@ func tempPNG(data []byte) (string, error) {
 		return "", err
 	}
 	return f.Name(), nil
+}
+
+// xmlPlaceholder is a {{name}} placeholder in XML. The {name} form is not
+// one there, as style sheets have braces of their own.
+var xmlPlaceholder = regexp.MustCompile(`\{\{\s*([A-Za-z][\w.-]*)\s*\}\}`)
+
+// resolveXML returns a function that replaces the {{name}} placeholders in
+// XML text by their variables, escaped. One without a variable stays as
+// written, with one warning per name about where.
+func resolveXML(vars map[string]string, where string, log Logf) func([]byte) []byte {
+	warned := map[string]bool{}
+	return func(data []byte) []byte {
+		return xmlPlaceholder.ReplaceAllFunc(data, func(m []byte) []byte {
+			name := string(xmlPlaceholder.FindSubmatch(m)[1])
+			v, ok := vars[name]
+			if !ok {
+				if !warned[name] {
+					warned[name] = true
+					log.or()("warning: %s: undefined variable %s; it is shown as written", where, name)
+				}
+				return m
+			}
+			var b bytes.Buffer
+			_ = xml.EscapeText(&b, []byte(v))
+			return b.Bytes()
+		})
+	}
 }

@@ -251,3 +251,44 @@ func TestRenderBrandMetaVariables(t *testing.T) {
 		t.Errorf("log:\n%s", all)
 	}
 }
+
+// resolveXML resolves {{name}} placeholders in XML text, escaped, and
+// warns once about each that has no variable; {name} is left alone, as
+// style sheets have braces of their own (issue #124).
+func TestResolveXML(t *testing.T) {
+	var log []string
+	resolve := resolveXML(map[string]string{"version": "dev", "owner": "A & B"}, "cover", func(f string, a ...any) { log = append(log, fmt.Sprintf(f, a...)) })
+	got := string(resolve([]byte(`<t>{{version}} {{ owner }} {{nope}} {version}{{nope}}</t>`)))
+	if want := `<t>dev A &amp; B {{nope}} {version}{{nope}}</t>`; got != want {
+		t.Errorf("got %s, want %s", got, want)
+	}
+	if len(log) != 1 || !strings.Contains(log[0], "nope") || !strings.Contains(log[0], "cover") {
+		t.Errorf("log %q", log)
+	}
+}
+
+// The texts of a cover page template resolve their {{name}} placeholders
+// against the selection's variables and _variables.yml.
+func TestTemplateCoverVariables(t *testing.T) {
+	sel := project(t, map[string]string{
+		"folio.yml":      coverConfig,
+		"_variables.yml": "version: dev\n",
+		"book/index.qmd": "---\ntitle: Book\n---\n",
+		BrandFile:        "meta:\n  coverpage: cover.svg\n",
+		"cover.svg":      strings.Replace(templateSVG, "%s", `<text x="20" y="200">{{version}} {{nobody}}</text>`, 1),
+	})
+	b, err := loadBrand(sel.Config.Root, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var log []string
+	_, done, err := coverPage(sel, b, Book{Title: "Book"}, "", func(f string, a ...any) { log = append(log, fmt.Sprintf(f, a...)) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer done()
+	all := strings.Join(log, "\n")
+	if !strings.Contains(all, "nobody") || strings.Contains(all, "version") {
+		t.Errorf("log %q", log)
+	}
+}

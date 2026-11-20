@@ -696,3 +696,81 @@ func TestDiagram(t *testing.T) {
 		t.Error("no PNG of the diagram")
 	}
 }
+
+// A section's title starts a new page and is set a third larger than the
+// chapters' heading style, unless the brand sizes it (issue #124).
+func TestSectionTitleOpensAPageInALargerSize(t *testing.T) {
+	md := ":::: folio-section\n# Part One\n\n## Intro detail\n::::\n\n# Chapter One\n"
+	doc := build(t, md, Options{})["word/document.xml"]
+	// The fallback Heading 1 is 16pt, so the title is 21.5pt (43 half-points).
+	has(t, doc, `<w:pStyle w:val="Heading1"/><w:pageBreakBefore/>`,
+		`<w:sz w:val="43"/><w:szCs w:val="43"/></w:rPr><w:t xml:space="preserve">Part One</w:t>`)
+	if n := strings.Count(doc, "<w:pageBreakBefore/>"); n != 1 {
+		t.Errorf("%d paragraphs open a page, want the section title's", n)
+	}
+	var h [6]Font
+	h[0].Size = 30
+	has(t, build(t, md, Options{Headings: h})["word/document.xml"],
+		`<w:sz w:val="80"/><w:szCs w:val="80"/></w:rPr><w:t xml:space="preserve">Part One</w:t>`)
+}
+
+// The page footer of folio.yml is the document's default footer, unless a
+// template brings one of its own (issue #124).
+func TestFooter(t *testing.T) {
+	footer := markdown.Parse([]byte("Version **dev** · [site](https://example.com)"))
+	footer.Prepare(markdown.Options{})
+	p := build(t, "# Title\n\nText.\n", Options{Footer: footer})
+	doc, part := p["word/document.xml"], p["word/folio-footer.xml"]
+	has(t, doc, `<w:footerReference w:type="default" r:id="rIdQmFooter"/>`)
+	has(t, part, `<w:ftr `, `>Version </w:t>`, `<w:b/>`, `>dev</w:t>`, `>site</w:t>`)
+	has(t, p["word/_rels/document.xml.rels"], `Id="rIdQmFooter"`, `Target="folio-footer.xml"`)
+	has(t, p["[Content_Types].xml"], `PartName="/word/folio-footer.xml"`)
+	lacks(t, p["word/folio-footer.xml"], "Text.")
+
+	// Without a footer, nothing is added.
+	lacks(t, build(t, "Text.\n", Options{})["word/document.xml"], "footerReference")
+
+	// A template's own footer stays.
+	tpl := makeTemplateWithFooter(t, "TEMPLATE-FOOTER")
+	p = build(t, "Text.\n", Options{Template: tpl, Footer: footer})
+	if _, ok := p["word/folio-footer.xml"]; ok {
+		t.Error("the template's footer was replaced")
+	}
+}
+
+func makeTemplateWithFooter(t *testing.T, text string) string {
+	t.Helper()
+	doc := dx.NewDocument()
+	sec, err := doc.DefaultSection()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ftr, err := sec.Footer(domain.FooterDefault)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fp, _ := ftr.AddParagraph()
+	fr, _ := fp.AddRun()
+	fr.SetText(text)
+	path := filepath.Join(t.TempDir(), "footer.docx")
+	if err := doc.SaveAs(path); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+// Margins rewrites a template's headers and footers (issue #124).
+func TestTemplateMargins(t *testing.T) {
+	tpl := makeTemplateWithFooter(t, "Version {{version}}")
+	p := build(t, "Text.\n", Options{Template: tpl, Margins: func(b []byte) []byte {
+		return bytes.ReplaceAll(b, []byte("{{version}}"), []byte("dev"))
+	}})
+	var margins string
+	for name, part := range p {
+		if strings.HasPrefix(name, "word/footer") || strings.HasPrefix(name, "word/header") {
+			margins += part
+		}
+	}
+	has(t, margins, "Version dev")
+	lacks(t, p["word/document.xml"], "Version dev")
+}

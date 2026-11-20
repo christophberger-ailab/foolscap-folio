@@ -45,6 +45,9 @@ type Options struct {
 	// Sizes maps roles in FontRoles to font sizes in pt; only the title,
 	// subtitle and heading roles (h1 to h6) take one.
 	Sizes map[string]float64
+	// Footer, if set, is the page footer, drawn on every page but the
+	// cover.
+	Footer *markdown.Document
 	// Warn, if set, receives the problems that do not stop the render,
 	// such as an image that is not there.
 	Warn func(format string, args ...any)

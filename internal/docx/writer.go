@@ -2,6 +2,7 @@ package docx
 
 import (
 	"bytes"
+	"cmp"
 	"crypto/sha256"
 	"encoding/xml"
 	"fmt"
@@ -131,34 +132,11 @@ func (w *writer) document() {
 	})
 	// A book's contents go where its marker is, after the preliminaries;
 	// any other document starts with them.
-	w.prelims = tocMarker(w.doc.Root) != nil
+	w.prelims = markdown.TOCMarker(w.doc.Root) != nil
 	if w.opt.TOC && !w.prelims {
 		w.toc()
 	}
 	w.blocks(w.doc.Root, ctx{})
-}
-
-// tocMarker returns the div that marks where the contents go, or nil.
-func tocMarker(root ast.Node) ast.Node {
-	var marker ast.Node
-	_ = ast.Walk(root, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
-		if d, ok := n.(*markdown.Div); ok && entering && d.Attrs.Has(markdown.TOCClass) {
-			marker = d
-			return ast.WalkStop, nil
-		}
-		return ast.WalkContinue, nil
-	})
-	return marker
-}
-
-// inSection reports whether n is part of a section's own page.
-func inSection(n ast.Node) bool {
-	for p := n.Parent(); p != nil; p = p.Parent() {
-		if d, ok := p.(*markdown.Div); ok && d.Attrs.Has(markdown.SectionClass) {
-			return true
-		}
-	}
-	return false
 }
 
 func (w *writer) blocks(parent ast.Node, c ctx) {
@@ -242,12 +220,17 @@ func (w *writer) heading(n *ast.Heading, c ctx) {
 	font, style := w.opt.Headings[level-1], w.styles.heading(level)
 	// A section's headings are set in the section's fonts. The headings
 	// of its intro and of the preliminaries stay out of the contents.
-	section := inSection(n)
+	section := markdown.InSection(n)
+	// A section's title opens a page and is larger than a chapter's.
+	title := section && level == 1
 	if section {
 		s := w.opt.SectionHeadings[level-1]
 		font.Name = cmpOr(s.Name, font.Name)
-		if s.Size > 0 {
+		switch {
+		case s.Size > 0:
 			font.Size = s.Size
+		case title:
+			font.Size = cmp.Or(font.Size, w.styles.size(style), 16) * sectionScale
 		}
 	}
 	if w.prelims || section && level > 1 {
@@ -257,8 +240,12 @@ func (w *writer) heading(n *ast.Heading, c ctx) {
 	if id != "" {
 		fmt.Fprintf(&content, `<w:bookmarkEnd w:id="%d"/>`, w.bmID)
 	}
-	w.para(pPr{style: style}, content.String())
+	w.para(pPr{style: style, pageBreak: title}, content.String())
 }
+
+// sectionScale is how much larger than a chapter's title a section's is,
+// unless the brand sets its size.
+const sectionScale = 4.0 / 3
 
 // bookmarkStart returns the start tag of a new bookmark; the matching end
 // tag uses w.bmID, which stays until the next bookmark starts.
@@ -330,18 +317,19 @@ func (w *writer) paraProps(c ctx) pPr {
 
 // pPr are paragraph properties, written in the order the schema demands.
 type pPr struct {
-	style    string
-	keepNext bool
-	numID    int // 0: not numbered
-	ilvl     int
-	border   bool // bottom rule
-	shade    string
-	spacing  bool
-	before   int
-	after    int
-	indent   int
-	hanging  int
-	jc       string
+	style     string
+	pageBreak bool // the paragraph opens a page
+	keepNext  bool
+	numID     int // 0: not numbered
+	ilvl      int
+	border    bool // bottom rule
+	shade     string
+	spacing   bool
+	before    int
+	after     int
+	indent    int
+	hanging   int
+	jc        string
 }
 
 func (p pPr) String() string {
@@ -351,6 +339,9 @@ func (p pPr) String() string {
 	}
 	if p.keepNext {
 		b.WriteString(`<w:keepNext/>`)
+	}
+	if p.pageBreak { // after keepNext and keepLines, as the schema orders them
+		b.WriteString(`<w:pageBreakBefore/>`)
 	}
 	if p.numID > 0 {
 		fmt.Fprintf(&b, `<w:numPr><w:ilvl w:val="%d"/><w:numId w:val="%d"/></w:numPr>`, p.ilvl, p.numID)
@@ -480,14 +471,14 @@ func (w *writer) toc() {
 	var entries []entry
 	// The contents list what follows their marker, of a section only its
 	// title.
-	marker := tocMarker(w.doc.Root)
+	marker := markdown.TOCMarker(w.doc.Root)
 	listing := marker == nil
 	_ = ast.Walk(w.doc.Root, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if n == marker && entering {
 			listing = true
 		}
 		if h, ok := n.(*ast.Heading); ok && entering {
-			if listing && h.Level <= 3 && markdown.HeadingID(h) != "" && (h.Level == 1 || !inSection(h)) {
+			if listing && h.Level <= 3 && markdown.HeadingID(h) != "" && (h.Level == 1 || !markdown.InSection(h)) {
 				entries = append(entries, entry{h.Level, markdown.HeadingID(h), markdown.PlainText(h, w.src)})
 			}
 			return ast.WalkSkipChildren, nil

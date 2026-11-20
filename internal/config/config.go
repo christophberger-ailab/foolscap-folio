@@ -166,6 +166,9 @@ type Format struct {
 	// and chapters.
 	SectionPrefix bool `yaml:"section_prefix"`
 	ChapterPrefix bool `yaml:"chapter_prefix"`
+	// NumberedHeadings numbers a document's chapters and the headings
+	// below them: "1.2 Title".
+	NumberedHeadings bool `yaml:"numbered_headings"`
 	// Template is a reference DOCX whose styles, page setup, headers and
 	// footers the DOCX output uses.
 	Template string `yaml:"template"`

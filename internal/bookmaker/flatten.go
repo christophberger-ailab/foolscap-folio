@@ -41,7 +41,7 @@ type Options struct {
 	ExtractSlides bool
 
 	// SectionPrefix and ChapterPrefix, if set, go before the title of
-	// every section and chapter, with its number: "Part 2 Title".
+	// every section and chapter, with its number: "Part 2: Title".
 	// Sections and chapters are each numbered through the book.
 	SectionPrefix, ChapterPrefix string
 
@@ -255,10 +255,10 @@ func prefix(n *Node, opts Options, res *Result) string {
 	switch {
 	case n.Depth == 1 && opts.SectionPrefix != "":
 		res.sections++
-		return fmt.Sprintf("%s %d ", opts.SectionPrefix, res.sections)
+		return fmt.Sprintf("%s %d: ", opts.SectionPrefix, res.sections)
 	case n.Depth == 2 && opts.ChapterPrefix != "":
 		res.chapters++
-		return fmt.Sprintf("%s %d ", opts.ChapterPrefix, res.chapters)
+		return fmt.Sprintf("%s %d: ", opts.ChapterPrefix, res.chapters)
 	}
 	return ""
 }

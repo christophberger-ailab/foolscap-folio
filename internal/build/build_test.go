@@ -1,7 +1,9 @@
 package build
 
 import (
+	"archive/zip"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -80,7 +82,7 @@ func TestFlattenPrefixesSectionsAndChapters(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"# Teil 1 Grundlagen", "# Kapitel 1 Einstieg", "\n## Detail"} {
+	for _, want := range []string{"# Teil 1: Grundlagen", "# Kapitel 1: Einstieg", "\n## Detail"} {
 		if !strings.Contains(text, want) {
 			t.Errorf("missing %q:\n%s", want, text)
 		}
@@ -293,5 +295,108 @@ func TestSiteFooter(t *testing.T) {
 	}
 	if warned != 2 {
 		t.Errorf("want a warning per topic and the home page, got %d:\n%s", warned, strings.Join(log, "\n"))
+	}
+}
+
+// writeProject writes files into a new project and returns its root.
+func writeProject(t *testing.T, files map[string]string) string {
+	t.Helper()
+	root := t.TempDir()
+	for name, body := range files {
+		p := filepath.Join(root, name)
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return root
+}
+
+// docxPart returns a part of a written DOCX.
+func docxPart(t *testing.T, path, name string) string {
+	t.Helper()
+	zr, err := zip.OpenReader(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer zr.Close()
+	for _, f := range zr.File {
+		if f.Name == name {
+			r, err := f.Open()
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer r.Close()
+			b, err := io.ReadAll(r)
+			if err != nil {
+				t.Fatal(err)
+			}
+			return string(b)
+		}
+	}
+	return ""
+}
+
+// A document has the page footer of folio.yml, its variables resolved
+// from _variables.yml, as the website has (issue #124).
+func TestDocumentHasTheFooter(t *testing.T) {
+	root := writeProject(t, map[string]string{
+		"folio.yml":      "footer: \"Version {{version}} of {topic}\"\nformats:\n  handout: {type: [docx, pdf]}\n",
+		"_variables.yml": "version: dev\n",
+		"book/index.md":  "# Book\n\nText.\n",
+	})
+	cfg, err := config.Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sels, err := cfg.Expand(config.Request{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := Run(Options{Selections: sels}, nil); err != nil {
+		t.Fatal(err)
+	}
+	footer := docxPart(t, filepath.Join(root, "_output", "handout", "book.docx"), "word/folio-footer.xml")
+	if !strings.Contains(footer, ">Version dev of book</w:t>") {
+		t.Errorf("footer = %s", footer)
+	}
+}
+
+// A format with numbered_headings numbers a document's chapters and the
+// headings below them (issue #124).
+func TestDocumentNumbersHeadings(t *testing.T) {
+	root := writeProject(t, map[string]string{
+		"folio.yml":             "formats:\n  handout: {type: docx, numbered_headings: true, chapter_prefix: true}\n  plain: {type: pdf}\n",
+		"book/index.md":         "# Book\n",
+		"book/part/index.md":    "---\norder: 1\n---\n# Basics\n",
+		"book/part/chapter.md":  "---\norder: 1\n---\n# Start\n\n## Install\n\n## Notes {.unnumbered}\n",
+		"book/part/chapter2.md": "---\norder: 2\n---\n# Next\n\n## Run\n",
+	})
+	cfg, err := config.Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, format := range []string{"handout", "plain"} {
+		sels, err := cfg.Expand(config.Request{Formats: []string{format}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		doc, _, err := Document(sels[0], nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		html, _ := markdown.HTML(doc)
+		want := []string{">Kapitel 1: Start<", ">1.1 Install<", ">Notes<", ">Kapitel 2: Next<", ">2.1 Run<"}
+		if format == "plain" {
+			want = []string{">Start<", ">Install<", ">Next<", ">Run<"}
+		}
+		for _, w := range want {
+			w = strings.ReplaceAll(w, "Kapitel", "Chapter")
+			if !strings.Contains(html, w) {
+				t.Errorf("%s: missing %q:\n%s", format, w, html)
+			}
+		}
 	}
 }

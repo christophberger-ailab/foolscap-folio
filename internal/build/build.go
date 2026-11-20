@@ -167,13 +167,15 @@ func Render(sel config.Selection, o Options, log Logf) error {
 	}
 	defer done()
 	headings, section, sizes := brand.headings()
+	foot := footerDoc(sel, log)
 	for _, t := range sel.Format.Type {
 		out := filepath.Join(dir, stem+"."+t)
 		switch t {
 		case config.TypeDOCX:
 			err = docx.Write(out, doc, docx.Options{
 				Root: sel.Config.Root, Template: template, Title: book.Title, Lang: lang, TOC: sel.Format.TOC,
-				Look: docx.Look(look), Headings: headings, SectionHeadings: section, Warn: warn(log),
+				Look: docx.Look(look), Headings: headings, SectionHeadings: section, Footer: foot, Warn: warn(log),
+				Margins: resolveXML(variables(sel, log, nil), "template "+rel(sel.Config.Root, template), log),
 			})
 			if err == nil {
 				err = docrender.CoverDOCX(out, page)
@@ -198,7 +200,7 @@ func Render(sel config.Selection, o Options, log Logf) error {
 				err = docrender.RunPDF(context.Background(), pdfTimeout, out, nil, docrender.Options{
 					Root: sel.Config.Root, Cover: page, Title: book.Title, TOC: sel.Format.TOC, Lang: lang, Fonts: fonts, Sizes: sizes,
 					Colors:   docrender.Colors{Text: look.Color, Heading: look.HeadingColor, Link: look.LinkColor},
-					Markdown: doc, Warn: warn(log),
+					Markdown: doc, Footer: foot, Warn: warn(log),
 				})
 			}
 		}
@@ -208,6 +210,18 @@ func Render(sel config.Selection, o Options, log Logf) error {
 		log("wrote %s", rel(sel.Config.Root, out))
 	}
 	return nil
+}
+
+// footerDoc returns the parsed page footer of a document selection, nil
+// if it has none.
+func footerDoc(sel config.Selection, log Logf) *markdown.Document {
+	text := footer(sel, log)(sel.Topic.Name, nil)
+	if strings.TrimSpace(text) == "" {
+		return nil
+	}
+	doc := markdown.Parse([]byte(text))
+	doc.Prepare(markdown.Options{Keep: sel.Keep, Formats: sel.Types(), Lang: sel.Config.Lang, Warn: warn(log)})
+	return doc
 }
 
 // placeholderCover writes the project's placeholder as a PNG to a
@@ -237,6 +251,9 @@ func Document(sel config.Selection, log Logf) (*markdown.Document, Book, error) 
 	doc := markdown.Parse([]byte(text))
 	doc.Prepare(markdown.Options{Keep: sel.Keep, Formats: sel.Types(), Lang: sel.Config.Lang, CalloutTitles: sel.Config.CalloutTitles, Warn: warn(log)})
 	dropTitle(doc, book.Anchor)
+	if f := sel.Format; f.NumberedHeadings {
+		markdown.NumberHeadings(doc, f.SectionPrefix, f.ChapterPrefix)
+	}
 	vars := variables(sel, log, nil)
 	for _, f := range []struct {
 		name string
@@ -310,7 +327,7 @@ func Flatten(sel config.Selection, log Logf) (string, Book, error) {
 	return text, book, nil
 }
 
-// footer returns the page footer of a website selection by topic name,
+// footer returns the page footer of a selection by topic name,
 // "" for the home page, and the page's front matter, its placeholders
 // resolved against the page's variables. A placeholder without a variable
 // is shown as written, with a warning per topic.
@@ -328,10 +345,12 @@ func footer(sel config.Selection, log Logf) func(string, map[string]any) string 
 			return ""
 		}
 		ts := sel
-		ts.Topic = config.Topic{}
-		for _, t := range sel.Topics {
-			if t.Name == topic {
-				ts.Topic = t
+		if topic != sel.Topic.Name {
+			ts.Topic = config.Topic{}
+			for _, t := range sel.Topics {
+				if t.Name == topic {
+					ts.Topic = t
+				}
 			}
 		}
 		page := map[string]string{}

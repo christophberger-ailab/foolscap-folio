@@ -103,7 +103,7 @@ const configSchema = `// -------------------------------------------------------
 	// The texts folio puts into a document, per language, with the same
 	// fallbacks as the callout titles. A format of folio.yml with
 	// section_prefix or chapter_prefix set puts the prefix and the number
-	// before the titles of its sections or chapters: "Part 2 Title".
+	// before the titles of its sections or chapters: "Part 2: Title".
 	strings: {[string]: #Strings}
 
 	// Where folio web listens is the project's to say, in folio.yml.

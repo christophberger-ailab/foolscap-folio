@@ -1533,7 +1533,7 @@ func TestPreviewTitlesCalloutsInThePagesLanguage(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, want := range []string{
-		"function renderPreview(el, text, pagePath, titles)",
+		"function renderPreview(el, text, pagePath, titles, vars)",
 		"buildCallouts(el, titles || {});",
 		"title.textContent = titles[type] || calloutTypes[type];",
 	} {

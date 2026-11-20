@@ -960,6 +960,18 @@ function calloutTitles() {
   }
 }
 
+// pageVariables are what the preview resolves the page's variables
+// against, which the server puts on the edit form (see variablesJSON); {}
+// when there are none.
+function pageVariables() {
+  var form = document.querySelector('#content .edit-form');
+  try {
+    return JSON.parse(form.getAttribute('data-variables')) || {};
+  } catch (e) {
+    return {};
+  }
+}
+
 // updatePreview re-renders the preview from what the editor currently holds.
 // The page's path travels with the render: the preview resolves the page's
 // image paths against it. It is read from the form rather than from
@@ -969,7 +981,7 @@ function updatePreview() {
   var editor = document.querySelector('#content textarea.file-content');
   if (preview && editor) {
     var path = document.querySelector('#content input[name="path"]');
-    renderPreview(preview, editor.value, path ? path.value : '', calloutTitles());
+    renderPreview(preview, editor.value, path ? path.value : '', calloutTitles(), pageVariables());
     followEditor(); // the render may have moved the text under the top
   }
 }

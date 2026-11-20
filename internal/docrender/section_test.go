@@ -89,3 +89,78 @@ func TestPDFWithPreliminaries(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// A section's title starts a page of its own and is set larger than a
+// chapter's, unless the brand sets its size (issue #124).
+func TestSectionTitleOpensAPageInALargerSize(t *testing.T) {
+	d := markdown.Parse([]byte("# Chapter Zero\n\nText.\n\n:::: folio-section\n# Part One\n\nIntro.\n::::\n\n# Chapter One\n"))
+	d.Prepare(markdown.Options{})
+	bb, err := FromMarkdown(d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w := testWriter(t)
+	if err := w.body(bb); err != nil {
+		t.Fatal(err)
+	}
+	pages := map[string]int{}
+	for _, h := range w.headings {
+		pages[h.title] = h.page
+	}
+	if pages["Chapter Zero"] != 1 || pages["Part One"] != 2 || pages["Chapter One"] != 2 {
+		t.Errorf("pages = %v, want the section on a page of its own", pages)
+	}
+	var part, chapter Block
+	for _, b := range bb {
+		switch text(b.Runs) {
+		case "Part One":
+			part = b
+		case "Chapter One":
+			chapter = b
+		}
+	}
+	if s, c := w.headingSize(part), w.headingSize(chapter); s != c*sectionScale || s != 28 {
+		t.Errorf("section title in %vpt, chapter title in %vpt", s, c)
+	}
+	if w.sizes = map[string]float64{"h1": 30}; w.headingSize(part) != 40 {
+		t.Errorf("section title not larger than the brand's h1: %v", w.headingSize(part))
+	}
+	w.sizes = map[string]float64{"section-h1": 40}
+	if s := w.headingSize(part); s != 40 {
+		t.Errorf("brand's section size not taken: %v", s)
+	}
+}
+
+// The page footer is drawn below the text of every page it is given,
+// without starting pages of its own (issue #124).
+func TestFooterOnEveryPage(t *testing.T) {
+	f := markdown.Parse([]byte("Version **dev** · [site](https://example.com)"))
+	f.Prepare(markdown.Options{})
+	bb, err := FromMarkdown(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w := testWriter(t)
+	w.newPage()
+	w.newPage()
+	var lines []string
+	w.trace = func(line []piece) {
+		var s string
+		for _, p := range line {
+			s += p.Text
+		}
+		lines = append(lines, s)
+		if w.y < pageH-margin {
+			t.Errorf("footer drawn at %v, in the text area", w.y)
+		}
+	}
+	if err := w.footer(bb, 2, 3); err != nil {
+		t.Fatal(err)
+	}
+	if len(lines) != 2 || strings.TrimSpace(lines[0]) != "Version dev · site" {
+		t.Errorf("footer lines = %q, want one on each of pages 2 and 3", lines)
+	}
+	if w.page != 3 {
+		t.Errorf("the footer added pages: %d", w.page)
+	}
+}
