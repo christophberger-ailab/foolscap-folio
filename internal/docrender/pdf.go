@@ -260,15 +260,13 @@ func (w *pdfWriter) body(bb []Block) error {
 		size := 11.0
 		left := w.left + float64(b.Indent)*15
 		if b.Level > 0 {
-			size = math.Max(12, 23-float64(b.Level)*2)
+			size = w.headingSize(b)
 			role := fmt.Sprintf("h%d", min(b.Level, 6))
-			if s := w.sizes[role]; s > 0 {
-				size = s
-			}
 			if b.Section {
 				role = "section-" + role
-				if s := w.sizes[role]; s > 0 {
-					size = s
+				// A section's title opens a page, as a book's part does.
+				if b.Level == 1 && w.y > w.top() {
+					w.newPage()
 				}
 			}
 			w.y += 12
@@ -293,6 +291,28 @@ func (w *pdfWriter) body(bb []Block) error {
 		}
 	}
 	return nil
+}
+
+// sectionScale is how much larger than a chapter's title a section's is,
+// unless the brand sets its size.
+const sectionScale = 4.0 / 3
+
+// headingSize is the font size of the heading b: the brand's for its role
+// (see FontRoles), else the default for its level, a section's title
+// larger than a chapter's.
+func (w *pdfWriter) headingSize(b Block) float64 {
+	role := fmt.Sprintf("h%d", min(b.Level, 6))
+	size := math.Max(12, 23-float64(b.Level)*2)
+	if s := w.sizes[role]; s > 0 {
+		size = s
+	}
+	if b.Section && b.Level == 1 {
+		size *= sectionScale
+	}
+	if s := w.sizes["section-"+role]; b.Section && s > 0 {
+		size = s
+	}
+	return size
 }
 
 const (

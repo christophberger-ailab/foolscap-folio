@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -17,6 +18,10 @@ type styleSet struct {
 	memo   map[string]string
 	added  []string
 	look   Look // the brand's fonts and colors for the styles added
+	// sizes are the styles' own font sizes in half-points, by ID, and
+	// based the styles they are based on.
+	sizes map[string]int
+	based map[string]string
 }
 
 // Look is what a brand gives the styles folio defines: the names of the
@@ -53,14 +58,18 @@ func (s *styleSet) mono() string {
 }
 
 func parseStyles(data []byte) *styleSet {
-	s := &styleSet{byName: map[string]string{}, ids: map[string]bool{}, memo: map[string]string{}}
+	s := &styleSet{byName: map[string]string{}, ids: map[string]bool{}, memo: map[string]string{},
+		sizes: map[string]int{}, based: map[string]string{}}
+	type val struct {
+		Val string `xml:"val,attr"`
+	}
 	var doc struct {
 		Styles []struct {
-			Type string `xml:"type,attr"`
-			ID   string `xml:"styleId,attr"`
-			Name struct {
-				Val string `xml:"val,attr"`
-			} `xml:"name"`
+			Type    string `xml:"type,attr"`
+			ID      string `xml:"styleId,attr"`
+			Name    val    `xml:"name"`
+			BasedOn val    `xml:"basedOn"`
+			Size    val    `xml:"rPr>sz"`
 		} `xml:"style"`
 	}
 	_ = xml.Unmarshal(data, &doc) // a damaged styles part just means every style is added
@@ -70,8 +79,22 @@ func parseStyles(data []byte) *styleSet {
 		if _, dup := s.byName[key]; !dup {
 			s.byName[key] = st.ID
 		}
+		s.sizes[st.ID], _ = strconv.Atoi(st.Size.Val)
+		s.based[st.ID] = st.BasedOn.Val
 	}
 	return s
+}
+
+// size returns the font size in pt of the style id, its own or that of
+// the styles it is based on; 0 if none of them sets one.
+func (s *styleSet) size(id string) float64 {
+	for range 10 { // a chain longer than that is a loop
+		if v := s.sizes[id]; v > 0 || id == "" {
+			return float64(v) / 2
+		}
+		id = s.based[id]
+	}
+	return 0
 }
 
 // find returns the ID of the first style (of the type) named like one of
@@ -120,8 +143,11 @@ func (s *styleSet) heading(level int) string {
 		`<w:pPr><w:keepNext/><w:keepLines/><w:spacing w:before="240" w:after="120"/><w:outlineLvl w:val="%d"/></w:pPr>`+
 		`<w:rPr><w:b/><w:sz w:val="%d"/><w:szCs w:val="%d"/></w:rPr>`,
 		s.normal(), s.normal(), level-1, sizes[level-1], sizes[level-1])
-	id := fmt.Sprintf("Heading%d", level)
-	return s.need("paragraph", id, body, fmt.Sprintf("heading %d", level), fmt.Sprintf("Heading %d", level))
+	id := s.need("paragraph", fmt.Sprintf("Heading%d", level), body, fmt.Sprintf("heading %d", level), fmt.Sprintf("Heading %d", level))
+	if s.size(id) == 0 {
+		s.sizes[id] = sizes[level-1]
+	}
+	return id
 }
 
 // unlistedHeading is the style of a heading the contents do not list,

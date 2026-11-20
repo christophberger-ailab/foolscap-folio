@@ -696,3 +696,20 @@ func TestDiagram(t *testing.T) {
 		t.Error("no PNG of the diagram")
 	}
 }
+
+// A section's title starts a new page and is set a third larger than the
+// chapters' heading style, unless the brand sizes it (issue #124).
+func TestSectionTitleOpensAPageInALargerSize(t *testing.T) {
+	md := ":::: folio-section\n# Part One\n\n## Intro detail\n::::\n\n# Chapter One\n"
+	doc := build(t, md, Options{})["word/document.xml"]
+	// The fallback Heading 1 is 16pt, so the title is 21.5pt (43 half-points).
+	has(t, doc, `<w:pStyle w:val="Heading1"/><w:pageBreakBefore/>`,
+		`<w:sz w:val="43"/><w:szCs w:val="43"/></w:rPr><w:t xml:space="preserve">Part One</w:t>`)
+	if n := strings.Count(doc, "<w:pageBreakBefore/>"); n != 1 {
+		t.Errorf("%d paragraphs open a page, want the section title's", n)
+	}
+	var h [6]Font
+	h[0].Size = 30
+	has(t, build(t, md, Options{Headings: h})["word/document.xml"],
+		`<w:sz w:val="80"/><w:szCs w:val="80"/></w:rPr><w:t xml:space="preserve">Part One</w:t>`)
+}

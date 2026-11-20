@@ -2,6 +2,7 @@ package docx
 
 import (
 	"bytes"
+	"cmp"
 	"crypto/sha256"
 	"encoding/xml"
 	"fmt"
@@ -243,11 +244,16 @@ func (w *writer) heading(n *ast.Heading, c ctx) {
 	// A section's headings are set in the section's fonts. The headings
 	// of its intro and of the preliminaries stay out of the contents.
 	section := inSection(n)
+	// A section's title opens a page and is larger than a chapter's.
+	title := section && level == 1
 	if section {
 		s := w.opt.SectionHeadings[level-1]
 		font.Name = cmpOr(s.Name, font.Name)
-		if s.Size > 0 {
+		switch {
+		case s.Size > 0:
 			font.Size = s.Size
+		case title:
+			font.Size = cmp.Or(font.Size, w.styles.size(style), 16) * sectionScale
 		}
 	}
 	if w.prelims || section && level > 1 {
@@ -257,8 +263,12 @@ func (w *writer) heading(n *ast.Heading, c ctx) {
 	if id != "" {
 		fmt.Fprintf(&content, `<w:bookmarkEnd w:id="%d"/>`, w.bmID)
 	}
-	w.para(pPr{style: style}, content.String())
+	w.para(pPr{style: style, pageBreak: title}, content.String())
 }
+
+// sectionScale is how much larger than a chapter's title a section's is,
+// unless the brand sets its size.
+const sectionScale = 4.0 / 3
 
 // bookmarkStart returns the start tag of a new bookmark; the matching end
 // tag uses w.bmID, which stays until the next bookmark starts.
@@ -330,18 +340,19 @@ func (w *writer) paraProps(c ctx) pPr {
 
 // pPr are paragraph properties, written in the order the schema demands.
 type pPr struct {
-	style    string
-	keepNext bool
-	numID    int // 0: not numbered
-	ilvl     int
-	border   bool // bottom rule
-	shade    string
-	spacing  bool
-	before   int
-	after    int
-	indent   int
-	hanging  int
-	jc       string
+	style     string
+	pageBreak bool // the paragraph opens a page
+	keepNext  bool
+	numID     int // 0: not numbered
+	ilvl      int
+	border    bool // bottom rule
+	shade     string
+	spacing   bool
+	before    int
+	after     int
+	indent    int
+	hanging   int
+	jc        string
 }
 
 func (p pPr) String() string {
@@ -351,6 +362,9 @@ func (p pPr) String() string {
 	}
 	if p.keepNext {
 		b.WriteString(`<w:keepNext/>`)
+	}
+	if p.pageBreak { // after keepNext and keepLines, as the schema orders them
+		b.WriteString(`<w:pageBreakBefore/>`)
 	}
 	if p.numID > 0 {
 		fmt.Fprintf(&b, `<w:numPr><w:ilvl w:val="%d"/><w:numId w:val="%d"/></w:numPr>`, p.ilvl, p.numID)

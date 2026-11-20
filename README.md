@@ -363,7 +363,7 @@ Folder structure and `order:` drive every output; there is no distinction betwee
 A website keeps the headings of every page as written. A DOCX or PDF gives each level of the tree below a topic a meaning:
 
 - **Preliminaries** (depth 0): the topic folder's `index.md`. Its title and subtitle go on the cover. Its body is set after the cover and before the table of contents, and its headings are not listed in the contents.
-- **Sections** (depth 1): the other `.md` files directly in the topic folder, and the `index.md` of the topic's subfolders. Headings are kept as written. The h1 of a section's own page is the section title; the rest of that page is the section's intro. The contents list the section's title but not the headings of its intro. Section headings are set in the fonts of `meta: fonts: section:` in the brand file (below).
+- **Sections** (depth 1): the other `.md` files directly in the topic folder, and the `index.md` of the topic's subfolders. Headings are kept as written. The h1 of a section's own page is the section title; the rest of that page is the section's intro. The contents list the section's title but not the headings of its intro. A section title starts a new page and is set a third larger than a chapter title. Section headings are set in the fonts of `meta: fonts: section:` in the brand file (below), which also override that size.
 - **Chapters** (depth 2): the `index.md` of the sections' subfolders, and the other files in the topic's subfolders. Headings are kept as written, h1 to h6.
 - **Depth 3 and deeper**: headings are demoted by the depth minus two levels. A heading that would end up beyond h6 is logged as a warning and set as emphasized text: h7 bold, h8 bold italics, h9 and deeper italics.
 

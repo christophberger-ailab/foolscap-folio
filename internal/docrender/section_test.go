@@ -89,3 +89,44 @@ func TestPDFWithPreliminaries(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// A section's title starts a page of its own and is set larger than a
+// chapter's, unless the brand sets its size (issue #124).
+func TestSectionTitleOpensAPageInALargerSize(t *testing.T) {
+	d := markdown.Parse([]byte("# Chapter Zero\n\nText.\n\n:::: folio-section\n# Part One\n\nIntro.\n::::\n\n# Chapter One\n"))
+	d.Prepare(markdown.Options{})
+	bb, err := FromMarkdown(d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w := testWriter(t)
+	if err := w.body(bb); err != nil {
+		t.Fatal(err)
+	}
+	pages := map[string]int{}
+	for _, h := range w.headings {
+		pages[h.title] = h.page
+	}
+	if pages["Chapter Zero"] != 1 || pages["Part One"] != 2 || pages["Chapter One"] != 2 {
+		t.Errorf("pages = %v, want the section on a page of its own", pages)
+	}
+	var part, chapter Block
+	for _, b := range bb {
+		switch text(b.Runs) {
+		case "Part One":
+			part = b
+		case "Chapter One":
+			chapter = b
+		}
+	}
+	if s, c := w.headingSize(part), w.headingSize(chapter); s != c*sectionScale || s != 28 {
+		t.Errorf("section title in %vpt, chapter title in %vpt", s, c)
+	}
+	if w.sizes = map[string]float64{"h1": 30}; w.headingSize(part) != 40 {
+		t.Errorf("section title not larger than the brand's h1: %v", w.headingSize(part))
+	}
+	w.sizes = map[string]float64{"section-h1": 40}
+	if s := w.headingSize(part); s != 40 {
+		t.Errorf("brand's section size not taken: %v", s)
+	}
+}
