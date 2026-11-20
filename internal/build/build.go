@@ -251,6 +251,9 @@ func Document(sel config.Selection, log Logf) (*markdown.Document, Book, error) 
 	doc := markdown.Parse([]byte(text))
 	doc.Prepare(markdown.Options{Keep: sel.Keep, Formats: sel.Types(), Lang: sel.Config.Lang, CalloutTitles: sel.Config.CalloutTitles, Warn: warn(log)})
 	dropTitle(doc, book.Anchor)
+	if f := sel.Format; f.NumberedHeadings {
+		markdown.NumberHeadings(doc, f.SectionPrefix, f.ChapterPrefix)
+	}
 	vars := variables(sel, log, nil)
 	for _, f := range []struct {
 		name string

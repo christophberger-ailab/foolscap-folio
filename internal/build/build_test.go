@@ -363,3 +363,40 @@ func TestDocumentHasTheFooter(t *testing.T) {
 		t.Errorf("footer = %s", footer)
 	}
 }
+
+// A format with numbered_headings numbers a document's chapters and the
+// headings below them (issue #124).
+func TestDocumentNumbersHeadings(t *testing.T) {
+	root := writeProject(t, map[string]string{
+		"folio.yml":             "formats:\n  handout: {type: docx, numbered_headings: true, chapter_prefix: true}\n  plain: {type: pdf}\n",
+		"book/index.md":         "# Book\n",
+		"book/part/index.md":    "---\norder: 1\n---\n# Basics\n",
+		"book/part/chapter.md":  "---\norder: 1\n---\n# Start\n\n## Install\n\n## Notes {.unnumbered}\n",
+		"book/part/chapter2.md": "---\norder: 2\n---\n# Next\n\n## Run\n",
+	})
+	cfg, err := config.Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, format := range []string{"handout", "plain"} {
+		sels, err := cfg.Expand(config.Request{Formats: []string{format}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		doc, _, err := Document(sels[0], nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		html, _ := markdown.HTML(doc)
+		want := []string{">Kapitel 1: Start<", ">1.1 Install<", ">Notes<", ">Kapitel 2: Next<", ">2.1 Run<"}
+		if format == "plain" {
+			want = []string{">Start<", ">Install<", ">Next<", ">Run<"}
+		}
+		for _, w := range want {
+			w = strings.ReplaceAll(w, "Kapitel", "Chapter")
+			if !strings.Contains(html, w) {
+				t.Errorf("%s: missing %q:\n%s", format, w, html)
+			}
+		}
+	}
+}
