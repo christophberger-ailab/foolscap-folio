@@ -49,9 +49,16 @@ func (t *Tree) Move(src, parent string, pos int) ([]Rename, error) {
 	if sp == nil {
 		return nil, fmt.Errorf("page %s not found", src)
 	}
+	if src == parent {
+		return nil, fmt.Errorf("cannot move %s into itself", src)
+	}
 	destDir, destSiblings, err := t.resolveParent(parent)
 	if err != nil {
 		return nil, err
+	}
+	leaf := t.Find(parent)
+	if !t.isLeaf(leaf) {
+		leaf = nil
 	}
 
 	newPath := src
@@ -90,7 +97,40 @@ func (t *Tree) Move(src, parent string, pos int) ([]Rename, error) {
 			return renames, err
 		}
 	}
+	// A leaf that received its first child becomes a section, last, so
+	// that the renumbering above still finds it where it was.
+	if leaf != nil {
+		r, err := t.toSection(leaf)
+		return append(renames, r...), err
+	}
 	return renames, nil
+}
+
+// isLeaf reports whether p is a page in a file of its own (name.md or
+// name.qmd) with no children directory beside it yet.
+func (t *Tree) isLeaf(p *Page) bool {
+	if p == nil || p.Path == "" || p.Dir == "" || isIndexPage(p.Path) {
+		return false
+	}
+	_, err := os.Stat(t.abs(p.Dir))
+	return os.IsNotExist(err)
+}
+
+// toSection moves the page in a file of its own, name.md, to
+// name/index.md, keeping its extension, so that a page that gets its first
+// child is a section with its children in its own directory (issue #119).
+// The directory must exist; it returns the rename it made.
+func (t *Tree) toSection(p *Page) ([]Rename, error) {
+	r := Rename{p.Path, p.Dir + "/index" + path.Ext(p.Path)}
+	for _, taken := range []string{p.Dir + "/index.md", p.Dir + "/index.qmd"} {
+		if _, err := os.Stat(t.abs(taken)); err == nil {
+			return nil, fmt.Errorf("%s already exists", taken)
+		}
+	}
+	if err := os.Rename(t.abs(r.From), t.abs(r.To)); err != nil {
+		return nil, err
+	}
+	return []Rename{r}, nil
 }
 
 // reparent moves the page's files under destDir. It returns the page's new
@@ -138,24 +178,33 @@ func (t *Tree) reparent(sp *Page, destDir string) (string, []Rename, error) {
 	return newPath, renames, nil
 }
 
-// CreatePage creates a new page as name/index.md under parent ("" for
-// root), ordered after the last ordered sibling. It returns the new page's
-// path.
-func (t *Tree) CreatePage(parent, name string) (string, error) {
+// CreatePage creates a new page as name.md under parent ("" for root),
+// ordered after the last ordered sibling. A parent in a file of its own
+// that has no children yet, parent.md, becomes a section first:
+// parent/index.md, with the new page beside it (issue #119). It returns
+// the new page's path and the renames it made, like Move.
+func (t *Tree) CreatePage(parent, name string) (string, []Rename, error) {
 	destDir, siblings, err := t.resolveParent(parent)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
+	pp := t.Find(parent)
+	leaf := t.isLeaf(pp)
 	order := 0
 	for _, p := range siblings {
 		if p.Order != nil && *p.Order > order {
 			order = *p.Order
 		}
 	}
-	return t.newPageFile(destDir, name, order+1)
+	rel, err := t.newPageFile(destDir, name, order+1)
+	if err != nil || !leaf {
+		return rel, nil, err
+	}
+	renames, err := t.toSection(pp)
+	return rel, renames, err
 }
 
-// CreatePageAfter creates a new page as name/index.md in the sibling
+// CreatePageAfter creates a new page as name.md in the sibling
 // group of the page at after, immediately following it. Like Move, it
 // renumbers the whole group sequentially, so previously unordered
 // siblings become ordered. It returns the new page's path.
@@ -185,16 +234,18 @@ func (t *Tree) CreatePageAfter(after, name string) (string, error) {
 	return rel, nil
 }
 
-// newPageFile writes destDir/name/index.md from the new-page template and
-// returns its path. The folder name is the typed name in lower case, with
-// a dash for each run of spaces (issue #118). The page has frontmatter
+// newPageFile writes destDir/name.md from the new-page template and
+// returns its path (issue #119). The file name is the typed name in lower
+// case, with a dash for each run of spaces (issue #118); a name a folder or
+// a page file already has is refused, and so is index, which is a
+// section's own page. The page has frontmatter
 // with the order and `status: new`, and an explanation div headed by the
 // name as typed, on one line, as a level-1 heading, which every page
 // starts with wherever it sits in the tree (issue #96). It writes no
 // title: a `title:` would override that heading.
 func (t *Tree) newPageFile(destDir, name string, order int) (string, error) {
 	file := stem(strings.ToLower(strings.Join(strings.Fields(name), "-")))
-	if file == "" || strings.ContainsAny(file, `/\`) || strings.HasPrefix(file, "_") || strings.HasPrefix(file, ".") {
+	if file == "" || file == "index" || strings.ContainsAny(file, `/\`) || strings.HasPrefix(file, "_") || strings.HasPrefix(file, ".") {
 		return "", fmt.Errorf("invalid page name %q", name)
 	}
 	dir := join(destDir, file)
@@ -203,7 +254,7 @@ func (t *Tree) newPageFile(destDir, name string, order int) (string, error) {
 			return "", fmt.Errorf("%s already exists", taken)
 		}
 	}
-	rel := dir + "/index.md"
+	rel := dir + ".md"
 	content := fmt.Sprintf("---\norder: %d\nstatus: new\n---\n\n::: explanation\n# %s\n\n:::\n", order, strings.Join(strings.Fields(name), " "))
 	if err := os.MkdirAll(filepath.Dir(t.abs(rel)), 0o755); err != nil {
 		return "", err
@@ -235,8 +286,8 @@ func (t *Tree) DeletePage(p string) error {
 // A page in a file of its own (name.qmd or name.md) gets the file name
 // name, keeping its extension, and its children directory (name/ next to
 // the file) is renamed along with it, so the children stay with their
-// page. A section page (name/index.qmd or name/index.md), which is how
-// pages are created, is named by its directory: the directory is renamed,
+// page. A section page (name/index.qmd or name/index.md), which is what a
+// page becomes with its first child, is named by its directory: the directory is renamed,
 // taking the section's pages along, and the index page keeps its name. The
 // project's own index page has no name to change. The page's frontmatter and headings are left as
 // they are: the page keeps its place in the tree.

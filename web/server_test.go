@@ -1025,14 +1025,14 @@ func TestCreateAndDelete(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("create: status %d: %s", rec.Code, rec.Body)
 	}
-	// A new page is created as name/index.md, the name in lower case with
-	// dashes for spaces (issue #118).
-	if !strings.Contains(rec.Body.String(), `data-path="about-us/index.md"`) {
+	// A new page is created as name.md (issue #119), the name in lower
+	// case with dashes for spaces (issue #118).
+	if !strings.Contains(rec.Body.String(), `data-path="about-us.md"`) {
 		t.Errorf("tree missing created page:\n%s", rec.Body)
 	}
 	// It carries no `title:`, which would override the page's level-1
 	// heading (issue #58), and the create form asks for none.
-	page, err := os.ReadFile(filepath.Join(root, "about-us", "index.md"))
+	page, err := os.ReadFile(filepath.Join(root, "about-us.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1048,15 +1048,15 @@ func TestCreateAndDelete(t *testing.T) {
 	}
 	assertConfigsUnchanged(t, root, before)
 
-	rec = post(t, srv, "/delete", url.Values{"path": {"about-us/index.md"}})
+	rec = post(t, srv, "/delete", url.Values{"path": {"about-us.md"}})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("delete: status %d: %s", rec.Code, rec.Body)
 	}
-	if strings.Contains(rec.Body.String(), `data-path="about-us/index.md"`) {
+	if strings.Contains(rec.Body.String(), `data-path="about-us.md"`) {
 		t.Errorf("tree still shows deleted page:\n%s", rec.Body)
 	}
-	if _, err := os.Stat(filepath.Join(root, "about-us")); !os.IsNotExist(err) {
-		t.Error("about-us/ still on disk")
+	if _, err := os.Stat(filepath.Join(root, "about-us.md")); !os.IsNotExist(err) {
+		t.Error("about-us.md still on disk")
 	}
 	assertConfigsUnchanged(t, root, before)
 }
@@ -1073,12 +1073,12 @@ func TestCreateAfter(t *testing.T) {
 		t.Fatalf("create: status %d: %s", rec.Code, rec.Body)
 	}
 	body := rec.Body.String()
-	if !strings.Contains(body, `data-path="chapter2/inserted/index.md"`) {
+	if !strings.Contains(body, `data-path="chapter2/inserted.md"`) {
 		t.Errorf("tree missing inserted page:\n%s", body)
 	}
 	// The new page sits after second and before third in the tree.
 	iSecond := strings.Index(body, `data-path="chapter2/second.qmd"`)
-	iNew := strings.Index(body, `data-path="chapter2/inserted/index.md"`)
+	iNew := strings.Index(body, `data-path="chapter2/inserted.md"`)
 	iThird := strings.Index(body, `data-path="chapter2/third.qmd"`)
 	if !(iSecond < iNew && iNew < iThird) {
 		t.Errorf("inserted page not between second and third:\n%s", body)
@@ -1172,7 +1172,7 @@ func TestMoveSectionRepointsOpenChild(t *testing.T) {
 	}
 	get(t, srv, "/content?path=chapter2/second.qmd")
 	rec := post(t, srv, "/move", url.Values{
-		"src": {"chapter2/index.qmd"}, "parent": {"dispatcher/index.md"}, "pos": {"0"},
+		"src": {"chapter2/index.qmd"}, "parent": {"dispatcher.md"}, "pos": {"0"},
 		"open": {"chapter2/second.qmd"},
 	})
 	if rec.Code != http.StatusOK {
@@ -1183,6 +1183,36 @@ func TestMoveSectionRepointsOpenChild(t *testing.T) {
 		t.Errorf("move response is missing %q:\n%s", want, rec.Body)
 	}
 	if got := srv.prefsFor(srv.root).Page; got != "dispatcher/chapter2/second.qmd" {
+		t.Errorf("remembered page = %q", got)
+	}
+}
+
+// Adding the first subpage to the page the editor has open moves that page
+// to name/index.md (issue #119), so the editor follows it there, as it
+// follows a move.
+func TestCreateSubpageRepointsOpenParent(t *testing.T) {
+	srv, _ := testServer(t)
+	if rec := post(t, srv, "/create", url.Values{"name": {"My page"}}); rec.Code != http.StatusOK {
+		t.Fatalf("create: status %d: %s", rec.Code, rec.Body)
+	}
+	get(t, srv, "/content?path=my-page.md")
+	rec := post(t, srv, "/create", url.Values{
+		"parent": {"my-page.md"}, "name": {"My subpage"}, "open": {"my-page.md"},
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("create subpage: status %d: %s", rec.Code, rec.Body)
+	}
+	body := rec.Body.String()
+	for _, want := range []string{
+		`data-path="my-page/index.md"`,
+		`data-path="my-page/my-subpage.md"`,
+		`value="my-page/index.md" hx-swap-oob="true"`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("create response is missing %q:\n%s", want, body)
+		}
+	}
+	if got := srv.prefsFor(srv.root).Page; got != "my-page/index.md" {
 		t.Errorf("remembered page = %q", got)
 	}
 }

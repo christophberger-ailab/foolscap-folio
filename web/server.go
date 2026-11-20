@@ -810,15 +810,23 @@ func (s *server) create(w http.ResponseWriter, r *http.Request) {
 	// path travels as "after"); the per-node ＋ button appends a child to
 	// its parent instead.
 	parent, after := r.FormValue("parent"), r.FormValue("after")
+	open := r.FormValue("open")
+	if open == "" {
+		open = s.prefsFor(s.root).Page
+	}
+	// A parent that gets its first child moves to name/index.md (issue
+	// #119); the editor follows it as it follows a move.
+	var renames []project.Rename
 	s.apply(w, func(t *project.Tree) error {
 		var err error
 		if parent == "" && after != "" {
 			_, err = t.CreatePageAfter(after, name)
 		} else {
-			_, err = t.CreatePage(parent, name)
+			_, renames, err = t.CreatePage(parent, name)
 		}
 		return err
 	})
+	s.repoint(w, open, renames)
 }
 
 func (s *server) delete(w http.ResponseWriter, r *http.Request) {

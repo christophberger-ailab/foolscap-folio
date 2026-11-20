@@ -94,12 +94,29 @@ func TestMoveToRoot(t *testing.T) {
 	}
 }
 
-// Dropping a page into a leaf turns the leaf into a section.
+// Dropping a page into a leaf turns the leaf into a section:
+// second.qmd becomes second/index.qmd, as a new subpage makes it (issue
+// #119), and Move reports that rename too.
 func TestMoveIntoLeaf(t *testing.T) {
 	root := writeFixture(t)
-	tree := mustMove(t, root, "chapter3/another.qmd", "chapter2/second.qmd", 0)
-
-	second := tree.Find("chapter2/second.qmd")
+	renames, err := load(t, root).Move("chapter3/another.qmd", "chapter2/second.qmd", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := Remap(renames, "chapter2/second.qmd"); got != "chapter2/second/index.qmd" {
+		t.Errorf("leaf remaps to %q", got)
+	}
+	tree := load(t, root)
+	if tree.Find("chapter2/second.qmd") != nil {
+		t.Error("chapter2/second.qmd still in the tree")
+	}
+	second := tree.Find("chapter2/second/index.qmd")
+	if second == nil {
+		t.Fatal("chapter2/second/index.qmd missing")
+	}
+	if !strings.Contains(readFile(t, root, "chapter2/second/index.qmd"), "\n## Detail") {
+		t.Error("leaf content changed")
+	}
 	if got := paths(second.Children); !reflect.DeepEqual(got, []string{"chapter2/second/another.qmd"}) {
 		t.Fatalf("second children = %v", got)
 	}
@@ -160,21 +177,21 @@ func TestMoveIntoRootIndex(t *testing.T) {
 	}
 }
 
-// CreatePage creates the new page as name/index.md, ordered after the
-// last ordered sibling. The folder name is the typed name in lower case
+// CreatePage creates the new page as name.md, ordered after the last
+// ordered sibling (issue #119). The folder name is the typed name in lower case
 // with dashes for spaces; the heading is the name as typed (issue #118),
 // on one line, so that a pasted line break cannot reach the frontmatter.
 func TestCreatePage(t *testing.T) {
 	root := writeFixture(t)
-	created, err := load(t, root).CreatePage("chapter2/index.qmd", " Fifth \n Page")
+	created, _, err := load(t, root).CreatePage("chapter2/index.qmd", " Fifth \n Page")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if created != "chapter2/fifth-page/index.md" {
+	if created != "chapter2/fifth-page.md" {
 		t.Fatalf("created = %q", created)
 	}
 	tree := load(t, root)
-	p := tree.Find("chapter2/fifth-page/index.md")
+	p := tree.Find("chapter2/fifth-page.md")
 	if p == nil {
 		t.Fatal("created page not in tree")
 	}
@@ -194,17 +211,89 @@ func TestCreatePage(t *testing.T) {
 	}
 }
 
-func TestCreatePageAtRoot(t *testing.T) {
+// Adding the first subpage to a page in a file of its own turns that page
+// into a section: my-page.md moves to my-page/index.md, keeping its
+// content, and the subpage is my-page/my-subpage.md (issue #119).
+func TestCreateSubpage(t *testing.T) {
 	root := writeFixture(t)
-	created, err := load(t, root).CreatePage("", "about")
+	parent, _, err := load(t, root).CreatePage("", "My page")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if created != "about/index.md" {
+	if parent != "my-page.md" {
+		t.Fatalf("parent = %q", parent)
+	}
+	before := readFile(t, root, parent)
+	created, renames, err := load(t, root).CreatePage(parent, "My subpage")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if created != "my-page/my-subpage.md" {
+		t.Errorf("created = %q", created)
+	}
+	if got := Remap(renames, "my-page.md"); got != "my-page/index.md" {
+		t.Errorf("parent remaps to %q", got)
+	}
+	if _, err := os.Stat(filepath.Join(root, "my-page.md")); !os.IsNotExist(err) {
+		t.Error("my-page.md still on disk")
+	}
+	if got := readFile(t, root, "my-page/index.md"); got != before {
+		t.Errorf("parent content = %q, want %q", got, before)
+	}
+	p := load(t, root).Find("my-page/index.md")
+	if p == nil {
+		t.Fatal("my-page/index.md not in tree")
+	}
+	if got := paths(p.Children); !reflect.DeepEqual(got, []string{"my-page/my-subpage.md"}) {
+		t.Errorf("children = %v", got)
+	}
+	// A second subpage finds the section in place and renames nothing.
+	created, renames, err = load(t, root).CreatePage("my-page/index.md", "Second")
+	if err != nil || created != "my-page/second.md" || len(renames) != 0 {
+		t.Errorf("second subpage = %q, %v, %v", created, renames, err)
+	}
+}
+
+// A page in a file of its own that already has a children directory next
+// to it (chapter3.qmd beside chapter3/) is left as it is: the subpage goes
+// into the directory, and nothing of the author's is renamed.
+func TestCreateSubpageBesideDirectory(t *testing.T) {
+	root := writeFixture(t)
+	created, renames, err := load(t, root).CreatePage("chapter3.qmd", "fresh")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if created != "chapter3/fresh.md" || len(renames) != 0 {
+		t.Errorf("created = %q, renames = %v", created, renames)
+	}
+	if load(t, root).Find("chapter3.qmd") == nil {
+		t.Error("chapter3.qmd moved")
+	}
+}
+
+// A page cannot be dropped into itself: it has no subtree yet that the
+// usual check could find it in.
+func TestMoveIntoItself(t *testing.T) {
+	root := writeFixture(t)
+	if _, err := load(t, root).Move("chapter2/second.qmd", "chapter2/second.qmd", 0); err == nil {
+		t.Error("want error moving a page into itself")
+	}
+	if load(t, root).Find("chapter2/second.qmd") == nil {
+		t.Error("chapter2/second.qmd moved")
+	}
+}
+
+func TestCreatePageAtRoot(t *testing.T) {
+	root := writeFixture(t)
+	created, _, err := load(t, root).CreatePage("", "about")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if created != "about.md" {
 		t.Fatalf("created = %q", created)
 	}
-	if p := load(t, root).Find("about/index.md"); p == nil || order(t, p) != 5 {
-		t.Fatalf("about/index.md = %+v", p)
+	if p := load(t, root).Find("about.md"); p == nil || order(t, p) != 5 {
+		t.Fatalf("about.md = %+v", p)
 	}
 	if got, want := readFile(t, root, created), "---\norder: 5\nstatus: new\n---\n\n::: explanation\n# about\n\n:::\n"; got != want {
 		t.Errorf("content = %q, want %q", got, want)
@@ -219,13 +308,13 @@ func TestCreatePageAfter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if created != "chapter2/inserted/index.md" {
+	if created != "chapter2/inserted.md" {
 		t.Fatalf("created = %q", created)
 	}
 	tree := load(t, root)
 	ch2 := tree.Find("chapter2/index.qmd")
 	want := []string{
-		"chapter2/second.qmd", "chapter2/inserted/index.md",
+		"chapter2/second.qmd", "chapter2/inserted.md",
 		"chapter2/third.qmd", "chapter2/fourth.qmd",
 	}
 	if got := paths(ch2.Children); !reflect.DeepEqual(got, want) {
@@ -248,12 +337,12 @@ func TestCreatePageAfterAtRoot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if created != "intro/index.md" {
+	if created != "intro.md" {
 		t.Fatalf("created = %q", created)
 	}
 	tree := load(t, root)
 	want := []string{
-		"index.qmd", "intro/index.md", "chapter1/index.qmd",
+		"index.qmd", "intro.md", "chapter1/index.qmd",
 		"chapter2/index.qmd", "chapter3.qmd",
 	}
 	if got := paths(tree.Pages); !reflect.DeepEqual(got, want) {
@@ -267,13 +356,17 @@ func TestCreatePageAfterAtRoot(t *testing.T) {
 func TestCreatePageExists(t *testing.T) {
 	root := writeFixture(t)
 	// chapter1/ already exists as a directory, so it is taken.
-	if _, err := load(t, root).CreatePage("", "chapter1"); err == nil {
+	if _, _, err := load(t, root).CreatePage("", "chapter1"); err == nil {
 		t.Error("want error creating page whose folder exists")
 	}
 	// The name is checked after it is normalized: "Chapter3" is chapter3,
 	// and chapter3.qmd is taken.
-	if _, err := load(t, root).CreatePage("", "Chapter3"); err == nil {
+	if _, _, err := load(t, root).CreatePage("", "Chapter3"); err == nil {
 		t.Error("want error creating page whose normalized name is taken")
+	}
+	// index is a section's own page, not a name a new page can take.
+	if _, _, err := load(t, root).CreatePage("chapter2/index.qmd", "Index"); err == nil {
+		t.Error("want error creating a page named index")
 	}
 }
 
@@ -486,7 +579,7 @@ func TestRenamePageMarkdown(t *testing.T) {
 		t.Error("three.md missing")
 	}
 	// A name taken by a .md file blocks creating a page.
-	if _, err := load(t, root).CreatePage("", "three"); err == nil {
+	if _, _, err := load(t, root).CreatePage("", "three"); err == nil {
 		t.Error("CreatePage over three.md accepted")
 	}
 }
