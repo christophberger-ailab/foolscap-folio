@@ -383,7 +383,8 @@ An HTML format builds a site with a layout like Quarto's:
 - previous/next links at the foot of a page;
 - a full text search field in the navbar (`/` focuses it): a fuzzy search
   with [Fuse.js](https://www.fusejs.io/) over the titles and text of all pages,
-  run in the browser from an index written at render time, showing each hit
+  run in the browser from an index written at render time, in web workers so
+  that the page never freezes while it searches, showing each hit
   with a highlighted snippet; the query and its hits stay when a hit is opened
   or the list is closed, for as long as the browser tab is open, and a button
   in the field clears them;
@@ -391,7 +392,8 @@ An HTML format builds a site with a layout like Quarto's:
   sidebar becomes off-canvas at 50em and narrower;
 - all text sizes and the 42em text column are in `em`, so the page scales with
   the reader's font size; dark mode follows the system setting; print styles;
-- all links are relative, so the site works from `file://` and below any URL prefix.
+- all links are relative, so the site works from `file://` (except the search,
+  which needs the site served over HTTP) and below any URL prefix.
 
 Callouts, tables, footnotes, definition lists and images are drawn by the site's own stylesheet. Links between pages of a topic (`/dispatcher/a/`, `/dispatcher/a/index.qmd`, …) are rewritten to the generated pages. With several audiences, a site goes to `<output>/<format>-<audience>` unless the format's `dir` contains a placeholder. A site that should show every audience's content at once, each marked by its class, is a format restricted to one audience whose `show:` lists the others:
 

@@ -58,8 +58,8 @@ func htmlText(s string) string {
 	}
 }
 
-// writeSearch writes the search index as a script, not as JSON: a page
-// opened from file:// may load a script but not fetch a file.
+// writeSearch writes the search index as a script, which the page loads
+// when the search field first gets the focus.
 func (b *builder) writeSearch(dir string) error {
 	data, err := json.Marshal(b.search)
 	if err != nil {

@@ -12,7 +12,7 @@ func (b *builder) writeStatic() error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	for _, name := range []string{"style.css", "site.js", "fuse.min.js"} {
+	for _, name := range []string{"style.css", "site.js", "fuse-worker.mjs", "fuse.worker.mjs"} {
 		data, err := assetFS.ReadFile("assets/" + name)
 		if err != nil {
 			return err

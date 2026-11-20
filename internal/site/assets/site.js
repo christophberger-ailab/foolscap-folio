@@ -38,9 +38,10 @@
     }
   }
 
-  // Search. Fuse.js and the index are loaded as scripts on first use, so a
-  // reader who never searches does not download them, and the site keeps
-  // working from file://, where a page may not fetch files.
+  // Search. Fuse.js and the index are loaded on first use, so a reader who
+  // never searches does not download them. The search runs in Fuse.js's web
+  // workers, which share the pages between them, so neither indexing nor
+  // typing on a large site freezes the page.
   var box = document.querySelector('.search');
   if (box) search(box);
 
@@ -49,7 +50,12 @@
     var list = box.querySelector('.search-results');
     var clear = box.querySelector('.search-clear');
     var base = box.getAttribute('data-base') || '';
-    var fuse = null, loading = false, sel = -1, timer = 0;
+    var find = null, loading = false, sel = -1, timer = 0;
+    var options = {
+      keys: [{ name: 't', weight: 3 }, { name: 'b', weight: 1 }],
+      ignoreLocation: true, ignoreFieldNorm: true, threshold: 0.2,
+      minMatchCharLength: 2, includeMatches: true, ignoreDiacritics: true
+    };
     var radius = 70, max = 10, key = 'folio-search';
 
     // The query outlives the page for the browser tab, so the hits are
@@ -75,17 +81,17 @@
       document.head.appendChild(s);
     }
     function load() {
-      if (fuse || loading) return;
+      if (find || loading) return;
       loading = true;
-      script('_site/fuse.min.js', function () {
-        script('_site/search.js', function () {
-          fuse = new window.Fuse(window.folioSearch || [], {
-            keys: [{ name: 't', weight: 3 }, { name: 'b', weight: 1 }],
-            ignoreLocation: true, ignoreFieldNorm: true, threshold: 0.2,
-            minMatchCharLength: 2, includeMatches: true, ignoreDiacritics: true
-          });
+      script('_site/search.js', function () {
+        // relative to this script, in _site/
+        import('./fuse-worker.mjs').then(function (m) {
+          var fuse = new m.FuseWorker(window.folioSearch || [], options);
+          find = function (q, done) {
+            fuse.search(q, { limit: max }).then(done, function (e) { console.error('search:', e); });
+          };
           run();
-        });
+        }, function (e) { console.error('search:', e); });
       });
     }
 
@@ -126,11 +132,20 @@
     }
     function run() {
       var q = input.value.trim();
+      if (q.length < 2) {
+        list.textContent = '';
+        sel = -1;
+        return show(false);
+      }
+      if (!find) return load();
+      find(q, function (hits) {
+        // a later query may have been answered first
+        if (q === input.value.trim()) render(hits);
+      });
+    }
+    function render(hits) {
       list.textContent = '';
       sel = -1;
-      if (q.length < 2) return show(false);
-      if (!fuse) return load();
-      var hits = fuse.search(q, { limit: max });
       if (!hits.length) {
         list.appendChild(el('li', 'search-none', box.getAttribute('data-nohits')));
       }
