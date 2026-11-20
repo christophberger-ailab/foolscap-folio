@@ -731,14 +731,14 @@ func TestFooter(t *testing.T) {
 	lacks(t, build(t, "Text.\n", Options{})["word/document.xml"], "footerReference")
 
 	// A template's own footer stays.
-	tpl := makeTemplateWithFooter(t)
+	tpl := makeTemplateWithFooter(t, "TEMPLATE-FOOTER")
 	p = build(t, "Text.\n", Options{Template: tpl, Footer: footer})
 	if _, ok := p["word/folio-footer.xml"]; ok {
 		t.Error("the template's footer was replaced")
 	}
 }
 
-func makeTemplateWithFooter(t *testing.T) string {
+func makeTemplateWithFooter(t *testing.T, text string) string {
 	t.Helper()
 	doc := dx.NewDocument()
 	sec, err := doc.DefaultSection()
@@ -751,10 +751,26 @@ func makeTemplateWithFooter(t *testing.T) string {
 	}
 	fp, _ := ftr.AddParagraph()
 	fr, _ := fp.AddRun()
-	fr.SetText("TEMPLATE-FOOTER")
+	fr.SetText(text)
 	path := filepath.Join(t.TempDir(), "footer.docx")
 	if err := doc.SaveAs(path); err != nil {
 		t.Fatal(err)
 	}
 	return path
+}
+
+// Margins rewrites a template's headers and footers (issue #124).
+func TestTemplateMargins(t *testing.T) {
+	tpl := makeTemplateWithFooter(t, "Version {{version}}")
+	p := build(t, "Text.\n", Options{Template: tpl, Margins: func(b []byte) []byte {
+		return bytes.ReplaceAll(b, []byte("{{version}}"), []byte("dev"))
+	}})
+	var margins string
+	for name, part := range p {
+		if strings.HasPrefix(name, "word/footer") || strings.HasPrefix(name, "word/header") {
+			margins += part
+		}
+	}
+	has(t, margins, "Version dev")
+	lacks(t, p["word/document.xml"], "Version dev")
 }

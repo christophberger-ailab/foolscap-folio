@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	dx "github.com/mmonterroca/docxgo/v2"
@@ -50,6 +51,9 @@ type Options struct {
 	// and intro, from _brand.yml's meta.fonts.section; a zero name or
 	// size keeps Headings'.
 	SectionHeadings [6]Font
+	// Margins, if set, rewrites the XML of each of the template's headers
+	// and footers, as to resolve their placeholders.
+	Margins func([]byte) []byte
 	// Footer, if set, is the page footer, unless the template has a
 	// default footer of its own.
 	Footer *markdown.Document
@@ -110,6 +114,13 @@ func Write(path string, d *markdown.Document, o Options) error {
 	w.finishParts(p)
 	if o.Template != "" {
 		setTitle(p, o.Title)
+		if o.Margins != nil {
+			for _, name := range p.names {
+				if marginPart.MatchString(name) {
+					p.set(name, o.Margins(p.get(name)))
+				}
+			}
+		}
 	}
 	data, err := p.bytes()
 	if err != nil {
@@ -117,6 +128,9 @@ func Write(path string, d *markdown.Document, o Options) error {
 	}
 	return writeFile(path, data)
 }
+
+// marginPart is the name of a header or footer part.
+var marginPart = regexp.MustCompile(`^word/(header|footer)\d*\.xml$`)
 
 func cmpOr(a, b string) string {
 	if a != "" {

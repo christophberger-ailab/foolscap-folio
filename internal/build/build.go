@@ -175,6 +175,7 @@ func Render(sel config.Selection, o Options, log Logf) error {
 			err = docx.Write(out, doc, docx.Options{
 				Root: sel.Config.Root, Template: template, Title: book.Title, Lang: lang, TOC: sel.Format.TOC,
 				Look: docx.Look(look), Headings: headings, SectionHeadings: section, Footer: foot, Warn: warn(log),
+				Margins: resolveXML(variables(sel, log, nil), "template "+rel(sel.Config.Root, template), log),
 			})
 			if err == nil {
 				err = docrender.CoverDOCX(out, page)
