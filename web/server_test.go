@@ -1020,23 +1020,27 @@ func TestCreateAndDelete(t *testing.T) {
 	srv, root := testServer(t)
 	before := configs(t, root)
 	rec := post(t, srv, "/create", url.Values{
-		"parent": {""}, "name": {"about"},
+		"parent": {""}, "name": {"About Us"},
 	})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("create: status %d: %s", rec.Code, rec.Body)
 	}
-	// A new page is created as name.md (issue #119).
-	if !strings.Contains(rec.Body.String(), `data-path="about.md"`) {
+	// A new page is created as name/index.md, the name in lower case with
+	// dashes for spaces (issue #118).
+	if !strings.Contains(rec.Body.String(), `data-path="about-us/index.md"`) {
 		t.Errorf("tree missing created page:\n%s", rec.Body)
 	}
 	// It carries no `title:`, which would override the page's level-1
 	// heading (issue #58), and the create form asks for none.
-	page, err := os.ReadFile(filepath.Join(root, "about.md"))
+	page, err := os.ReadFile(filepath.Join(root, "about-us", "index.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if strings.Contains(string(page), "title:") {
 		t.Errorf("new page has a title:\n%s", page)
+	}
+	if !strings.Contains(string(page), "\n# About Us\n") {
+		t.Errorf("new page is not headed by the name as typed:\n%s", page)
 	}
 	form := get(t, srv, "/").Body.String()
 	if i := strings.Index(form, `class="new-file-form"`); i < 0 || strings.Contains(form[i:i+strings.Index(form[i:], "</form>")], `name="title"`) {
@@ -1044,50 +1048,17 @@ func TestCreateAndDelete(t *testing.T) {
 	}
 	assertConfigsUnchanged(t, root, before)
 
-	rec = post(t, srv, "/delete", url.Values{"path": {"about.md"}})
+	rec = post(t, srv, "/delete", url.Values{"path": {"about-us/index.md"}})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("delete: status %d: %s", rec.Code, rec.Body)
 	}
-	if strings.Contains(rec.Body.String(), `data-path="about.md"`) {
+	if strings.Contains(rec.Body.String(), `data-path="about-us/index.md"`) {
 		t.Errorf("tree still shows deleted page:\n%s", rec.Body)
 	}
-	if _, err := os.Stat(filepath.Join(root, "about.md")); !os.IsNotExist(err) {
-		t.Error("about.md still on disk")
+	if _, err := os.Stat(filepath.Join(root, "about-us")); !os.IsNotExist(err) {
+		t.Error("about-us/ still on disk")
 	}
 	assertConfigsUnchanged(t, root, before)
-}
-
-// Adding a subpage to the page the editor has open moves that page to
-// name/index.md (issue #119), so the editor is re-pointed at it, the way a
-// move re-points it.
-func TestCreateSubpageRepointsOpenPage(t *testing.T) {
-	srv, root := testServer(t)
-	get(t, srv, "/content?path=chapter2/second.qmd")
-	rec := post(t, srv, "/create", url.Values{
-		"parent": {"chapter2/second.qmd"}, "name": {"My subpage"}, "open": {"chapter2/second.qmd"},
-	})
-	if rec.Code != http.StatusOK {
-		t.Fatalf("create: status %d: %s", rec.Code, rec.Body)
-	}
-	body := rec.Body.String()
-	for _, want := range []string{
-		`data-path="chapter2/second/index.qmd"`,
-		`data-path="chapter2/second/my-subpage.md"`,
-		`value="chapter2/second/index.qmd"`,
-	} {
-		if !strings.Contains(body, want) {
-			t.Errorf("create response is missing %q:\n%s", want, body)
-		}
-	}
-	// The editor's autosave now lands on the moved file.
-	if rec := post(t, srv, "/save", url.Values{
-		"path": {"chapter2/second/index.qmd"}, "body": {read(t, root, "chapter2/second/index.qmd") + "\nedited\n"},
-	}); rec.Code != http.StatusOK {
-		t.Fatalf("save: status %d: %s", rec.Code, rec.Body)
-	}
-	if !strings.Contains(read(t, root, "chapter2/second/index.qmd"), "edited") {
-		t.Error("the edit was lost")
-	}
 }
 
 // The top-bar create form sends the selected page as "after"; the new page
@@ -1102,12 +1073,12 @@ func TestCreateAfter(t *testing.T) {
 		t.Fatalf("create: status %d: %s", rec.Code, rec.Body)
 	}
 	body := rec.Body.String()
-	if !strings.Contains(body, `data-path="chapter2/inserted.md"`) {
+	if !strings.Contains(body, `data-path="chapter2/inserted/index.md"`) {
 		t.Errorf("tree missing inserted page:\n%s", body)
 	}
 	// The new page sits after second and before third in the tree.
 	iSecond := strings.Index(body, `data-path="chapter2/second.qmd"`)
-	iNew := strings.Index(body, `data-path="chapter2/inserted.md"`)
+	iNew := strings.Index(body, `data-path="chapter2/inserted/index.md"`)
 	iThird := strings.Index(body, `data-path="chapter2/third.qmd"`)
 	if !(iSecond < iNew && iNew < iThird) {
 		t.Errorf("inserted page not between second and third:\n%s", body)
@@ -1201,7 +1172,7 @@ func TestMoveSectionRepointsOpenChild(t *testing.T) {
 	}
 	get(t, srv, "/content?path=chapter2/second.qmd")
 	rec := post(t, srv, "/move", url.Values{
-		"src": {"chapter2/index.qmd"}, "parent": {"dispatcher.md"}, "pos": {"0"},
+		"src": {"chapter2/index.qmd"}, "parent": {"dispatcher/index.md"}, "pos": {"0"},
 		"open": {"chapter2/second.qmd"},
 	})
 	if rec.Code != http.StatusOK {

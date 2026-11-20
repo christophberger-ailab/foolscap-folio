@@ -127,7 +127,7 @@ The UI shows the project's page tree, reorders pages by drag and drop (which rew
 
 A ```` ```{mermaid} ```` block is drawn in the preview as it is in a render: the server draws it with the same renderer and the preview shows the diagram, so it looks as it does on the website. A plain ```` ```mermaid ```` block stays code, as in a render.
 
-A page marked `draft: true` in its front matter is greyed out in the tree: it is there, but it is not part of what a render publishes yet. A few front matter keys of folio's own mark a page in the tree: `status: new` shows 🆕, `status: deprecated` (or `obsolete`, or `old`) shows 🗑️, `review: "what to review"` shows 👀 with the text as its tooltip, and `hide: true` leaves the page out of the tree. A `==TODO==` anywhere in the page, `<!-- ==TODO== -->` included, shows 🚧. A new page is created as `name.md`, its file name being the typed name in lower case with dashes for spaces, and starts with `status: new` and an `::: explanation` div headed by the name as typed, as a level-1 heading (`# Map view` in `map-view.md`). When a page in a file of its own gets its first subpage, it moves to `name/index.md` and the subpage goes next to it. A page written for one audience — an `_FW` or `_POL` suffix on its name or on a folder above it — is previewed inside that audience's `::: fw` / `::: pol` div, the way the flattener wraps it, so the custom preview stylesheet tints and marks the whole page just as it marks such a block written into the page by hand.
+A page marked `draft: true` in its front matter is greyed out in the tree: it is there, but it is not part of what a render publishes yet. A few front matter keys of folio's own mark a page in the tree: `status: new` shows 🆕, `status: deprecated` (or `obsolete`, or `old`) shows 🗑️, `review: "what to review"` shows 👀 with the text as its tooltip, and `hide: true` leaves the page out of the tree. A `==TODO==` anywhere in the page, `<!-- ==TODO== -->` included, shows 🚧. A new page is created as `name/index.md`, its folder name being the typed name in lower case with dashes for spaces, and starts with `status: new` and an `::: explanation` div headed by the name as typed, as a level-1 heading (`# Map view` in `map-view/index.md`). A page written for one audience — an `_FW` or `_POL` suffix on its name or on a folder above it — is previewed inside that audience's `::: fw` / `::: pol` div, the way the flattener wraps it, so the custom preview stylesheet tints and marks the whole page just as it marks such a block written into the page by hand.
 
 Beside the editor sit the Markdown preview and a copyedit pane. The *Preview* and *Copyedit* buttons show and hide each on its own; with both shown they stand side by side, a pane's head dragged onto the other swaps them, and every divider can be dragged to resize. The copyedit pane lists the editing tasks configured under *Config → Copyedit: Editing tasks* — each one a prompt with a title, "Passive voice", "Shorten sentences". Clicking one sends the text the editor holds, unsaved edits and all, to the model selected in the pane's dropdown, and answers with a list of suggestions: what to change, what to put there instead, and why. Each suggestion's passage is highlighted in the editor, and clicking the suggestion scrolls to it; a Back button returns to the task list and takes the highlights off the text.
 
@@ -593,6 +593,14 @@ resvg, change its version in `internal/svgimage/resvg/Cargo.toml` and run
 `go generate ./internal/svgimage`, which needs Rust with the
 `wasm32-unknown-unknown` target (`rustup target add wasm32-unknown-unknown`).
 Update `internal/svgimage/resvg/THIRD_PARTY.md` with it.
+
+`.github/workflows/vulncheck.yml` checks the dependencies for known
+vulnerabilities on every push and pull request and once a day: Go with
+govulncheck, resvg's `Cargo.lock` and the embedded Fuse.js with osv-scanner.
+Fuse.js is copied in (`internal/site/assets/fuse-worker.mjs` and `fuse.worker.mjs`);
+`internal/site/package.json` and its lockfile name its version for the scan.
+To update Fuse.js, replace the file, change the version there and run
+`npm install --package-lock-only` in `internal/site`.
 
 Releases are cut by `.github/workflows/release.yml` when a pull request is
 merged into `main` (a push to `main` that is not a PR merge releases nothing):

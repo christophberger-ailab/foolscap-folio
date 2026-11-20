@@ -19,7 +19,7 @@ Die Überschrift über dem Editor zeigt den Pfad der Seite. Die Schaltfläche `�
 - Hat die Seite Unterseiten in einem gleichnamigen Ordner, wird dieser Ordner mit umbenannt, damit die Unterseiten bei ihr bleiben.
 - Ein schon vergebener Name wird abgelehnt, und das Feld bleibt offen, damit du ihn korrigieren kannst.
 - Der Editor folgt der Datei zu ihrem neuen Namen. Dein ungespeicherter Text bleibt unberührt, und Autosave schreibt weiter in die richtige Datei.
-- Eine Seite, die als `name/index.md` gespeichert ist, und so wird eine Seite gespeichert, sobald sie Unterseiten hat, oder als ältere `name/index.qmd`, heißt wie ihr Ordner. Bei ihr enthält das Feld den Ordnernamen, `/index.md` bzw. `/index.qmd` bleibt stehen, und der Ordner wird samt den Seiten darin umbenannt.
+- Eine Seite, die als `name/index.md` gespeichert ist, und so werden neue Seiten angelegt, oder als ältere `name/index.qmd`, heißt wie ihr Ordner. Bei ihr enthält das Feld den Ordnernamen, `/index.md` bzw. `/index.qmd` bleibt stehen, und der Ordner wird samt den Seiten darin umbenannt.
 - Die `index.md` oder `index.qmd` auf oberster Ebene des Projekts lässt sich nicht umbenennen.
 
 ## Verschiebungen während der Bearbeitung

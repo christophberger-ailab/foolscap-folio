@@ -66,9 +66,9 @@ Ziehe eine Seite am Griff `⠿`.
 ## Seiten anlegen
 
 - Tippe oben den Namen der Seite und drücke dann `＋ Page`.
-- Die Seite wird als eigene Datei `name.md` gespeichert. Der Dateiname ist der Name in Kleinbuchstaben, mit Bindestrichen statt Leerzeichen: Aus „Kartenansicht neu“ wird `kartenansicht-neu.md`.
+- Die Seite wird als `name/index.md` gespeichert. Der Ordnername ist der Name in Kleinbuchstaben, mit Bindestrichen statt Leerzeichen: Aus „Kartenansicht neu“ wird `kartenansicht-neu/index.md`.
 - Eine neue Seite hat kein `title` im Frontmatter, nur ihr `order`. Sie beginnt mit einer Überschrift der Ebene 1 in einem `::: explanation`-Block, unabhängig von ihrer Stelle im Baum. Die Überschrift ist der Name so, wie du ihn getippt hast (`# Kartenansicht neu`), und sie ist der Titel der Seite.
-- Die Schaltfläche `＋` in einer Zeile fügt unter dieser Seite eine Unterseite hinzu. Du wirst nach dem Namen gefragt. Hat die Seite noch keine Unterseiten, zieht sie zuerst in einen eigenen Ordner: Aus `kartenansicht-neu.md` wird `kartenansicht-neu/index.md`, und die Unterseite kommt daneben. Ist die Seite geöffnet, folgt ihr der Editor. Legst du eine Seite per Ziehen auf einer Seite ohne Unterseiten ab, zieht diese genauso um.
+- Die Schaltfläche `＋` in einer Zeile fügt unter dieser Seite eine Unterseite hinzu. Du wirst nach dem Namen gefragt.
 
 ## Seiten löschen
 

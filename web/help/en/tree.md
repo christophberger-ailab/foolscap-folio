@@ -66,9 +66,9 @@ Drag a page by its `⠿` handle.
 ## Creating pages
 
 - Type the page's name at the top, then press `＋ Page`.
-- The page is saved as a file of its own, `name.md`. Its file name is the name in lower case, with dashes for spaces: "Map view" becomes `map-view.md`.
+- The page is saved as `name/index.md`. Its folder name is the name in lower case, with dashes for spaces: "Map view" becomes `map-view/index.md`.
 - A new page has no `title` in its frontmatter, only its `order`. It starts with a level-1 heading inside an `::: explanation` div, whatever its place in the tree. The heading is the name as you typed it (`# Map view`), and it is the page's title.
-- The `＋` button on a row adds a child page under that page. You are asked for the name. If the page has no subpages yet, it first moves into a folder of its own: `map-view.md` becomes `map-view/index.md`, and the subpage goes next to it. If the page is open, the editor follows it. Dropping a page onto a page without subpages moves it the same way.
+- The `＋` button on a row adds a child page under that page. You are asked for the name.
 
 ## Deleting pages
 
