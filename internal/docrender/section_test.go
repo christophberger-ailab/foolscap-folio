@@ -130,3 +130,37 @@ func TestSectionTitleOpensAPageInALargerSize(t *testing.T) {
 		t.Errorf("brand's section size not taken: %v", s)
 	}
 }
+
+// The page footer is drawn below the text of every page it is given,
+// without starting pages of its own (issue #124).
+func TestFooterOnEveryPage(t *testing.T) {
+	f := markdown.Parse([]byte("Version **dev** · [site](https://example.com)"))
+	f.Prepare(markdown.Options{})
+	bb, err := FromMarkdown(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w := testWriter(t)
+	w.newPage()
+	w.newPage()
+	var lines []string
+	w.trace = func(line []piece) {
+		var s string
+		for _, p := range line {
+			s += p.Text
+		}
+		lines = append(lines, s)
+		if w.y < pageH-margin {
+			t.Errorf("footer drawn at %v, in the text area", w.y)
+		}
+	}
+	if err := w.footer(bb, 2, 3); err != nil {
+		t.Fatal(err)
+	}
+	if len(lines) != 2 || strings.TrimSpace(lines[0]) != "Version dev · site" {
+		t.Errorf("footer lines = %q, want one on each of pages 2 and 3", lines)
+	}
+	if w.page != 3 {
+		t.Errorf("the footer added pages: %d", w.page)
+	}
+}

@@ -50,6 +50,9 @@ type Options struct {
 	// and intro, from _brand.yml's meta.fonts.section; a zero name or
 	// size keeps Headings'.
 	SectionHeadings [6]Font
+	// Footer, if set, is the page footer, unless the template has a
+	// default footer of its own.
+	Footer *markdown.Document
 	// Warn, if set, receives the problems that do not stop the render,
 	// such as an image that is not there.
 	Warn func(format string, args ...any)
@@ -99,6 +102,9 @@ func Write(path string, d *markdown.Document, o Options) error {
 		return w.err
 	}
 
+	if o.Footer != nil && !hasFooter.MatchString(sect) {
+		sect = w.footer(p, o.Footer, sect)
+	}
 	p.set("word/document.xml", []byte(declareNS(prefix)+w.out.String()+sect+suffix))
 	p.set("word/styles.xml", []byte(w.styles.appendTo(styles)))
 	w.finishParts(p)

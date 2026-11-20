@@ -173,7 +173,40 @@ func layoutPDF(ctx context.Context, path string, bb []Block, o Options) error {
 			return err
 		}
 	}
+	if o.Footer != nil {
+		footer, err := FromMarkdown(o.Footer)
+		if err != nil {
+			return fmt.Errorf("footer: %w", err)
+		}
+		if err = w.footer(footer, first, last); err != nil {
+			return err
+		}
+	}
 	return p.WritePdf(path)
+}
+
+// footer draws the page footer's paragraphs on the pages first to last,
+// in the bottom margin, left of the page number.
+func (w *pdfWriter) footer(bb []Block, first, last int) error {
+	const size = 8.5
+	inset := w.inset
+	defer func() { w.inset = inset }()
+	w.inset = -pageH // the footer never breaks the page
+	for page := first; page <= last; page++ {
+		if err := w.p.SetPage(page); err != nil {
+			return err
+		}
+		w.y = pageH - 31
+		for _, b := range bb {
+			if len(b.Runs) == 0 {
+				continue
+			}
+			if err := w.paragraph(b.Runs, size, margin, pageW-2*margin-40); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // splitTOC separates the blocks before the contents marker from those

@@ -1,7 +1,9 @@
 package build
 
 import (
+	"archive/zip"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -293,5 +295,71 @@ func TestSiteFooter(t *testing.T) {
 	}
 	if warned != 2 {
 		t.Errorf("want a warning per topic and the home page, got %d:\n%s", warned, strings.Join(log, "\n"))
+	}
+}
+
+// writeProject writes files into a new project and returns its root.
+func writeProject(t *testing.T, files map[string]string) string {
+	t.Helper()
+	root := t.TempDir()
+	for name, body := range files {
+		p := filepath.Join(root, name)
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return root
+}
+
+// docxPart returns a part of a written DOCX.
+func docxPart(t *testing.T, path, name string) string {
+	t.Helper()
+	zr, err := zip.OpenReader(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer zr.Close()
+	for _, f := range zr.File {
+		if f.Name == name {
+			r, err := f.Open()
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer r.Close()
+			b, err := io.ReadAll(r)
+			if err != nil {
+				t.Fatal(err)
+			}
+			return string(b)
+		}
+	}
+	return ""
+}
+
+// A document has the page footer of folio.yml, its variables resolved
+// from _variables.yml, as the website has (issue #124).
+func TestDocumentHasTheFooter(t *testing.T) {
+	root := writeProject(t, map[string]string{
+		"folio.yml":      "footer: \"Version {{version}} of {topic}\"\nformats:\n  handout: {type: [docx, pdf]}\n",
+		"_variables.yml": "version: dev\n",
+		"book/index.md":  "# Book\n\nText.\n",
+	})
+	cfg, err := config.Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sels, err := cfg.Expand(config.Request{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := Run(Options{Selections: sels}, nil); err != nil {
+		t.Fatal(err)
+	}
+	footer := docxPart(t, filepath.Join(root, "_output", "handout", "book.docx"), "word/folio-footer.xml")
+	if !strings.Contains(footer, ">Version dev of book</w:t>") {
+		t.Errorf("footer = %s", footer)
 	}
 }

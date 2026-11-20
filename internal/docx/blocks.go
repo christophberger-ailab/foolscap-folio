@@ -360,3 +360,28 @@ func (w *writer) finishParts(p *pkg) {
 	addRels(p, rels)
 	patchSettings(p, w.opt.TOC, len(w.fnXML) > 0)
 }
+
+// hasFooter finds a default footer in a section's properties.
+var hasFooter = regexp.MustCompile(`<w:footerReference\b[^>]*w:type="default"`)
+
+// footer writes the page footer f into a part of its own and returns the
+// section properties sect with it as their default footer. Its links are
+// text, as in footnotes: the part has no relationships of its own.
+func (w *writer) footer(p *pkg, f *markdown.Document, sect string) string {
+	const name, id = "word/folio-footer.xml", "rIdQmFooter"
+	style := w.styles.need("paragraph", "Footer", `<w:basedOn w:val="`+w.styles.normal()+`"/>`+
+		`<w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0"/></w:pPr><w:rPr><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr>`,
+		"footer")
+	src := w.src
+	w.src = f.Source
+	body := w.capture(func() { w.blocks(f.Root, ctx{style: style, note: true}) })
+	w.src = src
+	p.set(name, []byte(xmlDecl+`<w:ftr xmlns:w="`+nsW+`" xmlns:r="`+nsR+`">`+body+`</w:ftr>`))
+	ensureContentType(p, "/"+name, "application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml", true)
+	w.rels = append(w.rels, relationship{id, relBase + "footer", "folio-footer.xml"})
+	if strings.HasSuffix(sect, "/>") && strings.Count(sect, "<") == 1 { // <w:sectPr/>
+		sect = strings.TrimSuffix(sect, "/>") + "></w:sectPr>"
+	}
+	open := strings.Index(sect, ">") + 1
+	return sect[:open] + `<w:footerReference w:type="default" r:id="` + id + `"/>` + sect[open:]
+}

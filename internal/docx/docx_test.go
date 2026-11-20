@@ -713,3 +713,48 @@ func TestSectionTitleOpensAPageInALargerSize(t *testing.T) {
 	has(t, build(t, md, Options{Headings: h})["word/document.xml"],
 		`<w:sz w:val="80"/><w:szCs w:val="80"/></w:rPr><w:t xml:space="preserve">Part One</w:t>`)
 }
+
+// The page footer of folio.yml is the document's default footer, unless a
+// template brings one of its own (issue #124).
+func TestFooter(t *testing.T) {
+	footer := markdown.Parse([]byte("Version **dev** · [site](https://example.com)"))
+	footer.Prepare(markdown.Options{})
+	p := build(t, "# Title\n\nText.\n", Options{Footer: footer})
+	doc, part := p["word/document.xml"], p["word/folio-footer.xml"]
+	has(t, doc, `<w:footerReference w:type="default" r:id="rIdQmFooter"/>`)
+	has(t, part, `<w:ftr `, `>Version </w:t>`, `<w:b/>`, `>dev</w:t>`, `>site</w:t>`)
+	has(t, p["word/_rels/document.xml.rels"], `Id="rIdQmFooter"`, `Target="folio-footer.xml"`)
+	has(t, p["[Content_Types].xml"], `PartName="/word/folio-footer.xml"`)
+	lacks(t, p["word/folio-footer.xml"], "Text.")
+
+	// Without a footer, nothing is added.
+	lacks(t, build(t, "Text.\n", Options{})["word/document.xml"], "footerReference")
+
+	// A template's own footer stays.
+	tpl := makeTemplateWithFooter(t)
+	p = build(t, "Text.\n", Options{Template: tpl, Footer: footer})
+	if _, ok := p["word/folio-footer.xml"]; ok {
+		t.Error("the template's footer was replaced")
+	}
+}
+
+func makeTemplateWithFooter(t *testing.T) string {
+	t.Helper()
+	doc := dx.NewDocument()
+	sec, err := doc.DefaultSection()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ftr, err := sec.Footer(domain.FooterDefault)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fp, _ := ftr.AddParagraph()
+	fr, _ := fp.AddRun()
+	fr.SetText("TEMPLATE-FOOTER")
+	path := filepath.Join(t.TempDir(), "footer.docx")
+	if err := doc.SaveAs(path); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
