@@ -49,29 +49,31 @@
     var input = box.querySelector('input');
     var list = box.querySelector('.search-results');
     var clear = box.querySelector('.search-clear');
+    var busy = box.querySelector('.search-busy');
     var base = box.getAttribute('data-base') || '';
-    var find = null, loading = false, sel = -1, timer = 0;
+    var find = null, loading = false, sel = -1, timer = 0, slow = 0, shown = '', stale = false;
     var options = {
       keys: [{ name: 't', weight: 3 }, { name: 'b', weight: 1 }],
       ignoreLocation: true, ignoreFieldNorm: true, threshold: 0.2,
       minMatchCharLength: 2, includeMatches: true, ignoreDiacritics: true
     };
-    var radius = 70, max = 10, key = 'folio-search';
+    var radius = 70, max = 10, key = 'folio-search', hitsKey = 'folio-search-hits';
 
-    // The query outlives the page for the browser tab, so the hits are
-    // there again after opening one of them. Storage may be unavailable
-    // (privacy settings, some file:// setups); the search works without it.
-    function store(q) {
-      try { if (q) sessionStorage.setItem(key, q); else sessionStorage.removeItem(key); } catch (e) {}
+    // The query and its hits outlive the page for the browser tab, so the
+    // hits are there again at once after opening one of them, before the
+    // index has loaded. Storage may be unavailable (privacy settings, some
+    // file:// setups); the search works without it.
+    function store(k, v) {
+      try { if (v) sessionStorage.setItem(k, v); else sessionStorage.removeItem(k); } catch (e) {}
     }
-    function stored() {
-      try { return sessionStorage.getItem(key) || ''; } catch (e) { return ''; }
+    function stored(k) {
+      try { return sessionStorage.getItem(k) || ''; } catch (e) { return ''; }
     }
     function changed() {
       if (clear) clear.hidden = !input.value;
-      store(input.value);
+      store(key, input.value);
     }
-    if (!input.value) input.value = stored();
+    if (!input.value) input.value = stored(key);
     changed();
 
     function script(src, done) {
@@ -88,36 +90,43 @@
         import('./fuse-worker.mjs').then(function (m) {
           var fuse = new m.FuseWorker(window.folioSearch || [], options);
           find = function (q, done) {
-            fuse.search(q, { limit: max }).then(done, function (e) { console.error('search:', e); });
+            fuse.search(q, { limit: max }).then(done, failed);
           };
           run();
-        }, function (e) { console.error('search:', e); });
+        }, failed);
       });
     }
+    function failed(e) {
+      wait(false);
+      console.error('search:', e);
+    }
+    // wait shows the busy indicator once a search has taken a second.
+    function wait(on) {
+      if (on) { if (!slow) slow = setTimeout(function () { busy.hidden = false; }, 1000); return; }
+      clearTimeout(slow);
+      slow = 0;
+      busy.hidden = true;
+    }
 
-    // snippet is the body text around its longest match, with the matches
-    // in it marked.
+    // snippet is the body text around its longest match, as [text, marked]
+    // parts.
     function snippet(doc, matches) {
       var m = null;
       matches.forEach(function (x) { if (x.key === 'b') m = x; });
-      var text = doc.b, frag = document.createDocumentFragment();
-      if (!m) { frag.textContent = text.slice(0, 2 * radius) + (text.length > 2 * radius ? '…' : ''); return frag; }
+      var text = doc.b;
+      if (!m) return [[text.slice(0, 2 * radius) + (text.length > 2 * radius ? '…' : '')]];
       var best = m.indices[0];
       m.indices.forEach(function (r) { if (r[1] - r[0] > best[1] - best[0]) best = r; });
       var from = Math.max(0, best[0] - radius), to = Math.min(text.length, best[1] + 1 + radius);
-      if (from > 0) frag.appendChild(document.createTextNode('…'));
-      var at = from;
+      var parts = from > 0 ? [['…']] : [], at = from;
       m.indices.forEach(function (r) {
         if (r[1] < at || r[0] >= to || r[1] - r[0] < 1) return;
         var s = Math.max(r[0], at), e = Math.min(r[1] + 1, to);
-        frag.appendChild(document.createTextNode(text.slice(at, s)));
-        var mk = document.createElement('mark');
-        mk.textContent = text.slice(s, e);
-        frag.appendChild(mk);
+        parts.push([text.slice(at, s)], [text.slice(s, e), 1]);
         at = e;
       });
-      frag.appendChild(document.createTextNode(text.slice(at, to) + (to < text.length ? '…' : '')));
-      return frag;
+      parts.push([text.slice(at, to) + (to < text.length ? '…' : '')]);
+      return parts;
     }
 
     function el(tag, cls, text) {
@@ -133,36 +142,60 @@
     function run() {
       var q = input.value.trim();
       if (q.length < 2) {
+        wait(false);
+        store(hitsKey, '');
         list.textContent = '';
         sel = -1;
+        shown = '';
+        stale = false;
         return show(false);
       }
+      // stored hits are shown while the search runs again, as the index
+      // may have changed since
+      if (q === shown && !stale) return wait(false);
+      if (q !== shown) wait(true);
       if (!find) return load();
       find(q, function (hits) {
         // a later query may have been answered first
-        if (q === input.value.trim()) render(hits);
+        if (q !== input.value.trim()) return;
+        wait(false);
+        hits = hits.map(function (h) {
+          return { t: h.item.t, u: h.item.u, s: h.item.s, p: snippet(h.item, h.matches || []) };
+        });
+        store(hitsKey, JSON.stringify({ q: q, hits: hits }));
+        render(q, hits, false);
+        show(box.contains(document.activeElement));
       });
     }
-    function render(hits) {
+    // render lists the hits for q; a new list of the same query keeps the
+    // selected hit.
+    function render(q, hits, old) {
+      var keep = q === shown ? sel : -1;
       list.textContent = '';
       sel = -1;
+      shown = q;
+      stale = old;
       if (!hits.length) {
         list.appendChild(el('li', 'search-none', box.getAttribute('data-nohits')));
       }
       hits.forEach(function (h) {
         var a = el('a', 'search-hit');
-        a.href = base + h.item.u;
-        a.appendChild(el('span', 'search-title', h.item.t));
-        if (h.item.s && h.item.s !== h.item.t) a.appendChild(el('span', 'search-section', h.item.s));
+        a.href = base + h.u;
+        a.appendChild(el('span', 'search-title', h.t));
+        if (h.s && h.s !== h.t) a.appendChild(el('span', 'search-section', h.s));
         var p = el('span', 'search-snippet');
-        p.appendChild(snippet(h.item, h.matches || []));
+        h.p.forEach(function (x) { p.appendChild(x[1] ? el('mark', '', x[0]) : document.createTextNode(x[0])); });
         a.appendChild(p);
         var li = document.createElement('li');
         li.appendChild(a);
         list.appendChild(li);
       });
-      show(true);
+      if (keep >= 0 && keep < hits.length) move(keep + 1);
     }
+    try {
+      var last = JSON.parse(stored(hitsKey) || 'null');
+      if (last && last.q === input.value.trim()) render(last.q, last.hits, true);
+    } catch (e) {}
     function move(d) {
       var hits = list.querySelectorAll('.search-hit');
       if (!hits.length) return;

@@ -135,7 +135,9 @@ constraints:
       6-5: Up and Down select a hit, and open the closed list again; Enter opens the selected one or the first; Escape closes the list and keeps the query; "/" anywhere on the page puts the focus into the field
       6-6: Without JavaScript the field is not shown, and it is not printed
       6-7: The query is kept in the tab's session storage, so after opening a hit or closing the list the field still holds it and shows its hits again on focus, also on the other pages of the site; without session storage the search still works, it just forgets
-      6-8: A clear button in the field, shown only while it holds a query, empties the field, closes the list, forgets the stored query, and puts the focus back into the field
+      6-7-1: Its hits are kept there too, so on another page the focus shows them at once, before the index has loaded; once it has, the search runs again and replaces them quietly, keeping the selected hit
+      6-8: A clear button in the field, shown only while it holds a query, empties the field, closes the list, forgets the stored query and its hits, and puts the focus back into the field
+      6-9: A search that has not answered within a second, loading the index included, shows a spinner in the field until its hits are shown; stored hits shown again show none
       7: 'A format''s `css` lists project-relative stylesheets; each is copied verbatim (an .scss file is not compiled) to `_site/css/` and linked on every page after the site''s own stylesheet. A missing one fails the render before anything is written'
       8: 'folio.yml''s `footer`, or a format''s own, is Markdown shown at the foot of every page; its `{name}` and `{{name}}` placeholders resolve against the page''s front matter, else `_variables.yml`, else the variables of folio.yml for the page''s topic, plus `date` and the built-ins `topic`, `format` and `audience`; one without a variable stays as written, with a warning per topic'
       8-3: 'Variables of `_variables.yml` win over those of folio.yml; a `_variables.yml` that is not YAML is reported with a warning'
