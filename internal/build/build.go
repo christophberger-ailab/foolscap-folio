@@ -237,7 +237,7 @@ func Document(sel config.Selection, log Logf) (*markdown.Document, Book, error) 
 	doc := markdown.Parse([]byte(text))
 	doc.Prepare(markdown.Options{Keep: sel.Keep, Formats: sel.Types(), Lang: sel.Config.Lang, CalloutTitles: sel.Config.CalloutTitles, Warn: warn(log)})
 	dropTitle(doc, book.Anchor)
-	vars := variables(sel)
+	vars := variables(sel, log, nil)
 	for _, f := range []struct {
 		name string
 		text *string
@@ -311,15 +311,21 @@ func Flatten(sel config.Selection, log Logf) (string, Book, error) {
 }
 
 // footer returns the page footer of a website selection by topic name,
-// "" for the home page, its placeholders resolved against the variables
-// of the topic. A placeholder without a variable is shown as written, with
-// a warning.
-func footer(sel config.Selection, log Logf) func(string) string {
+// "" for the home page, and the page's front matter, its placeholders
+// resolved against the page's variables. A placeholder without a variable
+// is shown as written, with a warning per topic.
+func footer(sel config.Selection, log Logf) func(string, map[string]any) string {
 	text := sel.Footer()
-	done := map[string]string{}
-	return func(topic string) string {
-		if s, ok := done[topic]; ok || text == "" {
-			return s
+	warned := map[string]bool{}
+	once := func(f string, a ...any) {
+		if m := fmt.Sprintf(f, a...); !warned[m] {
+			warned[m] = true
+			log("%s", m)
+		}
+	}
+	return func(topic string, meta map[string]any) string {
+		if text == "" {
+			return ""
 		}
 		ts := sel
 		ts.Topic = config.Topic{}
@@ -328,25 +334,36 @@ func footer(sel config.Selection, log Logf) func(string) string {
 				ts.Topic = t
 			}
 		}
-		s, err := config.Interpolate(text, variables(ts))
+		page := map[string]string{}
+		shortcode.Flatten(meta, page)
+		s, err := config.Interpolate(text, variables(ts, once, page))
 		if err != nil {
-			log("warning: footer: %v; it is shown as written", err)
+			where := "the home page"
+			if topic != "" {
+				where = "topic " + topic
+			}
+			once("warning: footer of %s: %v; it is shown as written", where, err)
 		}
-		done[topic] = s
 		return s
 	}
 }
 
-// variables are the selection's variables together with those of
-// _variables.yml and the date.
-func variables(sel config.Selection) map[string]string {
-	return shortcode.Variables(sel.Config.Root, sel.Vars(), sel.Config.Lang)
+// variables are the selection's variables from folio.yml, overlaid with
+// those of _variables.yml and then with page's, together with the date
+// and the built-ins topic, format and audience.
+func variables(sel config.Selection, log Logf, page map[string]string) map[string]string {
+	vars, err := shortcode.Variables(sel.Config.Root, sel.Config.Lang, sel.Vars(), page,
+		map[string]string{"topic": sel.Topic.Name, "format": sel.Format.Name, "audience": sel.Audience.Name})
+	if err != nil {
+		log.or()("warning: %v", err)
+	}
+	return vars
 }
 
 // Expander returns the shortcode expander of a selection.
 func Expander(sel config.Selection, log Logf) *shortcode.Expander {
 	log = log.or()
-	return shortcode.New(sel.Config.Root, variables(sel),
+	return shortcode.New(sel.Config.Root, variables(sel, log, nil),
 		warn(log))
 }
 

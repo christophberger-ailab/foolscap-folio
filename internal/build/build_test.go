@@ -241,13 +241,15 @@ func TestRenderSkipsOtherAudiencesPaths(t *testing.T) {
 }
 
 // A website's pages end in the project's footer, its placeholders
-// resolved from folio.yml, _variables.yml and the date, with the page's
-// topic; a placeholder without a variable is shown as written, with a
+// resolved from the page's front matter, else _variables.yml, else
+// folio.yml (issue #115), and the date, with the page's topic; a
+// placeholder without a variable is shown as written, with a
 // warning.
 func TestSiteFooter(t *testing.T) {
 	root := t.TempDir()
 	for file, body := range map[string]string{
-		"folio.yml":       "lang: de\nvars: {owner: Acme}\nfooter: \"{owner} · {topic} · {version} · {date} · {nope}\"\nformats:\n  web: {type: html}\ntopics:\n  book: {vars: {owner: Book Co}}\n",
+		"folio.yml":       "lang: de\nvars: {owner: Acme, version: 0.9}\nfooter: \"{owner} · {topic} · {{version}} · {{ date }} · {nope}\"\nformats:\n  web: {type: html}\ntopics:\n  book: {vars: {owner: Book Co}}\n",
+		"book/third.qmd":  "---\ntitle: Third\norder: 2\nversion: 2.0-beta\nowner: Page Co\n---\n\n# Third\n",
 		"_variables.yml":  "version: 1.2\ndate: 2026-03-05\ndate_format: D. MON YYYY\n",
 		"book/index.qmd":  "---\ntitle: Book\n---\n\n# Book\n\nText.\n",
 		"book/second.qmd": "---\ntitle: Second\norder: 1\n---\n\n# Second\n\nIt is {{< var date >}}.\n",
@@ -273,6 +275,9 @@ func TestSiteFooter(t *testing.T) {
 	}
 	if want := `<footer class="page-footer">Book Co · book · 1.2 · 5. März 2026 · {nope}</footer>`; !strings.Contains(read("book/second.html"), want) {
 		t.Errorf("topic page lacks %s", want)
+	}
+	if want := `<footer class="page-footer">Page Co · book · 2.0-beta · 5. März 2026 · {nope}</footer>`; !strings.Contains(read("book/third.html"), want) {
+		t.Errorf("page with front matter lacks %s", want)
 	}
 	if want := `<footer class="page-footer">Acme ·  · 1.2 · 5. März 2026 · {nope}</footer>`; !strings.Contains(read("index.html"), want) {
 		t.Errorf("home page lacks %s", want)

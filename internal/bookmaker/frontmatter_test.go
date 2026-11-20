@@ -114,3 +114,14 @@ func TestParseFrontMatterInvalidYAML(t *testing.T) {
 		t.Fatal("expected an error for malformed YAML")
 	}
 }
+
+// A page's front matter is kept whole, as its variables.
+func TestFrontMatterMeta(t *testing.T) {
+	fm, _, err := parseFrontMatter("---\ntitle: A\nversion: 2.0\nmeta: {owner: Acme}\n---\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fm.Meta["version"] != 2.0 || fm.Meta["title"] != "A" || fm.Meta["meta"] == nil {
+		t.Errorf("meta %v", fm.Meta)
+	}
+}
