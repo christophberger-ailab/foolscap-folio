@@ -2380,6 +2380,16 @@ mark.folio-todo-hidden {
   color: var(--muted);
 }
 
+/* A definition list, as the website shows it: the terms bold, each
+   definition's paragraphs indented below them. */
+.markdown-preview dt {
+  font-weight: bold;
+}
+
+.markdown-preview dd {
+  margin: 0 0 0.5em 1.6em;
+}
+
 .markdown-preview table {
   border-collapse: collapse;
   margin: 0.8em 0;
