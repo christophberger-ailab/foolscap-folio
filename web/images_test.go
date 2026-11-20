@@ -134,13 +134,13 @@ func jsFunc(t *testing.T, file, name string) string {
 	return string(fn)
 }
 
-func runNode(t *testing.T, script string) string {
+func runNode(t *testing.T, script string, args ...string) string {
 	t.Helper()
 	node, err := exec.LookPath("node")
 	if err != nil {
 		t.Skip("node not installed")
 	}
-	out, err := exec.Command(node, "-e", script).CombinedOutput()
+	out, err := exec.Command(node, append([]string{"-e", script, "--"}, args...)...).CombinedOutput()
 	if err != nil {
 		t.Fatalf("node: %v\n%s", err, out)
 	}
