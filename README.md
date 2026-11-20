@@ -238,7 +238,7 @@ Top level keys:
 | `lang`      | the document language (`de`, `en-US`, …); sets the proofing language and the contents heading |
 | `output`    | the directory renders are written below; default `_output`                                    |
 | `vars`      | variables for `{{< var name >}}` and `{name}` placeholders                                    |
-| `footer`    | the footer of every website page, in Markdown, with `{name}` placeholders; a format's `footer` replaces it |
+| `footer`    | the footer of every website page, in Markdown, with `{name}` or `{{name}}` placeholders; a format's `footer` replaces it |
 | `formats`   | how a render is produced                                                                      |
 | `audiences` | for whom                                                                                      |
 | `topics`    | what: one content folder each                                                                 |
@@ -323,12 +323,12 @@ title: Handbook
 lang: en
 ```
 
-`{name}` placeholders in `dir`, `file`, `cover`, `template` and `css` resolve against the variables: the project's `vars`, then the topic's, the audience's and the format's (later ones win), plus the built-ins `topic`, `format` and `audience`. A placeholder without a variable is an error. The same variables serve `{{< var name >}}` and its short form `{{name}}` in the content, together with the keys of `_variables.yml` in the project root (nested keys are written with dots, `metadata.version`); `vars` win over the file. Code blocks and inline code keep `{{name}}` as written, and an unknown name stays as written, with a warning.
+`{name}` placeholders in `dir`, `file`, `cover`, `template` and `css` resolve against the variables: the project's `vars`, then the topic's, the audience's and the format's (later ones win), plus the built-ins `topic`, `format` and `audience`. A placeholder without a variable is an error. The same variables serve `{{< var name >}}` and its short form `{{name}}` in the content, together with the keys of `_variables.yml` in the project root (nested keys are written with dots, `metadata.version`); the file wins over `vars`, so a build pipeline can set `version` or `date` there. A `_variables.yml` that is not YAML is reported with a warning. Code blocks and inline code keep `{{name}}` as written, and an unknown name stays as written, with a warning.
 
-The website's `footer`, the cover's title and subtitle and `{{name}}` also know `_variables.yml` and the built-in `date`: the variable `date` (`YYYY-MM-DD`), else the day of the render, written as the variable `date_format` says. `date_format` is `iso` (`YYYY-MM-DD`, the default) or a pattern of `YYYY` or `YY` (year), `MON` (the month's name in the project's `lang`), `MM` or `M` (month number with or without a leading zero) and `DD` or `D` (day, likewise) between other characters, such as `DD.MM.YYYY`, `MM/DD/YY` or `MON D, YYYY`. A `date` that is not `YYYY-MM-DD` is shown as written. In the footer, `topic` is the topic of the page, empty on the home page, and a placeholder without a variable stays as written, with a warning in the render log:
+The website's `footer`, the cover's title and subtitle and `{{name}}` also know `_variables.yml` and the built-in `date`: the variable `date` (`YYYY-MM-DD`), else the day of the render, written as the variable `date_format` says. `date_format` is `iso` (`YYYY-MM-DD`, the default) or a pattern of `YYYY` or `YY` (year), `MON` (the month's name in the project's `lang`), `MM` or `M` (month number with or without a leading zero) and `DD` or `D` (day, likewise) between other characters, such as `DD.MM.YYYY`, `MM/DD/YY` or `MON D, YYYY`. A `date` that is not `YYYY-MM-DD` is shown as written. In the footer, `{name}` and `{{name}}` are both placeholders, and a page's front matter comes first: a page's own `version:` wins over `_variables.yml`, which wins over `folio.yml`. `topic` is the topic of the page, empty on the home page, and a placeholder without a variable stays as written, with a warning in the render log:
 
 ```yaml
-footer: "© {owner} · {topic} · as of {date}"
+footer: "© {owner} · {topic} · version {{version}} as of {date}"
 vars: {owner: Acme, date_format: "MON D, YYYY"}
 ```
 

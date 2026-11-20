@@ -412,17 +412,20 @@ func TestMermaid(t *testing.T) {
 	}
 }
 
-// Every page ends in the footer of its topic, the home page in the one
-// without a topic; the footer is Markdown.
+// Every page ends in the footer of its topic and front matter, the home
+// page in the one without either; the footer is Markdown.
 func TestFooter(t *testing.T) {
 	root, out := project(t)
 	o := opts(root, out)
-	o.Footer = func(topic string) string { return "*" + topic + "_* · [Acme](https://acme.example)" }
+	o.Footer = func(topic string, meta map[string]any) string {
+		title, _ := meta["title"].(string)
+		return "*" + topic + "_" + title + "* · [Acme](https://acme.example)"
+	}
 	if err := Build(o); err != nil {
 		t.Fatal(err)
 	}
 	has(t, "topic page", read(t, out, "dispatcher/b.html"),
-		`<footer class="page-footer"><em>d_</em> · <a href="https://acme.example">Acme</a></footer>`)
+		`<footer class="page-footer"><em>d_Page B</em> · <a href="https://acme.example">Acme</a></footer>`)
 	has(t, "home", read(t, out, "index.html"), `<footer class="page-footer"><em>_</em> · `)
 	has(t, "css", read(t, out, "_site/style.css"), ".page-footer")
 

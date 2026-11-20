@@ -54,9 +54,10 @@ type Options struct {
 	BrandFonts map[string]string
 	// Logo is shown in the navbar before the title and is the site's icon.
 	Logo Logo
-	// Footer returns the Markdown footer of the pages of a topic, by its
-	// name, and of the home page, by ""; "" for none. May be nil.
-	Footer func(topic string) string
+	// Footer returns the Markdown footer of a page of a topic, by the
+	// topic's name, "" for the home page, and the page's front matter,
+	// nil for a page without source; "" for none. May be nil.
+	Footer func(topic string, meta map[string]any) string
 	// Expand expands shortcodes in a page's Markdown; may be nil.
 	Expand func(string) (string, error)
 	// Log receives warnings and progress; may be nil.
@@ -374,7 +375,11 @@ func (b *builder) footer(p *pageInfo) (template.HTML, error) {
 	if p.topic != nil {
 		topic = p.topic.Name
 	}
-	md := b.o.Footer(topic)
+	var meta map[string]any
+	if p.node != nil && p.node.Page != nil {
+		meta = p.node.Page.Meta
+	}
+	md := b.o.Footer(topic, meta)
 	if md == "" {
 		return "", nil
 	}

@@ -4,6 +4,7 @@ package shortcode
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	pathpkg "path"
 	"path/filepath"
@@ -301,30 +302,40 @@ func (f *codeFence) step(line string) bool {
 // Includes is the number of files included.
 func (s *Expander) Includes() int { return s.includes }
 
-// Variables is what `{{< var >}}` resolves against: the project's
-// `_variables.yml`, whose nested keys are addressed with dots
-// (`metadata.version`), overlaid with vars. Its date is the date they
-// give, else today, in their date_format (see FormatDate) and the
-// language lang.
-func Variables(root string, vars map[string]string, lang string) map[string]string {
-	out := map[string]string{}
+// Variables is what `{{< var >}}` resolves against: vars, overlaid with
+// the project's `_variables.yml`, whose nested keys are addressed with
+// dots (`metadata.version`), overlaid in turn with each of over. Its date
+// is the date they give, else today, in their date_format (see
+// FormatDate) and the language lang. A `_variables.yml` that is not YAML
+// is an error; the variables are returned without it.
+func Variables(root, lang string, vars map[string]string, over ...map[string]string) (map[string]string, error) {
+	out := maps.Clone(vars)
+	if out == nil {
+		out = map[string]string{}
+	}
+	var err error
 	for _, name := range []string{"_variables.yml", "_variables.yaml"} {
-		data, err := os.ReadFile(filepath.Join(root, name))
-		if err != nil {
+		data, rerr := os.ReadFile(filepath.Join(root, name))
+		if rerr != nil {
 			continue
 		}
 		var doc map[string]any
-		if yaml.Unmarshal(data, &doc) == nil {
-			flatten("", doc, out)
+		if err = yaml.Unmarshal(data, &doc); err != nil {
+			err = fmt.Errorf("%s: %w", name, err)
 		}
+		Flatten(doc, out)
 		break
 	}
-	for k, v := range vars {
-		out[k] = v
+	for _, m := range over {
+		maps.Copy(out, m)
 	}
 	out["date"] = date(out, lang)
-	return out
+	return out, err
 }
+
+// Flatten adds the scalars of doc to out, nested keys joined with dots.
+func Flatten(doc map[string]any, out map[string]string) { flatten("", doc, out) }
+
 func flatten(prefix string, v any, out map[string]string) {
 	switch t := v.(type) {
 	case map[string]any:

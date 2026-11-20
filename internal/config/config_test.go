@@ -249,6 +249,10 @@ topics:
 	if s, err := Interpolate("{a} {nope}", map[string]string{"a": "A"}); err == nil || s != "A {nope}" {
 		t.Errorf("undefined placeholder: %q, %v", s, err)
 	}
+	// {{name}}, as in the content, is a placeholder too (issue #115).
+	if s, err := Interpolate("{{a}} {{ m.v }} {a} {{nope}}", map[string]string{"a": "A", "m.v": "1.3"}); err == nil || s != "A 1.3 A {{nope}}" {
+		t.Errorf("double braces: %q, %v", s, err)
+	}
 }
 
 // A project still configured for Quarto must not be rendered on the

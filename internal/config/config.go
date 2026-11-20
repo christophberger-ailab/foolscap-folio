@@ -686,15 +686,16 @@ func (s Selection) String() string {
 	return fmt.Sprintf("%s · %s · %s", s.Topic.Name, s.Format.Name, s.Audience.Name)
 }
 
-var placeholder = regexp.MustCompile(`\{([A-Za-z][\w-]*)\}`)
+var placeholder = regexp.MustCompile(`\{\{\s*([A-Za-z][\w.-]*)\s*\}\}|\{([A-Za-z][\w.-]*)\}`)
 
-// Interpolate replaces {name} placeholders by their variables. A
-// placeholder without a variable is an error, and stays as written in
-// the text returned with it.
+// Interpolate replaces {name} and {{name}} placeholders by their
+// variables. A placeholder without a variable is an error, and stays as
+// written in the text returned with it.
 func Interpolate(s string, vars map[string]string) (string, error) {
 	var missing []string
 	out := placeholder.ReplaceAllStringFunc(s, func(m string) string {
-		name := m[1 : len(m)-1]
+		sub := placeholder.FindStringSubmatch(m)
+		name := sub[1] + sub[2]
 		v, ok := vars[name]
 		if !ok {
 			missing = append(missing, name)

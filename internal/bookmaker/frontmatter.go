@@ -24,6 +24,8 @@ type FrontMatter struct {
 	// HasOrder reports whether `order:` was present. Pages without an order
 	// sort after all ordered siblings.
 	HasOrder bool
+	// Meta is the whole front matter, which gives the page's variables.
+	Meta map[string]any
 }
 
 // noOrder is the sort key used for pages without an `order:` field. Quarto
@@ -56,6 +58,9 @@ func parseFrontMatter(src string) (FrontMatter, string, error) {
 	}
 
 	fm := FrontMatter{Subtitle: strings.TrimSpace(raw.Subtitle)}
+	if err := yaml.Unmarshal([]byte(yamlText), &fm.Meta); err != nil {
+		return FrontMatter{}, body, fmt.Errorf("parsing front matter: %w", err)
+	}
 	if raw.Title != nil {
 		fm.Title = strings.TrimSpace(*raw.Title)
 	}
