@@ -253,7 +253,7 @@ anything else HTML). More keys: `show` (the conditional classes the format
 keeps), `toc` (a table of contents in a document), `template` (a reference
 DOCX), `dir` (output directory below `output`; default the format's name),
 `file` (a document's file name without extension; default `{topic}`, plus
-`-{audience}` when the project has more than one audience), `section_prefix` and `chapter_prefix` (a document: `true` puts "Part 1 " before each section title and "Chapter 1 " before each chapter title, see Heading levels), `css` (a website
+`-{audience}` when the project has more than one audience), `section_prefix` and `chapter_prefix` (a document: `true` puts "Part 1: " before each section title and "Chapter 1: " before each chapter title, see Heading levels), `css` (a website
 only: stylesheets, project-relative, that every page links after the site's
 own), `topics` and `audiences` (restrict the matrix from the format's side)
 and `vars`.
@@ -369,7 +369,7 @@ A website keeps the headings of every page as written. A DOCX or PDF gives each 
 
 In the DOCX the headings of a section's intro and of the preliminaries use their own styles, "Unlisted Heading 2" to "Unlisted Heading 6", based on Heading 2 to 6 but with the outline level of body text, so that Word leaves them out when it refreshes the contents.
 
-With `section_prefix: true` in a format, each section title gets "Part 1 " in front of it, and with `chapter_prefix: true` each chapter title gets "Chapter 1 ". Sections and chapters are each numbered continuously through the book. The words come from the `strings` map in the settings file (`config.cue`), per language (the `lang` of folio.yml), under the keys `section_prefix` and `chapter_prefix`. It ships with `en` (Part, Chapter) and `de` (Teil, Kapitel). A language that is missing falls back to its primary language, then to folio's built-in strings, then to English, as for callout titles.
+With `section_prefix: true` in a format, each section title gets "Part 1: " in front of it, and with `chapter_prefix: true` each chapter title gets "Chapter 1: ". Sections and chapters are each numbered continuously through the book. The words come from the `strings` map in the settings file (`config.cue`), per language (the `lang` of folio.yml), under the keys `section_prefix` and `chapter_prefix`. It ships with `en` (Part, Chapter) and `de` (Teil, Kapitel). A language that is missing falls back to its primary language, then to folio's built-in strings, then to English, as for callout titles.
 
 In the folio web tree, the root `index.md` is the home page. It is listed first, without a number, and it is the only page that needs no `order:`. Topic pages are not numbered. Sections are numbered 1, 2, … within each topic, and chapters 1.1, 1.2, and so on deeper down. A page whose headings would render as h7 or deeper in print at its place in the tree gets a light grey row with a tooltip, and the pages above it are greyed as well.
 

@@ -80,7 +80,7 @@ func TestFlattenPrefixesSectionsAndChapters(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"# Teil 1 Grundlagen", "# Kapitel 1 Einstieg", "\n## Detail"} {
+	for _, want := range []string{"# Teil 1: Grundlagen", "# Kapitel 1: Einstieg", "\n## Detail"} {
 		if !strings.Contains(text, want) {
 			t.Errorf("missing %q:\n%s", want, text)
 		}

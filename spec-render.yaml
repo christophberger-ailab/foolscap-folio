@@ -87,7 +87,7 @@ constraints:
       7-2: A diagram that cannot be drawn stays a code block, and a warning names its first line and the error
       7-3: Math is not typeset
       8: 'PPTX slide decks are not supported; `::: slide` blocks and `.notes` are dropped'
-      9: 'A format with `section_prefix: true` puts "Part <n> " before each section title, and one with `chapter_prefix: true` puts "Chapter <n> " before each chapter title; sections and chapters are each numbered continuously through the book'
+      9: 'A format with `section_prefix: true` puts "Part <n>: " before each section title, and one with `chapter_prefix: true` puts "Chapter <n>: " before each chapter title; sections and chapters are each numbered continuously through the book'
       9-1: 'The words come from the `strings` map of config.cue, per language (the `lang` of folio.yml), under the keys `section_prefix` and `chapter_prefix`, shipped with `en` (Part, Chapter) and `de` (Teil, Kapitel); a language that is missing falls back to its primary language, then to folio''s built-in strings, then to English, as callout titles do (4-5-1)'
 
   BRAND:

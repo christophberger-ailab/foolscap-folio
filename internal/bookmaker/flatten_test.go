@@ -311,18 +311,18 @@ func TestFlattenPrefixes(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, want := range []string{
-		"# Teil 1 Erster Abschnitt {#bm-book-erster}",
-		"# Kapitel 1 Alpha-Seite {#bm-book-erster-alpha}",
-		"## Kapitel 2 Beta-Seite {#bm-book-erster-beta}",
-		"# Teil 2 Zweiter Abschnitt",
-		"# Teil 3 Nur Feuerwehr",
-		"## Kapitel 3 Feuerwehr-Detailseite",
+		"# Teil 1: Erster Abschnitt {#bm-book-erster}",
+		"# Kapitel 1: Alpha-Seite {#bm-book-erster-alpha}",
+		"## Kapitel 2: Beta-Seite {#bm-book-erster-beta}",
+		"# Teil 2: Zweiter Abschnitt",
+		"# Teil 3: Nur Feuerwehr",
+		"## Kapitel 3: Feuerwehr-Detailseite",
 	} {
 		if !strings.Contains(res.Content, want) {
 			t.Errorf("missing %q:\n%s", want, res.Content)
 		}
 	}
-	if strings.Contains(res.Content, "Kapitel 1 Tiefe") || strings.Contains(res.Content, "Teil 1 Test Book") {
+	if strings.Contains(res.Content, "Kapitel 1: Tiefe") || strings.Contains(res.Content, "Teil 1: Test Book") {
 		t.Errorf("a prefix went to a page that is neither section nor chapter:\n%s", res.Content)
 	}
 }
