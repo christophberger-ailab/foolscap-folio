@@ -1,0 +1,64 @@
+name: Vulnerabilities
+
+# Checks folio's dependencies against the public vulnerability databases, in
+# place of Dependabot: a failed run is the alert, and nothing opens pull
+# requests for advisories that do not affect folio.
+#
+# - Go: govulncheck reports only vulnerabilities in code folio actually
+#   calls.
+# - Rust (resvg, compiled to WebAssembly in internal/svgimage) and the
+#   embedded Fuse.js: osv-scanner reads their lockfiles and reports every
+#   advisory for the versions they pin. Fuse.js is a copied file;
+#   internal/site/package.json and its lockfile exist so that it can be
+#   scanned. osv-scanner's Rust call analysis is not used: it builds the
+#   crate with LTO forced on, which fails for resvg's proc-macro
+#   dependencies, and would then report everything anyway.
+#
+# The daily run catches advisories published after a change was merged; the
+# push and pull_request runs catch a change that brings one in.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "23 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  govulncheck:
+    name: govulncheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.10.0 ./...
+
+  osv-scanner:
+    name: osv-scanner (Rust, Fuse.js)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # osv-scanner is a Go program, so the Go toolchain builds it from a
+      # pinned version, checked against the Go checksum database; no
+      # third-party action or downloaded binary is involved.
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: osv-scanner
+        run: |
+          go run github.com/google/osv-scanner/v2/cmd/osv-scanner@v2.7.1 \
+            scan source \
+            --lockfile internal/svgimage/resvg/Cargo.lock \
+            --lockfile internal/site/package-lock.json
