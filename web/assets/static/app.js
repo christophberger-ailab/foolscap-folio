@@ -2179,6 +2179,11 @@ document.body.addEventListener('htmx:configRequest', function (evt) {
   if (elt && elt.classList && elt.classList.contains('new-file-form')) {
     evt.detail.parameters.after = currentPath || '';
   }
+  // Creating a page can move the page it goes under to name/index.md, so
+  // the page the editor has open travels along, as it does with a move.
+  if (evt.detail.path === '/create') {
+    evt.detail.parameters.open = currentPath || '';
+  }
   // The search field posts its query as it is typed; the case button rides
   // along, as it does with every other search request.
   if (elt && elt.id === 'search-input' && searchCased()) {

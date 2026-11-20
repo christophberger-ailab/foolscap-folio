@@ -49,16 +49,27 @@ func (t *Tree) Move(src, parent string, pos int) ([]Rename, error) {
 	if sp == nil {
 		return nil, fmt.Errorf("page %s not found", src)
 	}
+	// Checked before the parent is promoted, which a refused move must
+	// not do: reparent's own check comes too late for that.
+	if src == parent || find(sp.Children, parent) != nil {
+		return nil, fmt.Errorf("cannot move %s into its own subtree", src)
+	}
 	destDir, destSiblings, err := t.resolveParent(parent)
+	if err != nil {
+		return nil, err
+	}
+	renames, err := t.promote(parent)
 	if err != nil {
 		return nil, err
 	}
 
 	newPath := src
-	var renames []Rename
 	if srcDir := groupDir(src); destDir != srcDir {
-		if newPath, renames, err = t.reparent(sp, destDir); err != nil {
-			return nil, err
+		var moved []Rename
+		newPath, moved, err = t.reparent(sp, destDir)
+		renames = append(renames, moved...)
+		if err != nil {
+			return renames, err
 		}
 		// Close the order gap left in the source group.
 		n := 0
@@ -138,13 +149,27 @@ func (t *Tree) reparent(sp *Page, destDir string) (string, []Rename, error) {
 	return newPath, renames, nil
 }
 
-// CreatePage creates a new page as name/index.md under parent ("" for
-// root), ordered after the last ordered sibling. It returns the new page's
-// path.
-func (t *Tree) CreatePage(parent, name string) (string, error) {
+// CreatePage creates a new page as name.md under parent ("" for root),
+// ordered after the last ordered sibling. A parent that is a page in a file
+// of its own and has no children yet first moves to name/index.md (or
+// index.qmd), so that the new page sits beside it in that directory
+// (issue #119). It returns the new page's path and the renames that move
+// made, like Move.
+func (t *Tree) CreatePage(parent, name string) (string, []Rename, error) {
 	destDir, siblings, err := t.resolveParent(parent)
 	if err != nil {
-		return "", err
+		return "", nil, err
+	}
+	file, err := pageFileName(name)
+	if err != nil {
+		return "", nil, err
+	}
+	if err := t.free(destDir, file); err != nil {
+		return "", nil, err
+	}
+	renames, err := t.promote(parent)
+	if err != nil {
+		return "", nil, err
 	}
 	order := 0
 	for _, p := range siblings {
@@ -152,10 +177,37 @@ func (t *Tree) CreatePage(parent, name string) (string, error) {
 			order = *p.Order
 		}
 	}
-	return t.newPageFile(destDir, name, order+1)
+	rel, err := t.newPageFile(destDir, name, order+1)
+	return rel, renames, err
 }
 
-// CreatePageAfter creates a new page as name/index.md in the sibling
+// promote moves a leaf page in a file of its own, parent, to
+// parent's-name/index.md (or index.qmd), so that the page and the children
+// it is about to get live in one directory (issue #119). A page with
+// children already keeps its layout, as do section pages and the root. It
+// returns the rename it made, if any.
+func (t *Tree) promote(parent string) ([]Rename, error) {
+	pp := t.Find(parent)
+	if pp == nil || pp.Dir == "" || isIndexPage(pp.Path) || len(pp.Children) > 0 {
+		return nil, nil
+	}
+	to := pp.Dir + "/index" + path.Ext(pp.Path)
+	for _, taken := range []string{pp.Dir + "/index.md", pp.Dir + "/index.qmd"} {
+		if _, err := os.Stat(t.abs(taken)); err == nil {
+			return nil, fmt.Errorf("%s already exists", taken)
+		}
+	}
+	if err := os.MkdirAll(t.abs(pp.Dir), 0o755); err != nil {
+		return nil, err
+	}
+	if err := os.Rename(t.abs(pp.Path), t.abs(to)); err != nil {
+		return nil, err
+	}
+	pp.Path = to
+	return []Rename{{parent, to}}, nil
+}
+
+// CreatePageAfter creates a new page as name.md in the sibling
 // group of the page at after, immediately following it. Like Move, it
 // renumbers the whole group sequentially, so previously unordered
 // siblings become ordered. It returns the new page's path.
@@ -185,24 +237,44 @@ func (t *Tree) CreatePageAfter(after, name string) (string, error) {
 	return rel, nil
 }
 
-// newPageFile writes destDir/name/index.md from the new-page template and
-// returns its path: frontmatter with the order and `status: new`, and an
-// explanation div headed by name as a level-1 heading, which every page
-// starts with wherever it sits in the tree (issue #96). It writes no title:
-// a `title:` would override that heading.
-func (t *Tree) newPageFile(destDir, name string, order int) (string, error) {
-	name = stem(strings.ReplaceAll(strings.TrimSpace(name), " ", "-"))
-	if name == "" || strings.ContainsAny(name, `/\`) || strings.HasPrefix(name, "_") || strings.HasPrefix(name, ".") {
+// pageFileName turns the name a user typed for a new page into the stem of
+// its file: lower case, with a dash for each run of spaces (issue #118).
+func pageFileName(name string) (string, error) {
+	file := stem(strings.ToLower(strings.Join(strings.Fields(name), "-")))
+	if file == "" || file == "index" || strings.ContainsAny(file, `/\`) || strings.HasPrefix(file, "_") || strings.HasPrefix(file, ".") {
 		return "", fmt.Errorf("invalid page name %q", name)
 	}
-	dir := join(destDir, name)
-	for _, taken := range []string{dir, dir + ".qmd", dir + ".md"} {
+	return file, nil
+}
+
+// free reports an error if a page named file, in either of the forms a
+// page can take, or a directory of that name already exists in dir.
+func (t *Tree) free(dir, file string) error {
+	p := join(dir, file)
+	for _, taken := range []string{p, p + ".qmd", p + ".md"} {
 		if _, err := os.Stat(t.abs(taken)); err == nil {
-			return "", fmt.Errorf("%s already exists", taken)
+			return fmt.Errorf("%s already exists", taken)
 		}
 	}
-	rel := dir + "/index.md"
-	content := fmt.Sprintf("---\norder: %d\nstatus: new\n---\n\n::: explanation\n# %s\n\n:::\n", order, name)
+	return nil
+}
+
+// newPageFile writes destDir/name.md from the new-page template and
+// returns its path. The file name is name normalized by pageFileName. The
+// page has frontmatter with the order and `status: new`, and an
+// explanation div headed by name as typed as a level-1 heading, which
+// every page starts with wherever it sits in the tree (issue #96). It
+// writes no title: a `title:` would override that heading.
+func (t *Tree) newPageFile(destDir, name string, order int) (string, error) {
+	file, err := pageFileName(name)
+	if err != nil {
+		return "", err
+	}
+	if err := t.free(destDir, file); err != nil {
+		return "", err
+	}
+	rel := join(destDir, file) + ".md"
+	content := fmt.Sprintf("---\norder: %d\nstatus: new\n---\n\n::: explanation\n# %s\n\n:::\n", order, strings.Join(strings.Fields(name), " "))
 	if err := os.MkdirAll(filepath.Dir(t.abs(rel)), 0o755); err != nil {
 		return "", err
 	}
