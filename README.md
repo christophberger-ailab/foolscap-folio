@@ -597,7 +597,7 @@ Update `internal/svgimage/resvg/THIRD_PARTY.md` with it.
 `.github/workflows/vulncheck.yml` checks the dependencies for known
 vulnerabilities on every push and pull request and once a day: Go with
 govulncheck, resvg's `Cargo.lock` and the embedded Fuse.js with osv-scanner.
-Fuse.js is a copied file (`internal/site/assets/fuse.min.js`);
+Fuse.js is copied in (`internal/site/assets/fuse-worker.mjs` and `fuse.worker.mjs`);
 `internal/site/package.json` and its lockfile name its version for the scan.
 To update Fuse.js, replace the file, change the version there and run
 `npm install --package-lock-only` in `internal/site`.
