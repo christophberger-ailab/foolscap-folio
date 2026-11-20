@@ -1020,23 +1020,27 @@ func TestCreateAndDelete(t *testing.T) {
 	srv, root := testServer(t)
 	before := configs(t, root)
 	rec := post(t, srv, "/create", url.Values{
-		"parent": {""}, "name": {"about"},
+		"parent": {""}, "name": {"About Us"},
 	})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("create: status %d: %s", rec.Code, rec.Body)
 	}
-	// A new page is created as name/index.md.
-	if !strings.Contains(rec.Body.String(), `data-path="about/index.md"`) {
+	// A new page is created as name/index.md, the name in lower case with
+	// dashes for spaces (issue #118).
+	if !strings.Contains(rec.Body.String(), `data-path="about-us/index.md"`) {
 		t.Errorf("tree missing created page:\n%s", rec.Body)
 	}
 	// It carries no `title:`, which would override the page's level-1
 	// heading (issue #58), and the create form asks for none.
-	page, err := os.ReadFile(filepath.Join(root, "about", "index.md"))
+	page, err := os.ReadFile(filepath.Join(root, "about-us", "index.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if strings.Contains(string(page), "title:") {
 		t.Errorf("new page has a title:\n%s", page)
+	}
+	if !strings.Contains(string(page), "\n# About Us\n") {
+		t.Errorf("new page is not headed by the name as typed:\n%s", page)
 	}
 	form := get(t, srv, "/").Body.String()
 	if i := strings.Index(form, `class="new-file-form"`); i < 0 || strings.Contains(form[i:i+strings.Index(form[i:], "</form>")], `name="title"`) {
@@ -1044,15 +1048,15 @@ func TestCreateAndDelete(t *testing.T) {
 	}
 	assertConfigsUnchanged(t, root, before)
 
-	rec = post(t, srv, "/delete", url.Values{"path": {"about/index.md"}})
+	rec = post(t, srv, "/delete", url.Values{"path": {"about-us/index.md"}})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("delete: status %d: %s", rec.Code, rec.Body)
 	}
-	if strings.Contains(rec.Body.String(), `data-path="about/index.md"`) {
+	if strings.Contains(rec.Body.String(), `data-path="about-us/index.md"`) {
 		t.Errorf("tree still shows deleted page:\n%s", rec.Body)
 	}
-	if _, err := os.Stat(filepath.Join(root, "about")); !os.IsNotExist(err) {
-		t.Error("about/ still on disk")
+	if _, err := os.Stat(filepath.Join(root, "about-us")); !os.IsNotExist(err) {
+		t.Error("about-us/ still on disk")
 	}
 	assertConfigsUnchanged(t, root, before)
 }

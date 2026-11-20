@@ -186,23 +186,25 @@ func (t *Tree) CreatePageAfter(after, name string) (string, error) {
 }
 
 // newPageFile writes destDir/name/index.md from the new-page template and
-// returns its path: frontmatter with the order and `status: new`, and an
-// explanation div headed by name as a level-1 heading, which every page
-// starts with wherever it sits in the tree (issue #96). It writes no title:
-// a `title:` would override that heading.
+// returns its path. The folder name is the typed name in lower case, with
+// a dash for each run of spaces (issue #118). The page has frontmatter
+// with the order and `status: new`, and an explanation div headed by the
+// name as typed, on one line, as a level-1 heading, which every page
+// starts with wherever it sits in the tree (issue #96). It writes no
+// title: a `title:` would override that heading.
 func (t *Tree) newPageFile(destDir, name string, order int) (string, error) {
-	name = stem(strings.ReplaceAll(strings.TrimSpace(name), " ", "-"))
-	if name == "" || strings.ContainsAny(name, `/\`) || strings.HasPrefix(name, "_") || strings.HasPrefix(name, ".") {
+	file := stem(strings.ToLower(strings.Join(strings.Fields(name), "-")))
+	if file == "" || strings.ContainsAny(file, `/\`) || strings.HasPrefix(file, "_") || strings.HasPrefix(file, ".") {
 		return "", fmt.Errorf("invalid page name %q", name)
 	}
-	dir := join(destDir, name)
+	dir := join(destDir, file)
 	for _, taken := range []string{dir, dir + ".qmd", dir + ".md"} {
 		if _, err := os.Stat(t.abs(taken)); err == nil {
 			return "", fmt.Errorf("%s already exists", taken)
 		}
 	}
 	rel := dir + "/index.md"
-	content := fmt.Sprintf("---\norder: %d\nstatus: new\n---\n\n::: explanation\n# %s\n\n:::\n", order, name)
+	content := fmt.Sprintf("---\norder: %d\nstatus: new\n---\n\n::: explanation\n# %s\n\n:::\n", order, strings.Join(strings.Fields(name), " "))
 	if err := os.MkdirAll(filepath.Dir(t.abs(rel)), 0o755); err != nil {
 		return "", err
 	}

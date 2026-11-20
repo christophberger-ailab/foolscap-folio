@@ -161,18 +161,20 @@ func TestMoveIntoRootIndex(t *testing.T) {
 }
 
 // CreatePage creates the new page as name/index.md, ordered after the
-// last ordered sibling.
+// last ordered sibling. The folder name is the typed name in lower case
+// with dashes for spaces; the heading is the name as typed (issue #118),
+// on one line, so that a pasted line break cannot reach the frontmatter.
 func TestCreatePage(t *testing.T) {
 	root := writeFixture(t)
-	created, err := load(t, root).CreatePage("chapter2/index.qmd", "fifth")
+	created, err := load(t, root).CreatePage("chapter2/index.qmd", " Fifth \n Page")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if created != "chapter2/fifth/index.md" {
+	if created != "chapter2/fifth-page/index.md" {
 		t.Fatalf("created = %q", created)
 	}
 	tree := load(t, root)
-	p := tree.Find("chapter2/fifth/index.md")
+	p := tree.Find("chapter2/fifth-page/index.md")
 	if p == nil {
 		t.Fatal("created page not in tree")
 	}
@@ -181,10 +183,10 @@ func TestCreatePage(t *testing.T) {
 	// page by that heading.
 	// It starts from the new-page template (issue #94): marked new, and an
 	// explanation div headed by the page's name at its depth in the tree.
-	if got, want := readFile(t, root, created), "---\norder: 3\nstatus: new\n---\n\n::: explanation\n# fifth\n\n:::\n"; got != want {
+	if got, want := readFile(t, root, created), "---\norder: 3\nstatus: new\n---\n\n::: explanation\n# Fifth Page\n\n:::\n"; got != want {
 		t.Errorf("content = %q, want %q", got, want)
 	}
-	if p.Title != "fifth" {
+	if p.Title != "Fifth Page" {
 		t.Errorf("title = %q", p.Title)
 	}
 	if order(t, p) != 3 { // after third (order 2), before unordered fourth
@@ -267,6 +269,11 @@ func TestCreatePageExists(t *testing.T) {
 	// chapter1/ already exists as a directory, so it is taken.
 	if _, err := load(t, root).CreatePage("", "chapter1"); err == nil {
 		t.Error("want error creating page whose folder exists")
+	}
+	// The name is checked after it is normalized: "Chapter3" is chapter3,
+	// and chapter3.qmd is taken.
+	if _, err := load(t, root).CreatePage("", "Chapter3"); err == nil {
+		t.Error("want error creating page whose normalized name is taken")
 	}
 }
 
