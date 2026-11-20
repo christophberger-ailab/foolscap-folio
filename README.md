@@ -386,8 +386,10 @@ An HTML format builds a site with a layout like Quarto's:
   run in the browser from an index written at render time, in web workers so
   that the page never freezes while it searches, showing each hit
   with a highlighted snippet; the query and its hits stay when a hit is opened
-  or the list is closed, for as long as the browser tab is open, and a button
-  in the field clears them;
+  or the list is closed, for as long as the browser tab is open, so a click
+  into the field shows them again at once, also on the next page, and a button
+  in the field clears them; a search that takes longer than a second shows a
+  spinner in the field;
 - a responsive layout: the contents list is hidden at 75em and narrower, the
   sidebar becomes off-canvas at 50em and narrower;
 - all text sizes and the 42em text column are in `em`, so the page scales with
