@@ -435,3 +435,16 @@ func TestFooter(t *testing.T) {
 	}
 	hasNot(t, "none", read(t, out, "index.html"), "page-footer")
 }
+
+// A definition list renders as one: the terms bold, the definitions'
+// paragraphs -- and a callout among them -- indented below them.
+func TestDefinitionList(t *testing.T) {
+	root, out := project(t)
+	write(t, root, "x/page.qmd", "---\ntitle: X Page\n---\n\nid\n: A unique identifier\n\n  The id is auto-generated.\n\n  ::: {.callout-tip}\n  Use identifiers.\n  :::\n\nAfter.\n")
+	if err := Build(opts(root, out)); err != nil {
+		t.Fatal(err)
+	}
+	has(t, "x/page", read(t, out, "x/page.html"), "<dt>id</dt>", "<dd>A unique identifier", "<p>The id is auto-generated.</p>", `<div class="callout callout-tip">`, "</dd>\n</dl>\n<p>After.</p>")
+	css := strings.Join(strings.Fields(read(t, out, "_site/style.css")), " ")
+	has(t, "css", css, "dt { font-weight: bold; }", "dd { margin: 0 0 0.5em 1.6em; }")
+}

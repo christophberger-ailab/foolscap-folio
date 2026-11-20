@@ -263,11 +263,14 @@ function convertDivs(body, lineMap) {
       emit(n, [line]);
       return;
     }
+    // The tag keeps the fence's indentation, so a div indented into a
+    // definition stays part of it.
+    var indent = line.match(/^ */)[0];
     if (div[2].trim() !== "") {
-      emit(n, ["", "<div" + divAttrs(div[2].trim()) + ">", ""]);
+      emit(n, ["", indent + "<div" + divAttrs(div[2].trim()) + ">", ""]);
       depth++;
     } else if (depth > 0) {
-      emit(n, ["", "</div>", ""]);
+      emit(n, ["", indent + "</div>", ""]);
       depth--;
     } else {
       emit(n, [line]); // stray closing fence: show it as written
@@ -1040,6 +1043,176 @@ function registerImageExtension() {
 
 // Callouts
 //
+// Definition lists
+//
+// A term, or several on lines of their own, followed by `: definition` is
+// a definition list, as Pandoc and the site read it (goldmark's extension).
+// The definition's text runs on in lines indented as far as it starts --
+// two spaces after `: ` -- and in unindented lines continuing a paragraph;
+// after a blank line, only indented lines belong to it. One blank line may
+// stand between the terms and their definition, and the next entry of the
+// list follows after a blank line.
+var defMarker = /^ {0,3}:([ \t]+)/;
+
+// notTerm matches the lines that open a block of their own and so can be
+// no term: headings, quotes, code, HTML, list items, table rows, fences.
+var notTerm = /^( {4}| {0,3}(#{1,6}([ \t]|$)|>|```|~~~|<|[*+-][ \t]|\d+[.)][ \t]|\||:::))/;
+
+// definitionAhead matches the lines of a paragraph followed, perhaps
+// after a blank line, by a definition.
+var definitionAhead = /^(?:[ \t]*\S[^\n]*\n)+(?:[ \t]*\n)? {0,3}:[ \t]/;
+
+function isBlank(line) {
+  return line.trim() === "";
+}
+
+// matchDefinitionList reads the definition list at the start of src. It
+// returns the list's raw text and its entries, each with its terms and the
+// text of its definitions, the indentation taken off -- or null when src
+// does not start with a definition list.
+function matchDefinitionList(src) {
+  // Every block start comes here: a look at the first paragraph alone
+  // settles most of them before the rest of the page is split.
+  if (!definitionAhead.test(src)) {
+    return null;
+  }
+  var lines = src.split("\n");
+  var i = 0;
+  var end = 0; // the lines that belong to the list
+  var entries = [];
+
+  // terms reads the terms starting at line i up to their first definition;
+  // it returns the line of that definition, or -1.
+  function terms(i, out) {
+    while (i < lines.length && !isBlank(lines[i]) && !defMarker.test(lines[i])) {
+      if (notTerm.test(lines[i])) {
+        return -1;
+      }
+      out.push(lines[i].trim());
+      i++;
+    }
+    if (out.length === 0) {
+      return -1;
+    }
+    if (i < lines.length && isBlank(lines[i])) {
+      i++;
+    }
+    return i < lines.length && defMarker.test(lines[i]) ? i : -1;
+  }
+
+  for (;;) {
+    var entry = { terms: [], defs: [] };
+    var at = terms(i, entry.terms);
+    if (at < 0) {
+      break;
+    }
+    i = at;
+    while (i < lines.length && defMarker.test(lines[i])) {
+      var m = lines[i].match(defMarker);
+      var width = m[1].length > 4 ? m[0].length - m[1].length + 1 : m[0].length;
+      var indent = new RegExp("^( {1," + width + "}|\\t)");
+      var def = [lines[i].slice(m[0].length)];
+      var lazy = true; // an unindented line continues the paragraph
+      i++;
+      for (; i < lines.length; i++) {
+        var line = lines[i];
+        if (isBlank(line)) {
+          var next = i + 1;
+          while (next < lines.length && isBlank(lines[next])) {
+            next++;
+          }
+          if (next < lines.length && indent.test(lines[next])) {
+            def.push("");
+            lazy = false;
+            continue;
+          }
+          break;
+        }
+        if (indent.test(line)) {
+          def.push(line.replace(indent, ""));
+          lazy = true;
+        } else if (lazy && !defMarker.test(line) && !notTerm.test(line)) {
+          def.push(line);
+        } else {
+          break;
+        }
+      }
+      while (isBlank(def[def.length - 1])) {
+        def.pop();
+      }
+      entry.defs.push(def.join("\n"));
+      end = i;
+      if (i < lines.length && isBlank(lines[i]) && defMarker.test(lines[i + 1] || "")) {
+        i++; // a blank line before the next definition of the same terms
+      }
+    }
+    entries.push(entry);
+    i = end;
+    if (i < lines.length && isBlank(lines[i])) {
+      i++; // the blank line before the next entry
+    }
+  }
+  if (entries.length === 0) {
+    return null;
+  }
+  var raw = lines.slice(0, end).join("\n");
+  return { raw: end < lines.length ? raw + "\n" : raw, entries: entries };
+}
+
+var definitionListExtensionRegistered = false;
+
+// registerDefinitionListExtension teaches marked about definition lists. It
+// runs once, the first time marked is available, since marked.use() adds
+// the extension for good.
+function registerDefinitionListExtension() {
+  if (definitionListExtensionRegistered || typeof marked === "undefined") {
+    return;
+  }
+  definitionListExtensionRegistered = true;
+  marked.use({
+    extensions: [
+      {
+        name: "definitionList",
+        level: "block",
+        tokenizer: function (src) {
+          var list = matchDefinitionList(src);
+          if (!list) {
+            return undefined;
+          }
+          var lexer = this.lexer;
+          return {
+            type: "definitionList",
+            raw: list.raw,
+            entries: list.entries.map(function (entry) {
+              return {
+                terms: entry.terms.map(function (term) {
+                  return lexer.inlineTokens(term);
+                }),
+                defs: entry.defs.map(function (def) {
+                  return lexer.blockTokens(def, []);
+                }),
+              };
+            }),
+          };
+        },
+        renderer: function (token) {
+          var parser = this.parser;
+          var out = "<dl>\n";
+          token.entries.forEach(function (entry) {
+            entry.terms.forEach(function (term) {
+              out += "<dt>" + parser.parseInline(term) + "</dt>\n";
+            });
+            entry.defs.forEach(function (def) {
+              out += "<dd>" + parser.parse(def) + "</dd>\n";
+            });
+          });
+          return out + "</dl>\n";
+        },
+      },
+    ],
+  });
+}
+
 // A Quarto callout (`::: {.callout-note}`) renders as a box in its type's
 // color: a header on the type's shaded color with an icon and a title, and
 // the body below it. buildCallouts gives the rendered div that shape, after
@@ -1389,6 +1562,7 @@ function renderPreview(el, text, pagePath, titles) {
   }
   registerSpanExtension();
   registerImageExtension();
+  registerDefinitionListExtension();
   var page = splitFrontmatter(text);
   var html = "";
   if (page.front.trim() !== "") {

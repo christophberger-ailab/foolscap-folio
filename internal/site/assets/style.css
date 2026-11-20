@@ -551,6 +551,14 @@ ol {
 li + li {
   margin-top: 0.25em;
 }
+/* A definition list: the terms bold, each definition's paragraphs indented
+   below them as far as a list's items. */
+dt {
+  font-weight: bold;
+}
+dd {
+  margin: 0 0 0.5em 1.6em;
+}
 img,
 video,
 svg {
