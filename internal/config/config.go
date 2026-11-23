@@ -223,7 +223,8 @@ func (f Format) Has(t string) bool { return slices.Contains(f.Type, t) }
 // IsWeb reports whether the format is a website.
 func (f Format) IsWeb() bool { return f.Has(TypeHTML) }
 
-// Load reads root/folio.yml (or a legacy root/qm.yml). A project without one gets the defaults; any
+// Load reads root/folio.yml (or a legacy root/qm.yml). A project without one gets the defaults
+// (see looseTree for a tree that is not laid out as topics); any
 // other problem — a parse error, an unknown key, a type qm cannot write —
 // is an error.
 func Load(root string) (*Config, error) {
@@ -246,6 +247,9 @@ func Load(root string) (*Config, error) {
 				"which folio does not read; run `folio migrate` to convert it", abs, FileName, strings.Join(old, ", "))
 		}
 		c := &Config{Root: abs} // defaults only
+		if err := c.looseTree(); err != nil {
+			return nil, err
+		}
 		if err := c.complete(); err != nil {
 			return nil, err
 		}
@@ -369,6 +373,26 @@ func (c *Config) complete() error {
 			return err
 		}
 	}
+	return nil
+}
+
+// looseTree sets up a project without folio.yml that has no top-level
+// topic folders: the whole tree is then one topic, named after the root
+// folder, rendered to a website, a DOCX and a PDF.
+func (c *Config) looseTree() error {
+	folders, err := ContentFolders(c.Root)
+	if err != nil {
+		return err
+	}
+	if len(folders) > 0 {
+		return nil
+	}
+	name := filepath.Base(c.Root)
+	if name == AllTopics || strings.ContainsAny(name, `/\:`) {
+		name = "docs"
+	}
+	c.Topics = Entries[Topic]{{Name: name, Value: Topic{Folder: "."}}}
+	c.Formats = Entries[Format]{{Name: "web"}, {Name: TypeDOCX}, {Name: TypePDF}}
 	return nil
 }
 

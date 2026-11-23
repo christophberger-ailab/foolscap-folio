@@ -39,6 +39,63 @@ func TestDefaults(t *testing.T) {
 	}
 }
 
+// A tree without folio.yml that has no top-level topic folders is
+// rendered whole, as one topic, to every output type (issue #131).
+func TestDefaultsForALooseTree(t *testing.T) {
+	for name, files := range map[string][]string{
+		"no folders": {"index.md", "other.md"},
+		"neither":    {"notes.md"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			root := filepath.Join(t.TempDir(), "notes")
+			for _, f := range files {
+				os.MkdirAll(filepath.Dir(filepath.Join(root, f)), 0o755)
+				os.WriteFile(filepath.Join(root, f), []byte("# x\n"), 0o644)
+			}
+			c, err := Load(root)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(c.Topics) != 1 || c.Topics[0].Name != "notes" || c.Topics[0].Value.Folder != "." {
+				t.Errorf("topics %+v", c.Topics)
+			}
+			var types []string
+			for _, f := range c.Formats {
+				types = append(types, f.Value.Type...)
+			}
+			if want := []string{TypeHTML, TypeDOCX, TypePDF}; !slices.Equal(types, want) {
+				t.Errorf("types %q, want %q", types, want)
+			}
+		})
+	}
+}
+
+// A topic named after the folder must still be a usable name.
+func TestDefaultsForALooseTreeNamedAll(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "all")
+	os.MkdirAll(root, 0o755)
+	os.WriteFile(filepath.Join(root, "notes.md"), []byte("# x\n"), 0o644)
+	c, err := Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n := c.Topics.Names(); len(n) != 1 || n[0] == "all" {
+		t.Errorf("topics %q", n)
+	}
+}
+
+// folio.yml decides the layout; the fallback never overrides it.
+func TestConfiguredProjectGetsNoFallback(t *testing.T) {
+	root := project(t, "title: x\n", "a")
+	c, err := Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := c.Topics.Names(); !slices.Equal(got, []string{"a"}) || len(c.Formats) != 1 {
+		t.Errorf("topics %q formats %q", got, c.Formats.Names())
+	}
+}
+
 func TestLoadKeepsOrderAndRejectsTypos(t *testing.T) {
 	root := project(t, `
 formats:
