@@ -14,8 +14,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -400,6 +402,36 @@ func runAllowing(dir string, ok int, args ...string) (string, error) {
 	return runFor(Timeout, dir, ok, args...)
 }
 
+// repoVars are the variables with which git is told which repository to
+// use instead of finding it from the directory it runs in — the ones `git
+// rev-parse --local-env-vars` lists, less the config ones authEnv extends.
+var repoVars = []string{
+	"GIT_DIR", "GIT_WORK_TREE", "GIT_IMPLICIT_WORK_TREE", "GIT_INDEX_FILE",
+	"GIT_COMMON_DIR", "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+	"GIT_GRAFT_FILE", "GIT_SHALLOW_FILE", "GIT_NO_REPLACE_OBJECTS",
+	"GIT_REPLACE_REF_BASE", "GIT_PREFIX", "GIT_INTERNAL_SUPER_PREFIX",
+}
+
+// gitEnv is folio's environment as a git run in dir sees it. A repository
+// named by the environment folio was started in would pin every command to
+// it, whichever project is open, so those variables go; and PWD names dir,
+// which Go only sees to on POSIX. Names are matched without regard to case,
+// as Windows does.
+func gitEnv(dir string) []string {
+	env := os.Environ()
+	out := make([]string, 0, len(env)+1)
+	for _, kv := range env {
+		name, _, _ := strings.Cut(kv, "=")
+		if !strings.EqualFold(name, "PWD") && !slices.ContainsFunc(repoVars, func(v string) bool { return strings.EqualFold(v, name) }) {
+			out = append(out, kv)
+		}
+	}
+	if abs, err := filepath.Abs(dir); err == nil {
+		dir = abs
+	}
+	return append(out, "PWD="+dir)
+}
+
 // runFor is runAllowing with a timeout of its own, for a clone.
 func runFor(timeout time.Duration, dir string, ok int, args ...string) (string, error) {
 	if !Available() {
@@ -412,7 +444,7 @@ func runFor(timeout time.Duration, dir string, ok int, args ...string) (string, 
 	// No terminal is attached, so a prompt for a password or a passphrase
 	// would hang until the timeout. Refusing to ask turns that into an
 	// error message the user can act on.
-	cmd.Env = authEnv(append(cmd.Environ(), "GIT_TERMINAL_PROMPT=0"))
+	cmd.Env = authEnv(append(gitEnv(dir), "GIT_TERMINAL_PROMPT=0"))
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		if ctx.Err() != nil {
