@@ -530,3 +530,48 @@ func TestSyncNeedsAnUpstream(t *testing.T) {
 		t.Errorf("Sync = %v, want ErrNoUpstream", err)
 	}
 }
+
+// An operation acts on the repository it is pointed at, whatever the
+// environment folio was started in says: a GIT_DIR or GIT_WORK_TREE left
+// there by a shell, a hook, or an IDE would otherwise pin every command to
+// that one repository, and opening another project would leave the Git
+// panel showing the first one (#132).
+func TestOperationsIgnoreAnInheritedRepository(t *testing.T) {
+	first, second := testRepo(t), testRepo(t)
+	write(t, second, "second.qmd", "x")
+	t.Setenv("GIT_DIR", filepath.Join(first, ".git"))
+	t.Setenv("GIT_WORK_TREE", first)
+	t.Setenv("GIT_INDEX_FILE", filepath.Join(first, ".git", "index"))
+
+	st, err := GetStatus(second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(st.Unstaged) != 1 || st.Unstaged[0].Path != "second.qmd" {
+		t.Errorf("GetStatus(second).Unstaged = %+v, want second.qmd", st.Unstaged)
+	}
+	got, err := Root(second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want, _ := filepath.EvalSymlinks(second); got != want {
+		t.Errorf("Root(second) = %q, want %q", got, want)
+	}
+}
+
+// Git is told where it runs by PWD as well as by its working directory:
+// Go sets PWD for a child only on POSIX, and a PWD inherited from the shell
+// that started folio would name the directory folio started in (#132).
+func TestEnvSetsPWD(t *testing.T) {
+	t.Setenv("PWD", "/somewhere/else")
+	dir := t.TempDir()
+	var pwd []string
+	for _, kv := range gitEnv(dir) {
+		if strings.HasPrefix(strings.ToUpper(kv), "PWD=") {
+			pwd = append(pwd, kv)
+		}
+	}
+	if len(pwd) != 1 || pwd[0] != "PWD="+dir {
+		t.Errorf("PWD in gitEnv(%q) = %q, want exactly PWD=%s", dir, pwd, dir)
+	}
+}
