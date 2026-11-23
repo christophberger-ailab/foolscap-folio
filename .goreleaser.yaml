@@ -9,6 +9,10 @@
 # them without changing internal/selfupdate as well, or installed copies stop
 # updating.
 #
+# The Windows setup program is built in release.yml and only published
+# here, from installer/; a local `goreleaser release --snapshot` needs one
+# there (or the extra_files entries taken out).
+#
 # The Homebrew tap and the Scoop bucket are separate repositories, written
 # with the token in the HOMEBREW_SCOOP_TOKEN secret. Until that secret is set
 # the manifests are built but not pushed, so a release never fails for want
@@ -50,6 +54,11 @@ archives:
 checksum:
   name_template: SHA256SUMS.txt
   algorithm: sha256
+  # The Windows setup program, built by release.yml's windows-setup job
+  # into installer/ (see packaging/windows/folio.iss). Listing it here puts
+  # it under the signature as well.
+  extra_files:
+    - glob: ./installer/*.exe
 
 # Keyless: cosign gets a short-lived certificate from Sigstore that names
 # this workflow run (the job has id-token: write). SHA256SUMS.txt pins every
@@ -121,6 +130,48 @@ scoops:
     license: BSD-3-Clause
     commit_msg_template: "folio {{ .Tag }}"
 
+# winget, Windows' own package manager: `winget install
+# ChristophBerger.FoolscapFolio`. GoReleaser writes the manifest for the zip
+# archives (a portable install, folio.exe on the PATH), pushes it to a fork
+# of microsoft/winget-pkgs and opens a pull request there, which Microsoft's
+# checks and moderators then merge. The token in WINGET_TOKEN is a classic
+# personal access token with the public_repo scope, since it opens a pull
+# request on a repository outside this organization; until it is set the
+# manifest is built but not submitted. internal/selfupdate's Manager knows
+# the package identifier.
+winget:
+  - name: folio
+    package_identifier: ChristophBerger.FoolscapFolio
+    package_name: Foolscap Folio
+    ids: [folio]
+    publisher: Christoph Berger
+    publisher_url: https://github.com/christophberger
+    publisher_support_url: https://github.com/christophberger-ailab/foolscap-folio/issues
+    author: Christoph Berger
+    homepage: https://github.com/christophberger-ailab/foolscap-folio
+    short_description: Manage and render a Markdown documentation tree
+    description: >-
+      Foolscap Folio turns a tree of pages in extended Markdown into a
+      website, Word documents and PDFs, and has a local web UI for sorting,
+      editing and rendering them.
+    license: BSD-3-Clause
+    license_url: https://github.com/christophberger-ailab/foolscap-folio/blob/main/LICENSE
+    release_notes_url: https://github.com/christophberger-ailab/foolscap-folio/releases/tag/{{ .Tag }}
+    tags: [markdown, documentation, static-site-generator, pdf, docx, cli]
+    commit_msg_template: "New version: {{ .PackageIdentifier }} version {{ .Version }}"
+    skip_upload: '{{ if eq (envOrDefault "WINGET_TOKEN" "") "" }}true{{ end }}'
+    repository:
+      owner: christophberger-ailab
+      name: winget-pkgs
+      branch: "ChristophBerger.FoolscapFolio-{{ .Version }}"
+      token: "{{ .Env.WINGET_TOKEN }}"
+      pull_request:
+        enabled: true
+        base:
+          owner: microsoft
+          name: winget-pkgs
+          branch: master
+
 # GitHub's own notes, listing the merged pull requests, as before: folio
 # upgrade and folio web show them.
 changelog:
@@ -128,4 +179,7 @@ changelog:
 
 release:
   name_template: "{{ .Tag }}"
+  # The Windows setup program; see checksum.extra_files.
+  extra_files:
+    - glob: ./installer/*.exe
   target_commitish: "{{ .FullCommit }}"

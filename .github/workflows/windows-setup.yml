@@ -1,0 +1,113 @@
+name: Windows setup program
+
+# Builds folio's Windows setup program, folio_<tag>_windows_setup.exe, with
+# Inno Setup from packaging/windows/folio.iss, and uploads it as the
+# windows-setup artifact. release.yml calls it for every release and
+# publishes what it uploads; a pull request that touches the setup program
+# runs it too, unsigned, so a broken script shows up before it can hold up a
+# release.
+#
+# The binaries in the setup program are built with the flags
+# .goreleaser.yaml uses, and Go builds are reproducible, so they are the ones
+# in the zip archives.
+#
+# A release's setup program is signed by SignPath (free for open source
+# through the SignPath Foundation) once the SIGNPATH_API_TOKEN secret and the
+# SIGNPATH_ORGANIZATION_ID variable are set; until then it goes out unsigned
+# and Windows SmartScreen warns about an unknown publisher.
+# packaging/windows/README.md has the setup.
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: The release tag, v0.MINOR.PATCH
+        type: string
+        required: true
+      ref:
+        description: The commit to build
+        type: string
+        required: true
+      sign:
+        description: Sign with SignPath, if it is set up
+        type: boolean
+        default: false
+  pull_request:
+    paths:
+      - packaging/windows/**
+      - .github/workflows/windows-setup.yml
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Windows setup program
+    runs-on: windows-latest
+    # actions: read lets SignPath read this job and fetch the unsigned
+    # artifact with the job's token.
+    permissions:
+      contents: read
+      actions: read
+    env:
+      VERSION: ${{ inputs.version || 'v0.0.0' }}
+      # Secrets cannot be tested in `if:`, an env variable can.
+      SIGNPATH_API_TOKEN: ${{ inputs.sign && secrets.SIGNPATH_API_TOKEN || '' }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # Keep the flags in step with builds[0] in .goreleaser.yaml.
+      - name: Build folio for Windows
+        shell: bash
+        run: |
+          set -euo pipefail
+          for arch in amd64 arm64; do
+            CGO_ENABLED=0 GOOS=windows GOARCH=$arch go build -trimpath \
+              -ldflags "-s -w -X main.version=${VERSION}" \
+              -o "build/$arch/folio.exe" ./cmd/folio
+          done
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --no-progress -y
+
+      - name: Build setup program
+        shell: pwsh
+        run: |
+          $iscc = Get-ChildItem "${env:ProgramFiles(x86)}\Inno Setup *\ISCC.exe", "$env:ProgramFiles\Inno Setup *\ISCC.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $iscc) { Write-Error "ISCC.exe not found"; exit 1 }
+          & $iscc.FullName "/DAppVersion=$($env:VERSION.TrimStart('v'))" "/DBinDir=$PWD\build" packaging\windows\folio.iss
+          exit $LASTEXITCODE
+
+      - name: Upload unsigned setup program
+        id: unsigned
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-setup-unsigned
+          path: installer/*.exe
+          if-no-files-found: error
+
+      # Replaces installer/<name>.exe with the signed one.
+      - name: Sign setup program
+        if: env.SIGNPATH_API_TOKEN != ''
+        uses: signpath/github-action-submit-signing-request@a2c5b60d9c75f073142b653c354b632eedce097b # v3.2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'foolscap-folio' }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG || 'release-signing' }}
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: installer
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: windows-setup
+          path: installer/*.exe
+          if-no-files-found: error
