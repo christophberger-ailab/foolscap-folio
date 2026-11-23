@@ -376,16 +376,15 @@ func (c *Config) complete() error {
 	return nil
 }
 
-// looseTree sets up a project without folio.yml whose tree lacks the
-// expected layout -- an index page in the root and top-level topic
-// folders: the whole tree is then one topic, named after the root folder,
-// rendered to a website, a DOCX and a PDF.
+// looseTree sets up a project without folio.yml that has no top-level
+// topic folders: the whole tree is then one topic, named after the root
+// folder, rendered to a website, a DOCX and a PDF.
 func (c *Config) looseTree() error {
 	folders, err := ContentFolders(c.Root)
 	if err != nil {
 		return err
 	}
-	if len(folders) > 0 && hasRootIndex(c.Root) {
+	if len(folders) > 0 {
 		return nil
 	}
 	name := filepath.Base(c.Root)
@@ -395,17 +394,6 @@ func (c *Config) looseTree() error {
 	c.Topics = Entries[Topic]{{Name: name, Value: Topic{Folder: "."}}}
 	c.Formats = Entries[Format]{{Name: "web"}, {Name: TypeDOCX}, {Name: TypePDF}}
 	return nil
-}
-
-// hasRootIndex reports whether root holds an index page, the website's
-// home page.
-func hasRootIndex(root string) bool {
-	for _, name := range []string{"index.md", "index.qmd"} {
-		if st, err := os.Stat(filepath.Join(root, name)); err == nil && !st.IsDir() {
-			return true
-		}
-	}
-	return false
 }
 
 func guessType(name string) string {

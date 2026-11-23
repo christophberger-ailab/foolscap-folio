@@ -85,7 +85,7 @@ The project's vocabulary for rendering. Read this before `build`.
   as errors, then `complete` fills the defaults and checks cross references.
   Without a file the project gets one topic per top-level content folder
   (`ContentFolders`), the format `web` (html), and one audience, `all`. A tree
-  without a root index page or without topic folders is one topic instead, the
+  without topic folders is one topic instead, the
   root itself, rendered to `web`, `docx` and `pdf` (`looseTree`). A format's `type` is a `StringList` (`html`, `docx`, `pdf`, or a list
   of the last two), guessed from the format's name when left out.
 - `Entries[T]` (`entries.go`) is an ordered YAML map: the order of `formats`,

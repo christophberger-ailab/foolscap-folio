@@ -113,14 +113,13 @@ func TestBuildOptionsWithoutConfigUsesDefaults(t *testing.T) {
 	}
 }
 
-// A Markdown tree with no folio.yml and no topic layout is rendered whole,
+// A Markdown tree with no folio.yml and no topic folders is rendered whole,
 // to a website, a DOCX and a PDF (issue #131).
 func TestRunRendersALooseTree(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "notes")
 	for name, content := range map[string]string{
-		"alpha.md":      "# Alpha\n\nA.\n",
-		"sub/beta.md":   "# Beta\n\nB.\n",
-		"sub/x/deep.md": "# Deep\n\nD.\n",
+		"alpha.md": "# Alpha\n\nA.\n",
+		"beta.md":  "# Beta\n\nB.\n",
 	} {
 		p := filepath.Join(root, name)
 		os.MkdirAll(filepath.Dir(p), 0o755)
@@ -129,7 +128,7 @@ func TestRunRendersALooseTree(t *testing.T) {
 	if err := Run(root, config.Request{}, false, false); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"web/alpha.html", "web/sub/beta.html", "web/sub/x/deep.html", "docx/notes.docx", "pdf/notes.pdf"} {
+	for _, name := range []string{"web/alpha.html", "web/beta.html", "docx/notes.docx", "pdf/notes.pdf"} {
 		if fi, err := os.Stat(filepath.Join(root, "_output", name)); err != nil || fi.Size() == 0 {
 			t.Errorf("%s: %v", name, err)
 		}

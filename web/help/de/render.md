@@ -6,7 +6,7 @@ Der Tab `Render` neben dem Editor zeigt den Render-Bereich (siehe [die Bereiche]
 
 Ein Rendering wird durch drei Dinge bestimmt:
 
-- **Topics** (Themen): was gerendert wird. Ein Kästchen pro Thema, entnommen aus den `topics` in der `folio.yml` des Projekts. Ohne `folio.yml` ist jeder Inhaltsordner auf oberster Ebene ein Thema – oder, wenn das Projekt keine `index.md` im Hauptordner oder keinen solchen Ordner hat, ist der ganze Baum ein Thema, benannt nach dem Projektordner, gerendert als Website, DOCX und PDF.
+- **Topics** (Themen): was gerendert wird. Ein Kästchen pro Thema, entnommen aus den `topics` in der `folio.yml` des Projekts. Ohne `folio.yml` ist jeder Inhaltsordner auf oberster Ebene ein Thema – oder, wenn das Projekt keinen solchen Ordner hat, ist der ganze Baum ein Thema, benannt nach dem Projektordner, gerendert als Website, DOCX und PDF.
 - **Audiences** (Zielgruppen): für wen. Ein Thema mit zwei oder mehr Zielgruppen zeigt darunter je ein Kästchen. Ein Thema mit nur einer Zielgruppe zeigt keines und verwendet diese eine. Angeboten werden nur die Zielgruppen, die ein Thema deklariert.
 - **Formats** (Formate): wie. Ein Kästchen pro Format, in der Gruppe `Formats`, entnommen aus den `formats` der `folio.yml` (eine Website, ein Word-Dokument, ein PDF oder beides). Ohne `folio.yml` gibt es eines, `web` – beim ganzen Baum als ein Thema (siehe oben) drei: `web`, `docx` und `pdf`.
 

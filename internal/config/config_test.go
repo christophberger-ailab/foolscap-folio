@@ -24,7 +24,6 @@ func project(t *testing.T, yml string, folders ...string) string {
 func TestDefaults(t *testing.T) {
 	root := project(t, "", "b", "a", "_hidden", "assets")
 	os.Remove(filepath.Join(root, "assets", "index.qmd"))
-	os.WriteFile(filepath.Join(root, "index.md"), []byte("# Home\n"), 0o644)
 	c, err := Load(root)
 	if err != nil {
 		t.Fatal(err)
@@ -40,14 +39,12 @@ func TestDefaults(t *testing.T) {
 	}
 }
 
-// A tree without folio.yml that lacks the expected layout -- a root index
-// page and top-level topic folders -- is rendered whole, as one topic, to
-// every output type (issue #131).
+// A tree without folio.yml that has no top-level topic folders is
+// rendered whole, as one topic, to every output type (issue #131).
 func TestDefaultsForALooseTree(t *testing.T) {
 	for name, files := range map[string][]string{
-		"no root index": {"a/index.md", "b/page.md"},
-		"no folders":    {"index.md", "other.md"},
-		"neither":       {"notes.md"},
+		"no folders": {"index.md", "other.md"},
+		"neither":    {"notes.md"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			root := filepath.Join(t.TempDir(), "notes")

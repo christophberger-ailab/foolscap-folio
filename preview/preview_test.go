@@ -87,18 +87,18 @@ func TestServesRenderedSiteWithLiveScript(t *testing.T) {
 	}
 }
 
-// A Markdown tree with no folio.yml and no topic layout is previewed as
+// A Markdown tree with no folio.yml and no topic folders is previewed as
 // one website of the whole tree, though it also renders to documents
 // (issue #131).
 func TestServesALooseTree(t *testing.T) {
 	root := t.TempDir()
 	write(t, root, "notes.md", "# Notes\n\nLoose notes.\n")
-	write(t, root, "sub/more.md", "# More\n\nMore notes.\n")
+	write(t, root, "more.md", "# More\n\nMore notes.\n")
 	s := newServer(t, root, config.Request{})
 	if err := s.Build(); err != nil {
 		t.Fatal(err)
 	}
-	for path, want := range map[string]string{"/notes.html": "Loose notes.", "/sub/more.html": "More notes."} {
+	for path, want := range map[string]string{"/notes.html": "Loose notes.", "/more.html": "More notes."} {
 		if rec := get(t, s, path); rec.Code != 200 || !strings.Contains(rec.Body.String(), want) {
 			t.Errorf("%s: code %d", path, rec.Code)
 		}

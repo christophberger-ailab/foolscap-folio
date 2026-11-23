@@ -56,7 +56,7 @@ constraints:
       4: 'A topic has the optional keys `folder` (default the topic name), `title`, `cover`, `formats`, `audiences` and `vars`'
       5: 'A format, audience or topic named in a `formats`, `audiences` or `topics` list that the project does not define is an error'
       6: 'Without folio.yml every top-level content folder -- a directory not starting with `_` or `.` that holds a .qmd or .md file -- is a topic, the only format is `web` (html), and there is one audience, `all`'
-      6-1: 'A project without folio.yml that lacks an index.md or index.qmd in its root, or has no top-level content folder, is rendered whole instead: one topic named after the root folder (`docs` when that name is `all`), with the root as its folder, and the formats `web` (html), `docx` and `pdf`'
+      6-1: 'A project without folio.yml that has no top-level content folder is rendered whole instead: one topic named after the root folder (`docs` when that name is `all`), with the root as its folder, and the formats `web` (html), `docx` and `pdf`'
       7: 'The old `_quarto.yml` and `_quarto-<axis>-<value>.yml` files are not read'
       7-1: 'A project without folio.yml that has `_quarto.yml` or `_quarto-*.yml` files is an error that names the files and `folio migrate`; it is never rendered on the defaults'
       8: '`{name}` placeholders in a format''s `dir`, `file`, `template` and `css` and a topic''s `cover` resolve against the variables: the project''s `vars`, then the topic''s, the audience''s and the format''s (later ones win), then the built-ins `topic`, `format` and `audience`. A placeholder without a variable is an error'
