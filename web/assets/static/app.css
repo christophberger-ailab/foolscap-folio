@@ -340,6 +340,54 @@ button:disabled:hover {
   color: var(--danger);
 }
 
+.browse-notice {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+/* The clone form fills the dialog the folder list fills. */
+.clone-form h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.clone-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.85rem;
+}
+
+.clone-form input[type="text"] {
+  font: inherit;
+  padding: 0.3rem 0.4rem;
+}
+
+.clone-form .primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+}
+
+.github-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.github-status .hint,
+.github-wait {
+  color: var(--muted);
+}
+
+.github-code {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
 .browse-open {
   background: var(--accent);
   border-color: var(--accent);

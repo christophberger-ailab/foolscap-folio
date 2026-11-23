@@ -71,6 +71,10 @@ type server struct {
 	// restart asks Serve to restart on an updated binary; nil when the
 	// server was not started by Serve.
 	restart chan struct{}
+
+	// github is the sign-in to GitHub that clone, push, and sync use
+	// (see github.go).
+	github githubState
 }
 
 func newServer(configFile string) (*server, error) {
@@ -106,6 +110,7 @@ func newServer(configFile string) (*server, error) {
 		return nil, err
 	}
 	s.cfg = cfg
+	s.loadGitHubToken()
 	static, err := iofs.Sub(assets, "assets/static")
 	if err != nil {
 		return nil, err
@@ -146,6 +151,11 @@ func newServer(configFile string) (*server, error) {
 	s.mux.HandleFunc("GET /help/{lang}/{name}", s.helpPageHandler)
 	s.mux.HandleFunc("POST /open", s.open)
 	s.mux.HandleFunc("GET /browse", s.browse)
+	s.mux.HandleFunc("GET /clone", s.cloneForm)
+	s.mux.HandleFunc("POST /clone", s.cloneHandler)
+	s.mux.HandleFunc("POST /github/login", s.githubLoginHandler)
+	s.mux.HandleFunc("POST /github/poll", s.githubPollHandler)
+	s.mux.HandleFunc("POST /github/logout", s.githubLogoutHandler)
 	s.mux.HandleFunc("GET /tree", s.treeHandler)
 	s.mux.HandleFunc("GET /watch", s.watch)
 	s.mux.HandleFunc("POST /move", s.move)
@@ -588,15 +598,22 @@ func (s *server) previewStylesheet(w http.ResponseWriter, r *http.Request) {
 func (s *server) open(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if err := s.setRoot(strings.TrimSpace(r.FormValue("path"))); err != nil {
+	if err := s.openProject(w, strings.TrimSpace(r.FormValue("path"))); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	}
+}
+
+// openProject switches to the project at dir and renders it for the #main
+// swap. Nothing is written when it fails, so the caller can still answer
+// with the error. The caller must hold s.mu.
+func (s *server) openProject(w http.ResponseWriter, dir string) error {
+	if err := s.setRoot(dir); err != nil {
+		return err
 	}
 	s.rememberFP()
 	st, err := s.load()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		return err
 	}
 	s.rebaseOnState(st)
 	s.render(w, "main", st)
@@ -610,6 +627,7 @@ func (s *server) open(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, `<div hx-swap-oob="innerHTML:#open-panel">`)
 	s.render(w, "open-form", st)
 	fmt.Fprint(w, `</div>`)
+	return nil
 }
 
 // setRoot switches to the project at dir, which must name an existing

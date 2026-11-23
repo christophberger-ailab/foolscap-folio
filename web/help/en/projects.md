@@ -39,4 +39,27 @@ Opening a project updates everything that belongs to it: the page tree, the pane
 
 The list of recent projects is kept in the [settings file](settings.md).
 
+## Opening a project from a repository
+
+You can start from a Git repository instead of a folder on disk.
+
+1. Press `Open`, then `From a repository…`.
+2. Paste the repository's address, as the hosting site shows it: `https://github.com/owner/book.git` or `git@github.com:owner/book.git`.
+3. Check the folder to clone into. It starts as the folder the dialog showed. The clone goes into a new folder inside it, named after the repository.
+4. Press `Clone and open`.
+
+If the repository has a `folio.yml` at its top, it opens right away. If not, the dialog shows the cloned folder so you can pick the subfolder that holds the book.
+
+From then on it is an ordinary project in a folder of its own: commit, push, and sync in the [Git pane](git.md), or in a terminal.
+
+### Signing in to GitHub
+
+A public repository clones without signing in. For a private one, and to push your changes back, git needs to know who you are. If you have not set up git credentials, press `Sign in to GitHub` in the form:
+
+1. folio shows a short code and a link to `github.com/login/device`.
+2. Open the link, enter the code, and approve folio.
+3. The form says whom you are signed in as.
+
+folio keeps the sign-in for the next start, in a file next to the [settings file](settings.md) that only you can read, and sends it to github.com only. `Sign out` forgets it. To withdraw folio's access on GitHub's side too, revoke it under Settings → Applications on github.com.
+
 Back to [Contents](index.md).

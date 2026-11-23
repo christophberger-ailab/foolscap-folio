@@ -25,6 +25,8 @@ The pane covers the whole working tree. If your project is a subfolder of a larg
 - `Push` pushes the branch to its remote. A branch with no upstream yet is pushed with the upstream set.
 - `↻ Refresh` reads the working tree again.
 
+If you signed in to GitHub when [opening a project from a repository](projects.md), push and sync use that sign-in for github.com. Otherwise git uses the credentials you set up for it.
+
 What git said (commit summary, push transcript, or the reason it was refused) is shown as it stands.
 
 ## Diffs

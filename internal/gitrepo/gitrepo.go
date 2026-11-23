@@ -397,21 +397,26 @@ func run(dir string, args ...string) (string, error) {
 // `git diff --no-index` says "the two differ" by exiting 1, and there that
 // is the answer, not a failure. An ok of 0 allows nothing.
 func runAllowing(dir string, ok int, args ...string) (string, error) {
+	return runFor(Timeout, dir, ok, args...)
+}
+
+// runFor is runAllowing with a timeout of its own, for a clone.
+func runFor(timeout time.Duration, dir string, ok int, args ...string) (string, error) {
 	if !Available() {
 		return "", ErrNoGit
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), Timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, "git", args...)
 	cmd.Dir = dir
 	// No terminal is attached, so a prompt for a password or a passphrase
 	// would hang until the timeout. Refusing to ask turns that into an
 	// error message the user can act on.
-	cmd.Env = append(cmd.Environ(), "GIT_TERMINAL_PROMPT=0")
+	cmd.Env = authEnv(append(cmd.Environ(), "GIT_TERMINAL_PROMPT=0"))
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		if ctx.Err() != nil {
-			return string(out), fmt.Errorf("git %s timed out after %s", args[0], Timeout)
+			return string(out), fmt.Errorf("git %s timed out after %s", args[0], timeout)
 		}
 		var exit *exec.ExitError
 		if ok != 0 && errors.As(err, &exit) && exit.ExitCode() == ok {

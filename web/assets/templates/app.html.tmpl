@@ -137,13 +137,58 @@
       {{- else}}{{if not .Error}}<li class="empty">No folders here.</li>{{end}}{{end}}
     </ul>
   </div>
+  {{if .Notice}}<p class="browse-notice">{{.Notice}}</p>{{end}}
   {{if .Error}}<p class="browse-error">{{.Error}}</p>{{end}}
   <div class="browse-actions">
+    <button type="button" class="browse-clone" id="browse-clone" title="Clone a Git repository into the folder shown and open it">From a repository…</button>
     <span class="browse-status" id="browse-status" role="status"></span>
     <button type="button" class="browse-cancel">Cancel</button>
     <button type="button" class="browse-open primary" id="browse-open">Open</button>
   </div>
 </div>{{end}}
+
+{{/* The Open dialog's other way in: clone a repository and open it.
+     The clone goes into a new folder, named as git names it, inside the
+     folder given. Signing in to GitHub lets folio reach private
+     repositories and push back to them; without it, git uses the
+     credentials the user set up for it, which is enough for a public
+     repository. */}}
+{{define "clone"}}<form class="browse clone-form" hx-post="/clone" hx-target="#open-dialog-body" hx-swap="innerHTML">
+  <h3>Open from a repository</h3>
+  <label>Repository URL
+    <input type="text" name="url" value="{{.URL}}" placeholder="https://github.com/owner/book.git" autocomplete="off" spellcheck="false" required autofocus>
+  </label>
+  <label>Clone into the folder
+    <input type="text" name="dir" value="{{.Dir}}" autocomplete="off" spellcheck="false" required>
+  </label>
+  <div class="github-status" id="github-status">{{template "github-status" .GitHub}}</div>
+  {{if .Error}}<p class="browse-error">{{.Error}}</p>{{end}}
+  {{if .Output}}<pre class="git-output">{{.Output}}</pre>{{end}}
+  <div class="browse-actions">
+    <button type="button" class="clone-back" data-path="{{.Dir}}">Back</button>
+    <span class="browse-status" id="browse-status" role="status"></span>
+    <button type="button" class="browse-cancel">Cancel</button>
+    <button type="submit" class="primary" id="clone-submit">Clone and open</button>
+  </div>
+</form>{{end}}
+
+{{/* The GitHub line of the clone form. While a sign-in is under way it
+     shows the code to enter and asks /github/poll again after GitHub's
+     interval, until the answer is a sign-in or a failure. */}}
+{{define "github-status"}}{{if .Login -}}
+<span>Signed in to GitHub as <strong>{{.Login}}</strong>.</span>
+<button type="button" hx-post="/github/logout" hx-target="#github-status" hx-swap="innerHTML">Sign out</button>
+{{- else if .UserCode -}}
+<span>Open <a href="{{.VerifyURL}}" target="_blank" rel="noopener noreferrer">{{.VerifyURL}}</a> and enter the code <code class="github-code">{{.UserCode}}</code></span>
+<span class="github-wait" hx-post="/github/poll" hx-trigger="load delay:{{.Interval}}s" hx-target="#github-status" hx-swap="innerHTML">Waiting for GitHub…</span>
+<button type="button" hx-post="/github/logout" hx-target="#github-status" hx-swap="innerHTML">Cancel</button>
+{{- else if .Offered -}}
+<button type="button" hx-post="/github/login" hx-target="#github-status" hx-swap="innerHTML">Sign in to GitHub</button>
+<span class="hint">to clone private repositories and push to them</span>
+{{- else -}}
+<span class="hint">Git uses the credentials you set up for it.</span>
+{{- end}}
+{{if .Error}}<div class="error">{{.Error}}</div>{{end}}{{end}}
 
 {{/* The Git pane. Its body is fetched when the pane is shown rather than
      with the page: the working tree changes under the app all the time,
