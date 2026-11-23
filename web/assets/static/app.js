@@ -59,17 +59,29 @@ document.body.addEventListener('htmx:afterSwap', function (evt) {
   if (!dialog.open) {
     dialog.showModal();
   }
-  var first = dialog.querySelector('.browse-entry.selected') || dialog.querySelector('.browse-entry');
+  var first = dialog.querySelector('.browse-entry.selected') || dialog.querySelector('.browse-entry') ||
+    dialog.querySelector('[autofocus]');
   if (first) {
     first.focus();
     first.scrollIntoView({ block: 'nearest' });
   }
 });
 
-// The dialog closes once a folio has opened; a refusal stays in it.
+// The dialog closes once a folio has opened; a refusal stays in it. A
+// clone that opened its folio answers into #main, and closes it too; one
+// that did not answers into the dialog, with the form or the folders.
 document.body.addEventListener('htmx:afterRequest', function (evt) {
   var dialog = openDialog();
-  if (!dialog || !dialog.open || evt.detail.pathInfo.requestPath !== '/open') {
+  if (!dialog || !dialog.open) {
+    return;
+  }
+  if (evt.detail.pathInfo.requestPath === '/clone' && evt.detail.requestConfig.verb === 'post') {
+    if (evt.detail.successful && evt.detail.xhr.getResponseHeader('HX-Retarget') === '#main') {
+      dialog.close();
+    }
+    return;
+  }
+  if (evt.detail.pathInfo.requestPath !== '/open') {
     return;
   }
   if (evt.detail.successful) {
@@ -102,6 +114,18 @@ document.body.addEventListener('click', function (evt) {
     openFolio(recent.dataset.path);
     return;
   }
+  var back = evt.target.closest('.clone-back');
+  if (back) {
+    browseTo(back.dataset.path);
+    return;
+  }
+  if (evt.target.closest('#browse-clone')) {
+    htmx.ajax('GET', '/clone?dir=' + encodeURIComponent(document.getElementById('browse-dir').value), {
+      target: '#open-dialog-body',
+      swap: 'innerHTML'
+    });
+    return;
+  }
   if (evt.target.closest('.browse-cancel')) {
     openDialog().close();
     return;
@@ -109,6 +133,18 @@ document.body.addEventListener('click', function (evt) {
   if (evt.target.closest('#browse-open')) {
     var selected = document.querySelector('#open-dialog .browse-entry.selected');
     openFolio(selected ? selected.dataset.path : document.getElementById('browse-dir').value);
+  }
+});
+
+// A clone takes a while; the form says it is under way.
+document.body.addEventListener('submit', function (evt) {
+  if (!evt.target.classList || !evt.target.classList.contains('clone-form')) {
+    return;
+  }
+  var status = evt.target.querySelector('#browse-status');
+  if (status) {
+    status.textContent = 'Cloning…';
+    status.classList.remove('failed');
   }
 });
 

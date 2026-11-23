@@ -25,6 +25,8 @@ Der Bereich umfasst den ganzen Arbeitsbaum. Liegt dein Projekt in einem Unterord
 - `Push` schiebt den Branch zu seinem Remote. Ein Branch ohne Upstream wird mit gesetztem Upstream gepusht.
 - `↻ Refresh` liest den Arbeitsbaum erneut.
 
+Hast du dich beim [Öffnen eines Projekts aus einem Repository](projects.md) bei GitHub angemeldet, nutzen Push und Sync diese Anmeldung für github.com. Sonst verwendet git die Zugangsdaten, die du dafür eingerichtet hast.
+
 Was git gesagt hat (Commit-Zusammenfassung, Push-Protokoll oder der Grund einer Ablehnung), wird unverändert angezeigt.
 
 ## Diffs

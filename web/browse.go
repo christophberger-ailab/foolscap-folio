@@ -18,8 +18,10 @@ type browseView struct {
 	Parent  string
 	Entries []browseEntry
 	Recent  []recentPath
-	// Error says why Dir could not be listed.
-	Error string
+	// Error says why Dir could not be listed, and Notice what led here
+	// when it was not the Open button: a clone with no folio at its top.
+	Error  string
+	Notice string
 }
 
 // browseEntry is one subfolder in the dialog.
@@ -37,7 +39,11 @@ type browseEntry struct {
 func (s *server) browse(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	dir := strings.TrimSpace(r.URL.Query().Get("dir"))
+	s.render(w, "browse", s.browseAt(strings.TrimSpace(r.URL.Query().Get("dir"))))
+}
+
+// browseAt is the folder dialog showing dir. The caller must hold s.mu.
+func (s *server) browseAt(dir string) browseView {
 	last := s.root
 	if last == "" && len(s.cfg.Recent) > 0 {
 		last = s.cfg.Recent[0]
@@ -61,7 +67,7 @@ func (s *server) browse(w http.ResponseWriter, r *http.Request) {
 	if p := filepath.Dir(v.Dir); p != v.Dir {
 		v.Parent = p
 	}
-	s.render(w, "browse", v)
+	return v
 }
 
 // subfolders lists the folders in dir that are not hidden, in name order,
