@@ -17,6 +17,7 @@ import (
 
 	"github.com/christophberger-ailab/foolscap-folio/internal/build"
 	"github.com/christophberger-ailab/foolscap-folio/internal/config"
+	"github.com/christophberger-ailab/foolscap-folio/internal/project"
 )
 
 // keyHidden stands in for a stored API key in the config.cue editor. The
@@ -165,7 +166,7 @@ func (s *server) saveProjectFileHandler(w http.ResponseWriter, r *http.Request) 
 	if err == nil {
 		v.Text = text
 		if _, err = config.Parse(s.root, v.Path, []byte(text)); err == nil {
-			err = os.WriteFile(v.Path, []byte(text), 0o644)
+			err = writeMatching(v.Path, text)
 		}
 	}
 	if err != nil {
@@ -222,7 +223,7 @@ func (s *server) saveBrandFileHandler(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		v.Text = text
 		if err = build.CheckBrand([]byte(text)); err == nil {
-			err = os.WriteFile(v.Path, []byte(text), 0o644)
+			err = writeMatching(v.Path, text)
 		}
 	}
 	v.Error, v.Message = "", "Saved."
@@ -311,4 +312,11 @@ func (s *server) parseSettings(text string) (storedConfig, error) {
 		return cfg, err
 	}
 	return decodeConfig(b, name)
+}
+
+// writeMatching writes text, typed in the browser's editor, over the file
+// at path with the line endings the file already has (issue #129).
+func writeMatching(path, text string) error {
+	old, _ := os.ReadFile(path)
+	return os.WriteFile(path, project.MatchNewlines([]byte(text), old), 0o644)
 }

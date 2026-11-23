@@ -47,19 +47,24 @@ func (fm FrontMatter) Value(key string) (any, bool) {
 	return nil, false
 }
 
-var fmDelim = []byte("---\n")
+// fmDelim returns the line that opens and closes a frontmatter block in
+// src, with src's own line ending.
+func fmDelim(src []byte) []byte {
+	return []byte("---" + newline(src))
+}
 
 // splitFrontmatter returns the frontmatter block (delimiters included)
 // and the body. The block is empty if src has no frontmatter.
 func splitFrontmatter(src []byte) (block, body []byte) {
-	if !bytes.HasPrefix(src, fmDelim) {
+	delim := fmDelim(src)
+	if !bytes.HasPrefix(src, delim) {
 		return nil, src
 	}
-	end := bytes.Index(src[len(fmDelim):], fmDelim)
+	end := bytes.Index(src[len(delim):], delim)
 	if end < 0 {
 		return nil, src
 	}
-	n := len(fmDelim) + end + len(fmDelim)
+	n := len(delim) + end + len(delim)
 	return src[:n], src[n:]
 }
 
@@ -71,7 +76,8 @@ func ParseFrontmatter(src []byte) FrontMatter {
 	if block == nil {
 		return fm
 	}
-	yaml.Unmarshal(block[len(fmDelim):len(block)-len(fmDelim)], &fm)
+	delim := len(fmDelim(src))
+	yaml.Unmarshal(block[delim:len(block)-delim], &fm)
 	return fm
 }
 
@@ -81,18 +87,19 @@ var orderLine = regexp.MustCompile(`(?m)^order\s*:.*$`)
 // leaving everything else byte-for-byte intact. A missing order field or
 // frontmatter block is created. src is not modified.
 func SetOrder(src []byte, order int) []byte {
-	line := fmt.Sprintf("order: %d", order)
+	nl := newline(src)
+	line := fmt.Sprintf("order: %d", order) + nl
 	block, body := splitFrontmatter(src)
 	if block == nil {
-		return append([]byte("---\n"+line+"\n---\n\n"), body...)
+		return append([]byte("---"+nl+line+"---"+nl+nl), body...)
 	}
-	from, to := len(block)-len(fmDelim), len(block)-len(fmDelim) // insert before closing ---
+	closing := len(block) - len(fmDelim(src))
+	from, to := closing, closing // insert before closing ---
 	if loc := orderLine.FindIndex(block); loc != nil {
 		from, to = loc[0], loc[1]+1 // replace the existing line
 	}
-	out := make([]byte, 0, len(src)+len(line)+1)
+	out := make([]byte, 0, len(src)+len(line))
 	out = append(out, src[:from]...)
 	out = append(out, line...)
-	out = append(out, '\n')
 	return append(out, src[to:]...)
 }

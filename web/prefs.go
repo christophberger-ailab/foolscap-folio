@@ -273,7 +273,7 @@ func (s *server) saveCSS(name, css string) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(dir, name), []byte(css), 0o644)
+	return writeMatching(filepath.Join(dir, name), css)
 }
 
 // createCSS adds a new, empty stylesheet to the project and returns its
