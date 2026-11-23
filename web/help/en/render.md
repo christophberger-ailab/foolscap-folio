@@ -6,9 +6,9 @@ The `Render` tab beside the editor shows the render pane (see [the panes](panes.
 
 A render is chosen by three things:
 
-- **Topics**: what to render. One checkbox per topic, taken from the `topics` in the project's `folio.yml`. Without a `folio.yml`, every top-level content folder is a topic.
+- **Topics**: what to render. One checkbox per topic, taken from the `topics` in the project's `folio.yml`. Without a `folio.yml`, every top-level content folder is a topic — or, when the project has no `index.md` in its root or no such folder, the whole tree is one topic, named after the project folder, rendered as a website, a DOCX and a PDF.
 - **Audiences**: for whom. A topic with two or more audiences shows a checkbox for each below the topic. A topic with only one audience shows none and uses that one. Only the audiences a topic declares are offered.
-- **Formats**: how. One checkbox per format, in the `Formats` group, taken from the `formats` in `folio.yml` (a website, a Word document, a PDF, or both). Without a `folio.yml` there is one: `web`.
+- **Formats**: how. One checkbox per format, in the `Formats` group, taken from the `formats` in `folio.yml` (a website, a Word document, a PDF, or both). Without a `folio.yml` there is one, `web` — or three, `web`, `docx` and `pdf`, when the whole tree is one topic (see above).
 
 Each checked topic is rendered once for every checked audience and every checked format. The audience boxes of a topic are dimmed while the topic itself is unchecked, but you can still change them in advance. A topic you have never set up starts with all its audiences checked.
 

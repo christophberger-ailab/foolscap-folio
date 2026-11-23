@@ -328,7 +328,7 @@ topics:
 
 (`suffix` is an example variable: it means something only because `template`, `file` and `cover` use it. The project-level default keeps `{suffix}` defined for the audience `std`, which sets none.)
 
-A minimal project needs no `folio.yml` at all. Without one, every top-level content folder (one holding a `.qmd` or `.md` file, and not starting with `_` or `.`) is a topic, the only format is `web` (HTML), and there is one audience, `all`. A project that has no `folio.yml` but still has `_quarto.yml` or `_quarto-*.yml` files is an error rather than a render on the defaults: run `folio migrate` first (see below). A `folio.yml` states only what differs:
+A minimal project needs no `folio.yml` at all. Without one, every top-level content folder (one holding a `.qmd` or `.md` file, and not starting with `_` or `.`) is a topic, the only format is `web` (HTML), and there is one audience, `all`. That takes a tree laid out as topics: an `index.md` (or `index.qmd`) in the root, the home page, and at least one top-level content folder. Any other Markdown tree without a `folio.yml` is rendered whole, as it is: one topic named after the project folder (`docs` if that is `all`), whose folder is the root, rendered to a website (`web`), a DOCX (`docx`) and a PDF (`pdf`). `folio preview` serves that website, and `folio web` shows the tree as it is on disk. A project that has no `folio.yml` but still has `_quarto.yml` or `_quarto-*.yml` files is an error rather than a render on the defaults: run `folio migrate` first (see below). A `folio.yml` states only what differs:
 
 ```yaml
 title: Handbook
