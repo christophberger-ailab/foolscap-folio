@@ -994,7 +994,9 @@ func (s *server) save(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "no such page", http.StatusBadRequest)
 		return
 	}
-	posted := []byte(r.FormValue("body"))
+	// The editor hands back LF whatever the file had; a page checked out
+	// with CRLF keeps it, or Git sees every line as changed (issue #129).
+	posted := project.MatchNewlines([]byte(r.FormValue("body")), old)
 	body := posted
 	// force is the user answering a conflict with "mine wins". It is the
 	// only way past the check, and it has to be asked for.
