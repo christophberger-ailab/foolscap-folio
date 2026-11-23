@@ -38,11 +38,15 @@ On the origin of the paper format, Wikipedia [writes](https://en.wikipedia.org/w
 
 ## Install
 
-On Windows, the easiest way is the setup program: download `folio_<version>_windows_setup.exe` from the latest [release](../../releases/latest), double-click it and follow the steps. It needs no administrator rights, puts `folio` on your `PATH`, and adds **Foolscap Folio** to the Start menu, which starts `folio web`. Or, in a terminal, with winget, which comes with Windows 10 and 11:
+On Windows, the easiest way is the setup program: download `folio_<version>_windows_setup.exe` from the latest [release](../../releases/latest), double-click it and follow the steps. It needs no administrator rights, puts `folio` on your `PATH`, and adds **Foolscap Folio** to the Start menu, which starts `folio web`. 
+
+Or, in a terminal, with winget, which comes with Windows 10 and 11:
 
 ```sh
 winget install ChristophBerger.FoolscapFolio
 ```
+
+**NOTE: winget does not work right now, as the project has not been signed and submitted to Windows Package Manager yet.**
 
 [packaging/windows](packaging/windows/README.md) has the details.
 
