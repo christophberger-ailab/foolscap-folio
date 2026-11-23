@@ -130,13 +130,32 @@ jobs:
       - name: Test
         run: go test ./...
 
+  # The Windows setup program, folio_<tag>_windows_setup.exe, built (and
+  # signed, once SignPath is set up) by windows-setup.yml and handed to the
+  # release job as the windows-setup artifact, which publishes it and lists
+  # it in the signed SHA256SUMS.txt.
+  windows-setup:
+    name: Windows setup program
+    needs: [version, test]
+    if: needs.version.outputs.version != ''
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/windows-setup.yml
+    with:
+      version: ${{ needs.version.outputs.version }}
+      ref: ${{ github.sha }}
+      sign: true
+    secrets: inherit
+
   # GoReleaser builds the six targets, packages them (archives, deb, rpm,
-  # apk, Arch), writes and signs SHA256SUMS.txt, publishes the release and
-  # pushes the Homebrew cask and Scoop manifest. .goreleaser.yaml has the
+  # apk, Arch), adds the Windows setup program, writes and signs
+  # SHA256SUMS.txt, publishes the release, pushes the Homebrew cask and Scoop
+  # manifest and opens the winget pull request. .goreleaser.yaml has the
   # details, and the names folio upgrade depends on.
   release:
     name: Build and publish release
-    needs: [version, test]
+    needs: [version, test, windows-setup]
     if: needs.version.outputs.version != ''
     runs-on: ubuntu-latest
     # id-token lets cosign get a short-lived signing certificate from
@@ -169,6 +188,12 @@ jobs:
       - name: Tag
         run: git tag "${VERSION}" "${BUILD_SHA}"
 
+      # installer/ is in .gitignore, so GoReleaser does not see a dirty tree.
+      - uses: actions/download-artifact@v8
+        with:
+          name: windows-setup
+          path: installer
+
       - uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
         with:
           distribution: goreleaser
@@ -179,3 +204,7 @@ jobs:
           # Writes the Homebrew tap and the Scoop bucket. While it is unset
           # the release goes out without them.
           HOMEBREW_SCOOP_TOKEN: ${{ secrets.HOMEBREW_SCOOP_TOKEN }}
+          # Pushes the winget manifest to the winget-pkgs fork and opens the
+          # pull request to microsoft/winget-pkgs. While it is unset the
+          # manifest is built but not submitted.
+          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}

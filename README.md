@@ -38,6 +38,14 @@ On the origin of the paper format, Wikipedia [writes](https://en.wikipedia.org/w
 
 ## Install
 
+On Windows, the easiest way is the setup program: download `folio_<version>_windows_setup.exe` from the latest [release](../../releases/latest), double-click it and follow the steps. It needs no administrator rights, puts `folio` on your `PATH`, and adds **Foolscap Folio** to the Start menu, which starts `folio web`. Or, in a terminal, with winget, which comes with Windows 10 and 11:
+
+```sh
+winget install ChristophBerger.FoolscapFolio
+```
+
+[packaging/windows](packaging/windows/README.md) has the details.
+
 With a package manager:
 
 ```sh
@@ -46,7 +54,7 @@ scoop bucket add folio https://github.com/christophberger-ailab/scoop-bucket
 scoop install folio                                   # Windows (Scoop)
 ```
 
-On Linux, each [release](../../releases) also carries `.deb`, `.rpm`, `.apk` and Arch (`.pkg.tar.zst`) packages for amd64 and arm64; install the one for your system with `apt install ./folio_….deb`, `dnf install ./folio_….rpm`, `apk add --allow-untrusted ./folio_….apk` or `pacman -U ./folio_….pkg.tar.zst`. A folio installed this way is updated by its package manager (`brew upgrade folio`, `scoop update folio`, …); `folio upgrade` points there rather than replacing a file the package manager owns.
+On Linux, each [release](../../releases) also carries `.deb`, `.rpm`, `.apk` and Arch (`.pkg.tar.zst`) packages for amd64 and arm64; install the one for your system with `apt install ./folio_….deb`, `dnf install ./folio_….rpm`, `apk add --allow-untrusted ./folio_….apk` or `pacman -U ./folio_….pkg.tar.zst`. A folio installed this way is updated by its package manager (`brew upgrade folio`, `scoop update folio`, `winget upgrade --id ChristophBerger.FoolscapFolio`, …); `folio upgrade` points there rather than replacing a file the package manager owns.
 
 Or by hand: pre-built binaries for Linux, macOS and Windows (amd64 and arm64) are attached to each release. Download, unpack, put `folio` on your `PATH`.
 
@@ -609,8 +617,8 @@ To update Fuse.js, replace the file, change the version there and run
 Releases are cut by `.github/workflows/release.yml` when a pull request is
 merged into `main` (a push to `main` that is not a PR merge releases nothing):
 it vets, tests, cross-compiles the six targets (Linux, macOS and Windows,
-each for amd64 and arm64), and publishes a release with
-checksums. `SHA256SUMS.txt` is signed keylessly with cosign through the
+each for amd64 and arm64), builds the Windows setup program, and publishes a
+release with checksums. `SHA256SUMS.txt` is signed keylessly with cosign through the
 workflow's GitHub OIDC token, so no signing key is stored anywhere; the
 signature is only accepted from `release.yml` on `main`, which is why a manual
 run must be started on `main`. Versions follow [SemVer](https://semver.org)
