@@ -128,6 +128,7 @@ constraints:
       3-5-9: An image link that names no image file of the project -- a file that is missing, a directory, or a file that is not an image -- shows the project's placeholder image, `/assets/static/_placeholder.svg` resolved against the project root like any website-absolute image path, instead of the browser's broken-image icon
       3-5-10: A project without that placeholder gets a placeholder built into the app, and so does an image the route cannot answer for, such as an external image that does not load
       3-5-11: The placeholder is not cached, so an image that turns up on disk replaces it once the tree's watch announces the change (see 3-5-8)
+      3-5-12: A single click on an image in the preview shows it at full size in the same browser window, over the app on a dark backdrop and scrolled where it is larger than the window; a click or Escape closes it. An image of the project waits a moment before it opens, so a double-click opens the image editor (see 12-7) without it; an image in a link or a commented passage is left to their own clicks; the image's tooltip says so
       3-6: The editor is CodeMirror, embedded in the binary like the other assets, and highlights the page's YAML frontmatter and Markdown
       3-6-1: A toggle button in the editor's own column, below the editor text, switches Vim keybindings on and off; the choice is remembered across sessions
       3-6-2: Vim mode is off unless the user turns it on

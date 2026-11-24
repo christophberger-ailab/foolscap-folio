@@ -24,6 +24,7 @@ Bilder werden aus deinem Projekt geladen.
 - Ausgeliefert werden nur Bilddateien innerhalb des geöffneten Projekts.
 - Ein Bild allein in seinem Absatz (Leerzeile davor und danach) zeigt seinen Alt-Text als Beschriftung darunter. Ein Bild im Fließtext oder ohne Alt-Text bekommt keine Beschriftung.
 - Fahre mit der Maus über ein Bild, um seinen Pfad so zu sehen, wie er auf der Seite steht. Hat das Bild einen Markdown-Titel, steht dieser zuerst.
+- Klicke auf ein Bild, um es in voller Größe über der App zu sehen. Ein weiterer Klick oder Escape schließt es.
 - Doppelklicke auf ein Bild, um es in deinem [Bildeditor](external-editor.md) zu öffnen. Wenn du in diesem Programm speicherst, übernimmt die Vorschau die neue Version innerhalb weniger Sekunden.
 - `↻ Reload` zeigt Bilder so, wie sie auf der Platte liegen, auch wenn du eines unter demselben Namen ersetzt hast.
 

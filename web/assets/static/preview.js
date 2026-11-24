@@ -499,7 +499,8 @@ function mediaPath(src, baseDir) {
 // hovering it tells which file it is. An image that has a Markdown title
 // keeps it, with the path on a line below. An image of the project carries
 // its project path in data-media-path, which is what a double-click opens
-// in the image editor (see app.js), and says so in its tooltip.
+// in the image editor (see app.js), and says so in its tooltip. The tooltip
+// also tells that a click shows the image at full size (see showFullSize).
 function resolveMedia(root, pagePath) {
   var cut = (pagePath || "").lastIndexOf("/");
   var baseDir = cut < 0 ? "" : pagePath.slice(0, cut);
@@ -508,6 +509,7 @@ function resolveMedia(root, pagePath) {
     var title = img.getAttribute("title");
     var rel = mediaPath(src, baseDir);
     var tip = title ? title + "\n" + src : src;
+    tip += "\nClick to view it at full size";
     if (rel !== "") {
       img.setAttribute("data-media-path", rel);
       tip += "\nDouble-click to open it in the image editor";

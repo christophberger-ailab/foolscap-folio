@@ -1672,6 +1672,41 @@ document.body.addEventListener('dblclick', function (evt) {
   });
 });
 
+// showFullSize shows an image at full size over the app, centred on a dark
+// backdrop and scrolled where it is larger than the window; a click or
+// Escape closes it.
+function showFullSize(img) {
+  var box = document.createElement('dialog');
+  var big = document.createElement('img');
+  box.className = 'lightbox';
+  big.setAttribute('src', img.getAttribute('src'));
+  big.alt = img.alt;
+  box.appendChild(big);
+  box.addEventListener('click', function () { box.close(); });
+  box.addEventListener('close', function () { box.remove(); });
+  document.body.appendChild(box);
+  box.showModal();
+}
+
+// A click on an image in the preview shows it at full size. An image of
+// the project waits a moment first: a second click makes it a double-click,
+// which opens the image editor instead (see above). An image in a link or
+// a commented passage is left to their own clicks.
+var fullSizeTimer = 0;
+document.body.addEventListener('click', function (evt) {
+  var img = evt.target.closest && evt.target.closest('#preview img');
+  if (!img || img.closest('#preview a, #preview .folio-comment')) {
+    return;
+  }
+  clearTimeout(fullSizeTimer);
+  if (evt.detail > 1) {
+    return;
+  }
+  fullSizeTimer = setTimeout(function () {
+    showFullSize(img);
+  }, img.dataset.mediaPath ? 350 : 0);
+});
+
 // A click on a commented passage in the preview puts the cursor at the
 // start of its comment in the editor, where the comment is read and edited.
 document.body.addEventListener('click', function (evt) {

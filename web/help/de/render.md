@@ -12,7 +12,7 @@ Ein Rendering wird durch drei Dinge bestimmt:
 
 Jedes angehakte Thema wird einmal für jede angehakte Zielgruppe und jedes angehakte Format gerendert. Die Zielgruppen-Kästchen eines Themas sind abgeblendet, solange das Thema selbst nicht angehakt ist, du kannst sie aber trotzdem schon vorab ändern. Ein Thema, das du noch nie eingerichtet hast, startet mit allen Zielgruppen angehakt.
 
-Ein Website-Format ist die Ausnahme von „einmal pro Thema“: Es fasst alle angehakten Themen in einer Website zusammen und schreibt für jede angehakte Zielgruppe eine eigene. Ein Thema, das an einem angehakten Format nicht teilnimmt, wird übersprungen.
+Ein Website-Format ist die Ausnahme von „einmal pro Thema“: Es fasst alle angehakten Themen in einer Website zusammen und schreibt für jede angehakte Zielgruppe eine eigene. Ein Thema, das an einem angehakten Format nicht teilnimmt, wird übersprungen. In einer gerenderten Website zeigt ein Klick auf ein Bild es in voller Größe; ein weiterer Klick oder Escape schließt es.
 
 Deine Auswahl wird pro Projekt in der [Einstellungsdatei](settings.md) gemerkt.
 
