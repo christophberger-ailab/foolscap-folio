@@ -38,6 +38,103 @@
     }
   }
 
+  var article = document.querySelector('.page');
+
+  // fold is s without case and diacritics, character by character, so that
+  // its indices are those of s.
+  function fold(s) {
+    var f = '';
+    for (var i = 0; i < s.length; i++) {
+      var c = s[i].normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      f += c.length === 1 ? c : s[i];
+    }
+    return f;
+  }
+
+  // mark marks the terms wherever the page's text has them, ignoring case
+  // and diacritics as the search does, and returns the marks in page order;
+  // the marks of an earlier call are removed.
+  function mark(terms) {
+    var old = article.querySelectorAll('mark.page-mark');
+    old.forEach(function (m) {
+      var p = m.parentNode;
+      m.replaceWith(m.textContent);
+      p.normalize();
+    });
+    terms = terms.map(fold).filter(function (t) { return t.length > 1; });
+    if (!terms.length) return [];
+    terms.sort(function (a, b) { return b.length - a.length; });
+    var re = new RegExp(terms.map(function (t) { return t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }).join('|'), 'g');
+    var walk = document.createTreeWalker(article, NodeFilter.SHOW_TEXT, {
+      acceptNode: function (n) {
+        return n.parentElement.closest('script, style, svg') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    var nodes = [], n, found = [];
+    while ((n = walk.nextNode())) nodes.push(n);
+    nodes.forEach(function (n) {
+      var text = fold(n.data), ranges = [], m, own = [];
+      while ((m = re.exec(text))) ranges.push([m.index, m[0].length]);
+      // from the last, so that n keeps the text before them
+      for (var i = ranges.length - 1; i >= 0; i--) {
+        var hit = n.splitText(ranges[i][0]);
+        hit.splitText(ranges[i][1]);
+        var el = document.createElement('mark');
+        el.className = 'page-mark';
+        hit.replaceWith(el);
+        el.appendChild(hit);
+        own.unshift(el);
+      }
+      found = found.concat(own);
+    });
+    return found;
+  }
+  // pick makes the i-th mark the current one and scrolls to it.
+  function pick(marks, i) {
+    marks.forEach(function (m, j) { m.classList.toggle('current', j === i); });
+    if (marks[i]) marks[i].scrollIntoView({ block: 'center' });
+  }
+
+  // A page opened from a search hit marks the words the hit matched, which
+  // the hit's link names as ?mark=, and scrolls to the first.
+  if (article) {
+    var terms = new URLSearchParams(location.search).getAll('mark').slice(0, 20);
+    if (terms.length) pick(mark(terms), 0);
+  }
+
+  // The find field above the contents list marks its text in this page;
+  // Enter and Shift+Enter step through the marks, Escape clears it.
+  var finder = document.querySelector('.find');
+  if (finder && article) find(finder);
+
+  function find(box) {
+    var input = box.querySelector('input'), count = box.querySelector('.find-count');
+    var marks = [], at = 0;
+    function go(i) {
+      at = (i + marks.length) % marks.length;
+      pick(marks, at);
+      count.textContent = (at + 1) + '/' + marks.length;
+    }
+    input.addEventListener('input', function () {
+      var q = input.value.trim();
+      marks = mark(q.length > 1 ? [q] : []);
+      count.textContent = q.length > 1 && !marks.length ? '0/0' : '';
+      if (marks.length) go(0);
+    });
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && marks.length) {
+        e.preventDefault();
+        go(at + (e.shiftKey ? -1 : 1));
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        input.value = '';
+        marks = mark([]);
+        count.textContent = '';
+      }
+    });
+  }
+
   // Search. Fuse.js and the index are loaded on first use, so a reader who
   // never searches does not download them. The search runs in Fuse.js's web
   // workers, which share the pages between them, so neither indexing nor
@@ -129,6 +226,19 @@
       return parts;
     }
 
+    // matched is the words of the page that a hit matched, for its page to
+    // mark.
+    function matched(doc, matches) {
+      var seen = {}, words = [];
+      matches.forEach(function (x) {
+        x.indices.forEach(function (r) {
+          var w = doc[x.key].slice(r[0], r[1] + 1), k = fold(w);
+          if (k.length > 1 && !seen[k] && words.length < 20) { seen[k] = true; words.push(w); }
+        });
+      });
+      return words;
+    }
+
     function el(tag, cls, text) {
       var e = document.createElement(tag);
       e.className = cls;
@@ -160,7 +270,7 @@
         if (q !== input.value.trim()) return;
         wait(false);
         hits = hits.map(function (h) {
-          return { t: h.item.t, u: h.item.u, s: h.item.s, p: snippet(h.item, h.matches || []) };
+          return { t: h.item.t, u: h.item.u, s: h.item.s, p: snippet(h.item, h.matches || []), m: matched(h.item, h.matches || []) };
         });
         store(hitsKey, JSON.stringify({ q: q, hits: hits }));
         render(q, hits, false);
@@ -180,7 +290,9 @@
       }
       hits.forEach(function (h) {
         var a = el('a', 'search-hit');
-        a.href = base + h.u;
+        var q = new URLSearchParams();
+        (h.m || []).forEach(function (w) { q.append('mark', w); });
+        a.href = base + h.u + (h.m && h.m.length ? '?' + q : '');
         a.appendChild(el('span', 'search-title', h.t));
         if (h.s && h.s !== h.t) a.appendChild(el('span', 'search-section', h.s));
         var p = el('span', 'search-snippet');
@@ -249,7 +361,6 @@
   // A click on an image of the page shows it at full size over the page,
   // scrolled where it is larger than the window; a click or Escape closes
   // it. An image inside a link follows the link.
-  var article = document.querySelector('.page');
   if (article && window.HTMLDialogElement) article.addEventListener('click', function (e) {
     var img = e.target.closest && e.target.closest('img');
     if (img && !img.closest('a')) fullSize(img);

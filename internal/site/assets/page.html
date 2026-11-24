@@ -55,6 +55,7 @@
     {{with .Footer}}<footer class="page-footer">{{.}}</footer>{{end}}
   </main>
   {{if .TOC}}<aside class="toc" aria-label="{{.L.OnThisPage}}">
+    <div class="find" role="search"><input type="search" placeholder="{{.L.Find}}" aria-label="{{.L.Find}}" autocomplete="off" spellcheck="false"><span class="find-count" aria-live="polite"></span></div>
     <nav>
       <p class="toc-title">{{.L.OnThisPage}}</p>
       <ul>{{range .TOC}}<li class="toc-l{{.Level}}"><a href="#{{.ID}}">{{.Text}}</a></li>

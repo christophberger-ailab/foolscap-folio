@@ -8,14 +8,14 @@ import (
 )
 
 type labels struct {
-	Menu, Contents, OnThisPage, Prev, Next, Skip, Topics, Sidebar, Search, Clear, NoHits, Searching string
+	Menu, Contents, OnThisPage, Prev, Next, Skip, Topics, Sidebar, Search, Clear, NoHits, Searching, Find string
 }
 
 func labelsFor(lang string) labels {
 	if strings.HasPrefix(strings.ToLower(lang), "de") {
-		return labels{"Menü", "Inhalt", "Auf dieser Seite", "Zurück", "Weiter", "Zum Inhalt springen", "Themen", "Seitenleiste", "Suche", "Suche löschen", "Keine Treffer", "Suche läuft"}
+		return labels{"Menü", "Inhalt", "Auf dieser Seite", "Zurück", "Weiter", "Zum Inhalt springen", "Themen", "Seitenleiste", "Suche", "Suche löschen", "Keine Treffer", "Suche läuft", "Diese Seite durchsuchen"}
 	}
-	return labels{"Menu", "Contents", "On this page", "Previous", "Next", "Skip to content", "Topics", "Sidebar", "Search", "Clear search", "No results", "Searching"}
+	return labels{"Menu", "Contents", "On this page", "Previous", "Next", "Skip to content", "Topics", "Sidebar", "Search", "Clear search", "No results", "Searching", "Search this page"}
 }
 
 type navLink struct {
