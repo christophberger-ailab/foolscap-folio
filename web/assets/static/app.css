@@ -723,13 +723,15 @@ button:disabled:hover {
 .git-commit {
   display: flex;
   gap: 0.4rem;
-  align-items: center;
+  align-items: flex-end;
   margin-bottom: 0.5rem;
 }
 
-.git-commit input {
+.git-commit textarea {
   flex: 1;
   min-width: 0;
+  resize: vertical;
+  font: inherit;
 }
 
 .git-actions {

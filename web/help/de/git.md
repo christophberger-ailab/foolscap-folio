@@ -21,7 +21,7 @@ Der Bereich umfasst den ganzen Arbeitsbaum. Liegt dein Projekt in einem Unterord
 
 ## Committen und pushen
 
-- Tippe eine Nachricht in `Commit message` und drücke `Commit`. Committen ist nur möglich, solange etwas gestaged ist, und eine Nachricht ist Pflicht.
+- Tippe eine Nachricht in `Commit message` und drücke `Commit` oder `Strg+Enter` (`Cmd+Enter` auf dem Mac). Das Feld nimmt mehrere Zeilen auf: einen Betreff, eine Leerzeile und einen Text. Committen ist nur möglich, solange etwas gestaged ist, und eine Nachricht ist Pflicht.
 - `Push` schiebt den Branch zu seinem Remote. Ein Branch ohne Upstream wird mit gesetztem Upstream gepusht.
 - `↻ Refresh` liest den Arbeitsbaum erneut.
 

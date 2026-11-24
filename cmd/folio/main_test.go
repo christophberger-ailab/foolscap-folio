@@ -70,6 +70,15 @@ func TestCommandHelpListsCommandFlags(t *testing.T) {
 	}
 }
 
+// render and preview both take --draft (spec-render.yaml DRAFT).
+func TestDraftFlag(t *testing.T) {
+	for _, cmd := range []string{"render", "preview"} {
+		if help, _ := folio(t, "help "+cmd); !strings.Contains(help, "--draft") {
+			t.Errorf("folio help %s lacks --draft:\n%s", cmd, help)
+		}
+	}
+}
+
 func TestWrongCommandLinesFail(t *testing.T) {
 	for _, args := range []string{"bogus", "chapters", "chapters insert x", "flatten x", "lint --addr x"} {
 		if _, code := folio(t, args); code != 1 {

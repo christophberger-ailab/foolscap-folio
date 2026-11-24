@@ -60,6 +60,9 @@ type Options struct {
 	Footer func(topic string, meta map[string]any) string
 	// Expand expands shortcodes in a page's Markdown; may be nil.
 	Expand func(string) (string, error)
+	// Draft shows todos, comments, reviews and new pages, and keeps the
+	// pages marked `draft: true`, which are otherwise left out.
+	Draft bool
 	// Log receives warnings and progress; may be nil.
 	Log func(format string, args ...any)
 }
@@ -204,6 +207,9 @@ func (b *builder) load() error {
 		if b.o.Skip != nil {
 			tree.Drop(b.o.Skip)
 		}
+		if !b.o.Draft {
+			tree.DropDrafts()
+		}
 		bookmaker.Pages(tree, t.Title)
 		ti := &topicInfo{Topic: t, root: tree, title: tree.Title(), byNod: map[*bookmaker.Node]*pageInfo{}}
 		var walk func(n *bookmaker.Node, aud string)
@@ -285,7 +291,7 @@ func (b *builder) renderPage(p *pageInfo) (err error) {
 		content = p.landing
 	} else {
 		md, warns := bookmaker.PageMarkdown(p.node, p.audience,
-			bookmaker.Options{ProjectRoot: b.root, WrapAudience: true})
+			bookmaker.Options{ProjectRoot: b.root, WrapAudience: true, Draft: b.o.Draft})
 		for _, w := range warns {
 			b.logf("warning: %s", w)
 		}
@@ -295,7 +301,7 @@ func (b *builder) renderPage(p *pageInfo) (err error) {
 			}
 		}
 		doc := markdown.Parse([]byte(md))
-		doc.Prepare(markdown.Options{Keep: b.o.Keep, Formats: b.o.Formats, Lang: b.o.Lang, CalloutTitles: b.o.CalloutTitles,
+		doc.Prepare(markdown.Options{Keep: b.o.Keep, Formats: b.o.Formats, Lang: b.o.Lang, CalloutTitles: b.o.CalloutTitles, Draft: b.o.Draft,
 			Warn: func(format string, args ...any) {
 				b.logf("warning: %s: "+format, append([]any{p.node.Page.Rel}, args...)...)
 			}})

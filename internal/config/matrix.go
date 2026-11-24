@@ -9,6 +9,8 @@ import (
 // project offers on that axis".
 type Request struct {
 	Topics, Formats, Audiences []string
+	// Draft asks for drafts (see Selection.Draft).
+	Draft bool
 }
 
 // AllTopics is the topic that stands for every topic of the project. It has
@@ -85,7 +87,7 @@ func (c *Config) Expand(req Request) ([]Selection, error) {
 				if len(topics) == 0 {
 					continue
 				}
-				out = append(out, Selection{Config: c, Topic: topics[0], Topics: topics, Format: format, Audience: a.Value})
+				out = append(out, Selection{Config: c, Topic: topics[0], Topics: topics, Format: format, Audience: a.Value, Draft: req.Draft})
 			}
 			continue
 		}
@@ -97,7 +99,7 @@ func (c *Config) Expand(req Request) ([]Selection, error) {
 				if !pick(req.Audiences, a.Name) || !allows(format.Audiences, a.Name) || !allows(t.Value.Audiences, a.Name) {
 					continue
 				}
-				out = append(out, Selection{Config: c, Topic: t.Value, Format: format, Audience: a.Value})
+				out = append(out, Selection{Config: c, Topic: t.Value, Format: format, Audience: a.Value, Draft: req.Draft})
 			}
 		}
 	}

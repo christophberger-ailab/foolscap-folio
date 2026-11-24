@@ -60,7 +60,7 @@ var calloutTitles = web.CalloutTitles
 var userBrand = web.UserBrand
 
 // Register wires the `preview` command into start. It shares --addr with
-// `web` and --topic, --format and --audience with `render`, which register
+// `web` and --topic, --format, --audience and --draft with `render`, which register
 // them; it must therefore be registered after both.
 func Register(projectFlag *string) {
 	projectPath = projectFlag
@@ -71,9 +71,10 @@ func Register(projectFlag *string) {
 			"address in folio.yml's preview section, or the next free port up), " +
 			"and render it again whenever a file of the project changes; open " +
 			"pages reload themselves. Usage: folio preview [<path>]. --topic, " +
-			"--format and --audience pick the site as for `folio render`; " +
+			"--format and --audience pick the site as for `folio render`, and " +
+			"--draft shows todos, comments, reviews and draft pages as it does; " +
 			"--addr sets the listen address.",
-		Flags: []string{"addr", "topic", "format", "audience"},
+		Flags: []string{"addr", "topic", "format", "audience", "draft"},
 		Cmd:   cmd,
 	})
 }
@@ -88,10 +89,12 @@ func cmd(c *start.Command) error {
 		return fmt.Errorf("cannot resolve project path: %w", err)
 	}
 	str := func(name string) string { v, _ := flag.CommandLine.GetString(name); return v }
+	draft, _ := flag.CommandLine.GetBool("draft")
 	req := config.Request{
 		Topics:    split(str("topic")),
 		Formats:   split(str("format")),
 		Audiences: split(str("audience")),
+		Draft:     draft,
 	}
 	return Serve(str("addr"), docPath, req)
 }

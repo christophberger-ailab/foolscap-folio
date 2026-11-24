@@ -357,6 +357,7 @@ func (w *writer) finishParts(p *pkg) {
 		p.set(name, []byte(xmlDecl+`<w:footnotes xmlns:w="`+nsW+`" xmlns:r="`+nsR+`">`+seps+strings.Join(w.fnXML, "")+`</w:footnotes>`))
 	}
 
+	rels = append(rels, w.commentsPart(p)...)
 	addRels(p, rels)
 	patchSettings(p, w.opt.TOC, len(w.fnXML) > 0)
 }

@@ -32,6 +32,7 @@ var (
 	cleanFlag     *bool
 	dryRunFlag    *bool
 	updateTOCFlag *bool
+	draftFlag     *bool
 )
 
 // calloutTitles returns the user's callout titles by language and type,
@@ -67,6 +68,8 @@ func Register(projectFlag *string, titles, strs func() (map[string]map[string]st
 
 	updateTOCFlag = flag.Bool("update-toc", false,
 		"Fill the page numbers into the contents of each DOCX, using LibreOffice")
+	draftFlag = flag.Bool("draft", false,
+		"Render a draft: show todos, comments, reviews and new pages, and keep pages marked draft")
 
 	start.Add(&start.Command{
 		Name:  "render",
@@ -77,7 +80,7 @@ func Register(projectFlag *string, titles, strs func() (map[string]map[string]st
 			"once; a document (DOCX, PDF) is written per topic and audience. " +
 			"Which formats and audiences a topic takes part in is declared " +
 			"under the topic in folio.yml, as `formats:` and `audiences:`.",
-		Flags: []string{"topic", "format", "audience", "clean", "dry-run", "update-toc"},
+		Flags: []string{"topic", "format", "audience", "draft", "clean", "dry-run", "update-toc"},
 		Cmd:   cmd,
 	})
 }
@@ -96,6 +99,7 @@ func cmd(c *start.Command) error {
 		Topics:    topics,
 		Formats:   splitList(deref(formatFlag)),
 		Audiences: splitList(deref(audienceFlag)),
+		Draft:     derefBool(draftFlag),
 	}
 	return Run(docPath, req, derefBool(cleanFlag), derefBool(dryRunFlag))
 }

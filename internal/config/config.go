@@ -465,6 +465,9 @@ type Selection struct {
 	// Topics is the set of topics a website render covers. It is nil for a
 	// document render, which covers Topic alone.
 	Topics []Topic
+	// Draft renders a draft (spec-render.yaml DRAFT): todos, comments,
+	// reviews and new pages shown, and pages marked `draft: true` kept.
+	Draft bool
 }
 
 // Vars returns the variables of the selection: the project's, then the

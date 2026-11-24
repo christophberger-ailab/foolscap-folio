@@ -130,6 +130,20 @@ func (n *Node) Drop(drop func(name string) bool) {
 	n.Children = kept
 }
 
+// DropDrafts removes the descendants of n whose page says `draft: true`,
+// with everything below them: a folder whose index page is a draft is
+// one as a whole.
+func (n *Node) DropDrafts() {
+	kept := n.Children[:0]
+	for _, c := range n.Children {
+		if c.Page == nil || !c.Page.IsDraft() {
+			c.DropDrafts()
+			kept = append(kept, c)
+		}
+	}
+	n.Children = kept
+}
+
 // LoadTree reads the book folder at dir and returns its root node.
 //
 // projectRoot is used to compute the Rel paths that in-book links are
