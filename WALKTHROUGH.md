@@ -374,6 +374,8 @@ embedded Fuse.js 7.5 web worker build (`assets/fuse-worker.mjs`, the `FuseWorker
 class, and `assets/fuse.worker.mjs`, the script its workers run; Apache-2.0,
 `assets/fuse.LICENSE`). `site.js` loads the index and imports `FuseWorker` when
 the search field first gets the focus; the workers each index a share of the pages.
+A hit's link names the words it matched as `?mark=`; `site.js` marks them in the
+opened page (`mark`), as it does the text of the find field above the contents list.
 
 ### 5.5 `internal/docx`
 

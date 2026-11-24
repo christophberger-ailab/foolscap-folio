@@ -9,8 +9,8 @@ import (
 )
 
 // browse runs script in node with Playwright's Chromium against the page at
-// file, printing what the script logs; it skips without node or Playwright.
-func browse(t *testing.T, file, script string) string {
+// url, printing what the script logs; it skips without node or Playwright.
+func browse(t *testing.T, url, script string) string {
 	t.Helper()
 	node, err := exec.LookPath("node")
 	if err != nil {
@@ -23,10 +23,10 @@ func browse(t *testing.T, file, script string) string {
 (async () => {
   const browser = await chromium.launch();
   const page = await browser.newPage();
-  await page.goto('file://' + process.argv[1]);
+  await page.goto(process.argv[1]);
   try {` + script + `} finally { await browser.close(); }
 })().catch(e => { console.error(e); process.exit(1); });`
-	out, err := exec.Command(node, "-e", js, "--", file).CombinedOutput()
+	out, err := exec.Command(node, "-e", js, "--", url).CombinedOutput()
 	if err != nil {
 		t.Fatalf("node: %v\n%s", err, out)
 	}
@@ -41,7 +41,7 @@ func TestImageFullSize(t *testing.T) {
 	if err := Build(opts(root, out)); err != nil {
 		t.Fatal(err)
 	}
-	got := browse(t, filepath.Join(out, "x", "page.html"), `
+	got := browse(t, "file://"+filepath.Join(out, "x", "page.html"), `
   const shown = () => page.evaluate(() => {
     const d = document.querySelector('dialog.lightbox');
     return d && d.open ? d.querySelector('img').getAttribute('src') : '';

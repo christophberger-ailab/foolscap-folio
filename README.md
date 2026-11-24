@@ -403,7 +403,10 @@ An HTML format builds a site with a layout like Quarto's:
   or the list is closed, for as long as the browser tab is open, so a click
   into the field shows them again at once, also on the next page, and a button
   in the field clears them; a search that takes longer than a second shows a
-  spinner in the field;
+  spinner in the field; a hit opens its page with the words it matched marked
+  and scrolled to;
+- a field above the "On this page" list that finds text in the current page,
+  marks every occurrence and steps through them with Enter and Shift+Enter;
 - a responsive layout: the contents list is hidden at 75em and narrower, the
   sidebar becomes off-canvas at 50em and narrower;
 - all text sizes and the 42em text column are in `em`, so the page scales with

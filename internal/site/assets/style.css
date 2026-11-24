@@ -28,6 +28,8 @@
   --link: #2761e3;
   --accent: #2780e3;
   --accent-soft: #e9f2fc;
+  --mark: #fff0a0;
+  --mark-current: #ffc94d;
   --code-bg: #f1f3f5;
   --code-fg: #7d12ba;
   /* The navbar is in the accent color, as Quarto's is in the primary. */
@@ -46,6 +48,8 @@
     --link: #7db3ff;
     --accent: #6ea8fe;
     --accent-soft: #1e2a3d;
+    --mark: #5c4d0a;
+    --mark-current: #94700c;
     --code-bg: #1f242a;
     --code-fg: #d4a5f0;
     --nav-bg: #1a1d22;
@@ -477,6 +481,41 @@ html:not(.js) .search {
 }
 
 /* ---------- table of contents ---------- */
+/* the find field, which marks what it finds in the page */
+.find {
+  position: relative;
+  margin: 0 0 1em;
+}
+html:not(.js) .find {
+  display: none;
+}
+.find input {
+  width: 100%;
+  padding: 0.35em 3.5em 0.35em 0.6em;
+  font: inherit;
+  font-size: var(--fs-small);
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 0.25em;
+}
+.find-count {
+  position: absolute;
+  top: 50%;
+  right: 0.6em;
+  transform: translateY(-50%);
+  font-size: var(--fs-small);
+  color: var(--fg-muted);
+  pointer-events: none;
+}
+mark.page-mark {
+  background: var(--mark);
+  color: inherit;
+  border-radius: 0.15em;
+}
+mark.page-mark.current {
+  background: var(--mark-current);
+}
 .toc-title {
   margin: 0 0 0.6em;
   font-weight: 500;
