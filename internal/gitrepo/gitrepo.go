@@ -266,7 +266,9 @@ func Commit(dir, message string) (string, error) {
 	if strings.TrimSpace(message) == "" {
 		return "", errors.New("a commit needs a message")
 	}
-	return run(top(dir), "commit", "-m", message)
+	// A browser sends a textarea's line breaks as CRLF; git keeps them
+	// under commit.cleanup=verbatim, so they are made LF here.
+	return run(top(dir), "commit", "-m", strings.ReplaceAll(message, "\r\n", "\n"))
 }
 
 // Push sends the current branch to its remote. A branch that tracks

@@ -482,3 +482,38 @@ func TestGitRemoteButtonsDisableWhileRunning(t *testing.T) {
 		}
 	}
 }
+
+// The commit message is a multi-line field, and a message sent from it
+// keeps its lines: a subject, a blank line, and a body. Browsers send a
+// textarea's line breaks as CRLF, which the commit stores as LF.
+func TestGitCommitMultiline(t *testing.T) {
+	srv, root := gitProject(t)
+	writeFile(t, root, "chapter2/second.qmd", "---\ntitle: Second\norder: 1\n---\n# Edited\n")
+	body := post(t, srv, "/git/stage", url.Values{"all": {"1"}}).Body.String()
+	if !strings.Contains(body, `<textarea name="message" id="git-message"`) {
+		t.Errorf("commit message is not a multi-line field:\n%s", body)
+	}
+
+	post(t, srv, "/git/commit", url.Values{"message": {"Edit second\r\n\r\nThe heading changed.\r\nSo did the body."}})
+	cmd := exec.Command("git", "log", "-1", "--format=%B")
+	cmd.Dir = root
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := "Edit second\n\nThe heading changed.\nSo did the body.\n\n"; string(out) != want {
+		t.Errorf("message = %q, want %q", out, want)
+	}
+}
+
+// Enter starts a new line of the commit message; Ctrl+Enter, or Cmd+Enter
+// on a Mac, commits it.
+func TestGitCommitKey(t *testing.T) {
+	script := jsFunc(t, "assets/static/app.js", "isCommitKey") + `
+for (const e of [{key: "Enter"}, {key: "Enter", ctrlKey: true}, {key: "Enter", metaKey: true}, {key: "a", ctrlKey: true}]) {
+  console.log(isCommitKey(e));
+}`
+	if out, want := runNode(t, script), "false\ntrue\ntrue\nfalse\n"; out != want {
+		t.Errorf("isCommitKey:\n%s\nwant:\n%s", out, want)
+	}
+}

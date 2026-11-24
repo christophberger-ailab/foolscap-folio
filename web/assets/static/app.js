@@ -2164,6 +2164,19 @@ document.addEventListener('DOMContentLoaded', function () {
   initSearch();
 });
 
+// isCommitKey tells the key that commits the Git pane's message: Enter
+// alone starts a new line of it, Ctrl+Enter (Cmd+Enter on a Mac) commits.
+function isCommitKey(evt) {
+  return evt.key === 'Enter' && !!(evt.ctrlKey || evt.metaKey);
+}
+
+document.body.addEventListener('keydown', function (evt) {
+  if (evt.target.id === 'git-message' && isCommitKey(evt)) {
+    evt.preventDefault();
+    evt.target.form.requestSubmit();
+  }
+});
+
 // The Git pane's filter. Every operation swaps the whole pane body, the
 // field included, so the text lives here and is put back after each swap;
 // a filter that emptied itself whenever a file was staged would have to

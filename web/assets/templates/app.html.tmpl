@@ -252,7 +252,7 @@
      state that no longer exists. */ -}}
 <div id="git-diff">{{if or .Staged .Unstaged}}<p class="empty git-diff-hint">Click a path to see its diff.</p>{{end}}</div>
 <form class="git-commit" hx-post="/git/commit" hx-target="#git-body" hx-swap="innerHTML">
-  <input name="message" id="git-message" placeholder="Commit message" autocomplete="off"{{if not .Staged}} disabled{{end}}>
+  <textarea name="message" id="git-message" rows="3" placeholder="Commit message (Ctrl+Enter commits)" autocomplete="off"{{if not .Staged}} disabled{{end}}></textarea>
   <button type="submit"{{if not .Staged}} disabled title="Stage a file to commit it"{{end}}>Commit</button>
 </form>
 <div class="git-actions">

@@ -21,7 +21,7 @@ The pane covers the whole working tree. If your project is a subfolder of a larg
 
 ## Committing and pushing
 
-- Type a message in `Commit message` and press `Commit`. Committing is offered only while something is staged, and a message is required.
+- Type a message in `Commit message` and press `Commit`, or `Ctrl+Enter` (`Cmd+Enter` on a Mac). The field takes several lines: a subject, a blank line, and a body. Committing is offered only while something is staged, and a message is required.
 - `Push` pushes the branch to its remote. A branch with no upstream yet is pushed with the upstream set.
 - `↻ Refresh` reads the working tree again.
 
