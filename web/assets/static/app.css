@@ -1971,6 +1971,38 @@ li.CodeMirror-hint-active {
   line-height: 1.55;
 }
 
+/* A click on an image of the preview shows it at full size in the
+   lightbox (see showFullSize in app.js). */
+#preview img {
+  cursor: zoom-in;
+}
+#preview a img {
+  cursor: pointer;
+}
+.lightbox {
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: auto;
+  cursor: zoom-out;
+}
+.lightbox[open] {
+  display: flex;
+}
+.lightbox::backdrop {
+  background: rgba(0, 0, 0, 0.85);
+}
+.lightbox img {
+  flex: none;
+  margin: auto;
+  max-width: none;
+}
+
 /* Help pane: the help's own navigation above a page rendered like the
    preview. */
 

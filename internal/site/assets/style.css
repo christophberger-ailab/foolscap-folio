@@ -587,6 +587,38 @@ svg {
 figure {
   text-align: center;
 }
+/* An image of the page opens at full size in the lightbox (see site.js):
+   centred over a dark backdrop, scrolled where it is larger than the
+   window; a click closes it. */
+.page img {
+  cursor: zoom-in;
+}
+.page a img {
+  cursor: pointer;
+}
+.lightbox {
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: auto;
+  cursor: zoom-out;
+}
+.lightbox[open] {
+  display: flex;
+}
+.lightbox::backdrop {
+  background: rgba(0, 0, 0, 0.85);
+}
+.lightbox img {
+  flex: none;
+  margin: auto;
+  max-width: none;
+}
 figcaption {
   font-size: var(--fs-small);
   color: var(--fg-muted);

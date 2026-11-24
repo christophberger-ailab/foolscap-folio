@@ -24,6 +24,7 @@ Images are loaded from your project.
 - Only image files inside the open project are served.
 - An image alone in its paragraph (blank line before and after) shows its alt text as a caption underneath. An image inside running text, or without alt text, gets no caption.
 - Hover over an image to see its path as written in the page. If the image has a Markdown title, the title is shown first.
+- Click an image to view it at full size over the app. Click again or press Escape to close it.
 - Double-click an image to open it in your [image editor](external-editor.md). When you save in that program, the preview picks up the new version within a couple of seconds.
 - `↻ Reload` shows images as they are on disk, even if you replaced one under the same name.
 

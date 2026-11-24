@@ -1,0 +1,68 @@
+package site
+
+import (
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// browse runs script in node with Playwright's Chromium against the page at
+// file, printing what the script logs; it skips without node or Playwright.
+func browse(t *testing.T, file, script string) string {
+	t.Helper()
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node not installed")
+	}
+	if exec.Command(node, "-e", "require('playwright')").Run() != nil {
+		t.Skip("playwright not installed")
+	}
+	js := `const { chromium } = require('playwright');
+(async () => {
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  await page.goto('file://' + process.argv[1]);
+  try {` + script + `} finally { await browser.close(); }
+})().catch(e => { console.error(e); process.exit(1); });`
+	out, err := exec.Command(node, "-e", js, "--", file).CombinedOutput()
+	if err != nil {
+		t.Fatalf("node: %v\n%s", err, out)
+	}
+	return string(out)
+}
+
+// SITE.9: a click on an image of the page shows it at full size over the
+// page; a click or Escape closes it; an image inside a link is followed.
+func TestImageFullSize(t *testing.T) {
+	root, out := project(t)
+	write(t, root, "x/page.qmd", "---\ntitle: X Page\n---\n\n![Pic](/assets/pic.png)\n\n[![Linked](/assets/pic.png)](/x/index.qmd)\n")
+	if err := Build(opts(root, out)); err != nil {
+		t.Fatal(err)
+	}
+	got := browse(t, filepath.Join(out, "x", "page.html"), `
+  const shown = () => page.evaluate(() => {
+    const d = document.querySelector('dialog.lightbox');
+    return d && d.open ? d.querySelector('img').getAttribute('src') : '';
+  });
+  console.log('before:' + await shown());
+  await page.click('article img[alt="Pic"]');
+  console.log('click:' + await shown());
+  await page.keyboard.press('Escape');
+  console.log('escape:' + await shown());
+  await page.click('article img[alt="Pic"]');
+  await page.mouse.click(5, 5);
+  console.log('closed:' + await shown());
+  await page.click('article img[alt="Linked"]');
+  await page.waitForURL(/index\.html$/);
+  console.log('link:' + page.url().split('/').pop());`)
+	want := "before:\nclick:../assets/pic.png\nescape:\nclosed:\nlink:index.html\n"
+	if got != want {
+		t.Errorf("got:\n%s\nwant:\n%s", got, want)
+	}
+	css, err := os.ReadFile(filepath.Join(out, "_site", "style.css"))
+	if err != nil || !strings.Contains(string(css), ".lightbox") {
+		t.Error("style.css does not style the lightbox")
+	}
+}

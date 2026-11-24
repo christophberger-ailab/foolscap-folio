@@ -12,7 +12,7 @@ A render is chosen by three things:
 
 Each checked topic is rendered once for every checked audience and every checked format. The audience boxes of a topic are dimmed while the topic itself is unchecked, but you can still change them in advance. A topic you have never set up starts with all its audiences checked.
 
-A website format is the exception to "once per topic": it covers all checked topics in one site, and writes one site for each checked audience. A topic that takes no part in a checked format is skipped.
+A website format is the exception to "once per topic": it covers all checked topics in one site, and writes one site for each checked audience. A topic that takes no part in a checked format is skipped. In a rendered website, a click on an image shows it at full size; a click or Escape closes it.
 
 Your selection is remembered for each project in the [settings file](settings.md).
 

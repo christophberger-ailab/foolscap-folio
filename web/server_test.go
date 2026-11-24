@@ -577,11 +577,33 @@ func TestPreviewShowsImagePathOnHover(t *testing.T) {
 	}
 	for _, want := range []string{
 		"var tip = title ? title + '\\n' + src : src;",
+		"tip += '\\nClick to view it at full size';",
 		"tip += '\\nDouble-click to open it in the image editor';",
 		"img.setAttribute('title', tip);",
 	} {
 		if !assetContains("assets/static/preview.js", string(preview), want) {
 			t.Errorf("preview.js does not show the image path as a tooltip, missing %q", want)
+		}
+	}
+}
+
+// UI.3-5-12: a click on an image in the preview shows it at full size over
+// the app. The overlay is built in the browser; what can be checked here is
+// that the script opens it on a click -- after the wait that lets a
+// double-click reach the image editor -- and that the stylesheet has it.
+func TestPreviewShowsImageAtFullSize(t *testing.T) {
+	for file, wants := range map[string][]string{
+		"assets/static/app.js":  {"function showFullSize(", "showFullSize(img);", "clearTimeout(fullSizeTimer);", "if (evt.detail > 1)", "box.showModal();"},
+		"assets/static/app.css": {".lightbox", ".lightbox::backdrop", "#preview img"},
+	} {
+		src, err := assets.ReadFile(file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, want := range wants {
+			if !assetContains(file, string(src), want) {
+				t.Errorf("%s does not carry %q", file, want)
+			}
 		}
 	}
 }

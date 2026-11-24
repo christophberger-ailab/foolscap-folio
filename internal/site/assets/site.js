@@ -246,6 +246,28 @@
     });
   }
 
+  // A click on an image of the page shows it at full size over the page,
+  // scrolled where it is larger than the window; a click or Escape closes
+  // it. An image inside a link follows the link.
+  var article = document.querySelector('.page');
+  if (article && window.HTMLDialogElement) article.addEventListener('click', function (e) {
+    var img = e.target.closest && e.target.closest('img');
+    if (img && !img.closest('a')) fullSize(img);
+  });
+
+  function fullSize(img) {
+    var box = document.createElement('dialog');
+    var big = document.createElement('img');
+    box.className = 'lightbox';
+    big.setAttribute('src', img.getAttribute('src'));
+    big.alt = img.alt;
+    box.appendChild(big);
+    box.addEventListener('click', function () { box.close(); });
+    box.addEventListener('close', function () { box.remove(); });
+    document.body.appendChild(box);
+    box.showModal();
+  }
+
   // Scroll spy for the table of contents.
   var links = document.querySelectorAll('.toc a[href^="#"]');
   if (!links.length || !('IntersectionObserver' in window)) return;
