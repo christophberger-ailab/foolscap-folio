@@ -101,8 +101,8 @@ Answer with JSON and nothing else, in exactly this shape:
 Work through every task you are given and report each one's findings, even
 when one task yields many and another none. Report only what the tasks ask
 for. Leave Markdown syntax, YAML frontmatter, code blocks, and Quarto
-shortcodes alone unless a task is about them. If the page needs no change,
-answer {"suggestions":[]}.`
+shortcodes alone unless a task is about them. Do not report anything that 
+needs no change. If the whole page needs no change, answer {"suggestions":[]}.`
 
 // suggestion is one piece of advice: the passage it is about, what to put
 // there instead, and why. Start and End locate the passage in the page as
