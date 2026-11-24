@@ -56,6 +56,11 @@ type writer struct {
 	fnCount  int
 	fnXML    []string
 	fnSource *pkg
+
+	// comments (see comments.go)
+	commentXML  []string
+	commentBase int // first free comment ID
+	commentOpen int // the comment whose passage goes on, -1 for none
 }
 
 type mediaFile struct {
@@ -77,7 +82,10 @@ func newWriter(d *markdown.Document, o Options, p *pkg, st *styleSet, textW int)
 	w := &writer{
 		doc: d, src: d.Source, opt: o, styles: st, textW: textW,
 		out: &bytes.Buffer{}, relIDs: map[string]string{}, imgTypes: map[string]string{},
-		fnDefs: map[int]*east.Footnote{}, fnSource: p,
+		fnDefs: map[int]*east.Footnote{}, fnSource: p, commentOpen: -1,
+	}
+	if cm := p.get(relTarget(p, relComments)); cm != nil {
+		w.commentBase = maxMatch(cm, reCommentID) + 1
 	}
 	numPart := p.get(numberingPart(p))
 	w.hasNumbering = numPart != nil

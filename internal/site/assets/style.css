@@ -836,6 +836,85 @@ table.subpages tbody tr:hover {
   color: var(--link);
 }
 
+/* ---------- draft: todos, comments, reviews (folio render --draft) ---------- */
+:root {
+  --todo: #c2410c;
+  --comment: #fff3bf;
+  --comment-edge: #e0a800;
+  --note-w: 13em;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --todo: #fb8c4b;
+    --comment: #4a3d05;
+    --comment-edge: #c99700;
+  }
+}
+/* The comments stand right of the text, as in Word's margin. */
+.draft .page {
+  padding-right: calc(var(--note-w) + 2em);
+}
+mark.folio-todo {
+  display: inline-block;
+  padding: 0 0.35em;
+  border-radius: 0.2em;
+  background: var(--todo);
+  color: var(--bg);
+  font-size: 0.75em;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+  vertical-align: 0.1em;
+}
+mark.folio-todo-hidden {
+  background: transparent;
+  color: var(--todo);
+  border: 1px dashed var(--todo);
+  cursor: help;
+}
+mark.folio-comment {
+  background: var(--comment);
+  color: inherit;
+  border-bottom: 2px solid var(--comment-edge);
+}
+.folio-note {
+  float: right;
+  clear: right;
+  width: var(--note-w);
+  margin: 0 calc(-1 * (var(--note-w) + 2em)) 0.5em 0;
+  padding: 0.3em 0.6em;
+  border-left: 3px solid var(--comment-edge);
+  background: var(--bg-soft);
+  color: var(--fg-muted);
+  font-size: var(--fs-small);
+  font-style: normal;
+  font-weight: normal;
+  line-height: 1.35;
+  text-align: left;
+}
+.folio-note-entry {
+  display: block;
+}
+.folio-note-reply {
+  margin-top: 0.3em;
+  padding-left: 0.7em;
+}
+.folio-note-meta {
+  font-weight: 600;
+  color: var(--fg);
+}
+@media (max-width: 50em) {
+  .draft .page {
+    padding-right: 0;
+  }
+  .folio-note {
+    float: none;
+    display: block;
+    width: auto;
+    margin: 0.4em 0;
+  }
+}
+
 /* ---------- medium: TOC hidden ---------- */
 @media (max-width: 75em) {
   .layout,

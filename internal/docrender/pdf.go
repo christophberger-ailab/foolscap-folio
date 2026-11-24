@@ -46,7 +46,19 @@ type pdfWriter struct {
 	// rasters holds the PNGs drawn from SVG images, by the key fitImage
 	// hands out for them.
 	rasters map[string][]byte
+	// noteBottom is where the last note on the page ends, so the next
+	// one is set below it.
+	noteBottom float64
 }
+
+// noteCol is the width of the column a draft's notes take from the text,
+// right of it; noteSize is their font size.
+const noteCol, noteSize = 130.0, 7.5
+
+// markColor is the background of a draft's commented passages and todos,
+// noteColor the color of the notes.
+var markColor, noteColor = rgb{255, 232, 140}, rgb{120, 90, 0}
+
 type tocEntry struct {
 	title, id   string
 	level, page int
@@ -96,6 +108,9 @@ func layoutPDF(ctx context.Context, path string, bb []Block, o Options) error {
 		return err
 	}
 	w := &pdfWriter{p: p, root: o.Root, ctx: ctx, fonts: fonts, colors: newPalette(o.Colors), sizes: o.Sizes, left: margin, right: pageW - margin, warn: o.Warn}
+	if hasNotes(bb) {
+		w.right -= noteCol
+	}
 	if o.Title != "" {
 		p.SetInfo(gopdf.PdfInfo{Title: o.Title})
 	}
@@ -252,6 +267,7 @@ func (w *pdfWriter) newPage() {
 	w.p.RestoreGraphicsState()
 	w.page++
 	w.y = w.top()
+	w.noteBottom = 0
 }
 func (w *pdfWriter) ensure(h float64) {
 	if !w.dry && w.y+h > w.bottom() {
@@ -526,6 +542,16 @@ func (w *pdfWriter) paragraph(runs []Run, size, left, width float64) error {
 				break
 			}
 			y, h := w.y+above-ascent, lh
+			if s.Note != "" {
+				if err := w.note(s.Note, y); err != nil {
+					return err
+				}
+				continue
+			}
+			if s.Mark {
+				w.p.SetFillColor(markColor[0], markColor[1], markColor[2])
+				w.p.RectFromUpperLeftWithStyle(x, y-1, s.width, size*1.25, "F")
+			}
 			if s.Image != "" {
 				y, h = w.y+above-s.height, s.height
 				if err := w.drawImage(s.Image, x, y, s.width, s.height); err != nil {
@@ -573,7 +599,7 @@ func (w *pdfWriter) paragraph(runs []Run, size, left, width float64) error {
 		// Oversized words are split by rune, so long URLs and identifiers
 		// cannot escape the page.
 		for _, p := range word {
-			if p.Image != "" {
+			if p.Image != "" || p.Note != "" {
 				if used+p.width > width && len(line) > 0 {
 					if err := flush(); err != nil {
 						return err
@@ -605,6 +631,10 @@ func (w *pdfWriter) paragraph(runs []Run, size, left, width float64) error {
 	// text flow with it, like a word.
 	alone := soleImage(runs)
 	for _, r := range runs {
+		if r.Note != "" {
+			word = append(word, piece{Run: r})
+			continue
+		}
 		if r.Image != "" && !alone {
 			path, iw, ih, err := w.fitImage(r, size, width)
 			if err != nil {
@@ -1155,4 +1185,55 @@ func RunPDF(ctx context.Context, timeout time.Duration, path string, doc *Docume
 		}
 		return ctx.Err()
 	}
+}
+
+// hasNotes reports whether any of the blocks holds a note.
+func hasNotes(bb []Block) bool {
+	for _, b := range bb {
+		for _, r := range b.Runs {
+			if r.Note != "" {
+				return true
+			}
+		}
+		for _, row := range b.Rows {
+			for _, c := range row {
+				if hasNotes([]Block{{Runs: c}}) {
+					return true
+				}
+			}
+		}
+		if c := b.Callout; c != nil && (hasNotes(c.Title) || hasNotes(c.Body)) {
+			return true
+		}
+	}
+	return false
+}
+
+// note sets a note in the column right of the text, from y down or below
+// the note before it, with a bar left of it.
+func (w *pdfWriter) note(text string, y float64) error {
+	x := pageW - margin - noteCol + 12
+	width := noteCol - 16
+	y = max(y, w.noteBottom)
+	r := Run{}
+	lh := noteSize * 1.3
+	var lines []string
+	for _, para := range strings.Split(text, "\n") {
+		ll, err := w.wrap(para, r, noteSize, width)
+		if err != nil {
+			return err
+		}
+		lines = append(lines, ll...)
+	}
+	w.p.SetFillColor(markColor[0], markColor[1], markColor[2])
+	w.p.RectFromUpperLeftWithStyle(x-6, y, 2, float64(len(lines))*lh, "F")
+	w.p.SetTextColor(noteColor[0], noteColor[1], noteColor[2])
+	for i, l := range lines {
+		r.Text = l
+		if err := w.draw(r, noteSize, x, y+float64(i)*lh+w.ascent(r, noteSize)); err != nil {
+			return err
+		}
+	}
+	w.noteBottom = y + float64(len(lines))*lh + 4
+	return nil
 }

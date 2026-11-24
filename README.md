@@ -118,11 +118,18 @@ folio render calltaker dispatcher         # those two topics, all their formats
 folio render --format handout             # handouts only
 folio render --audience pol --clean       # the pol variants, from scratch
 folio render --dry-run                    # print what would be written, write nothing
+folio render --draft                      # a draft for review: todos, comments, reviews shown
 ```
 
 Positional arguments name topics and are added to `--topic`. `--topic`, `--format` and `--audience` take comma-separated lists; a name `folio.yml` does not define is an error. Without them every topic, format and audience the project offers is rendered, cut down to what each topic and format declares (see [`folio.yml`](#folioyml)).
 
 A **website** format covers all selected topics in one site, one site per selected audience. A **document** format (DOCX, PDF) is written per topic and audience. The topic `all` has no folder: `--topic=all` selects every topic, and a topic `all` declared in `folio.yml` puts every topic into the websites it takes part in (`all: {formats: [website]}`), whatever the topics restrict themselves to. A failing combination does not stop the others; the command reports how many failed and exits non-zero. `--clean` empties each selected format's output directory once, before the first render; it refuses a directory that is not below the output directory. `--dry-run` prints the files that would be written.
+
+A page whose front matter says `draft: true` is left out of a render. `--draft` renders a draft for the people who review the text instead, in every format. It keeps the draft pages and shows what the pages still need:
+
+- Every `==TODO==` is a TODO marker. One inside an HTML comment is an outlined marker, with the comment as its tooltip on the website and as a Word comment in DOCX.
+- A comment (`<!-- << The comment -->passage<!-- >> -->`) highlights its passage and shows the comment and its replies, each with its author and date, beside it. On the website and in the PDF they stand in the right margin, and the PDF's text column is narrower for them. In DOCX each comment is a Word comment on its passage.
+- Below a page's title, `new: true` (or `status: new`) shows 🆕, and `review:` shows a box with "Review: " and its text, or "Needs review" for `review: true`.
 
 #### `folio web`
 
@@ -169,6 +176,7 @@ folio preview                       # serve the website on localhost:8198,
 folio preview ../handbook           # preview that project instead
 folio preview --audience pol        # the pol variant of the site
 folio preview --addr :9000          # listen elsewhere
+folio preview --draft               # the site as `folio render --draft` renders it
 ```
 
 A project can name its own preview address in its `folio.yml` (`preview: {baseurl: localhost, port: 8300}`, see [`folio.yml`](#folioyml)); `--addr` still wins over it, and a taken port is searched up from as with the default.

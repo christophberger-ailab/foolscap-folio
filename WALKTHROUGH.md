@@ -332,6 +332,17 @@ every div or span that `Keep` rejects or that a `.content-visible` /
 settles callout titles, then `AssignIDs` (after the filter, so that only
 surviving headings are counted). `Demote` shifts heading levels.
 
+`draft.go` is what `folio render --draft` shows. `Parse` first puts a
+zero-width space before a comment marker that starts a line with its passage
+after it, so goldmark reads a paragraph rather than an HTML block that would
+keep the passage from being Markdown, and takes it out of the tree again. With
+`Options.Draft`, `Prepare` turns every `==TODO==` outside code into a `Todo`
+node, and every comment's markers into a `Comment` node around its passage
+that carries the thread (`Note`s). A passage across blocks becomes a
+`Comment` per block, all but the last `Open`, so the DOCX writer can let one
+Word comment span them. The HTML renders a `Comment` as a `<mark>` followed by
+a `.folio-note` that the site's stylesheet floats into the right margin.
+
 ### 5.3 `internal/build`
 
 `Render` (`build.go`) produces one selection. For a website it calls
@@ -351,6 +362,11 @@ font names and colors. `Run` walks the selections,
 carries on after a failure so one broken combination does not hide the others,
 and after `--clean` empties each output directory once, refusing one that is not
 below the output directory.
+
+A `Selection` carries `Draft` from the request (`--draft`). Without it,
+`Flatten` drops the pages marked `draft: true` (`Node.DropDrafts`), and the
+site does too. With it, `bookmaker` puts 🆕 and the review box below each
+page's title (`draftBanner`) and `Prepare` shows the todos and comments.
 
 `Logf` is the callback the whole flow reports through, which is what lets it
 print to a terminal from `folio render` and to a polled HTML panel from `folio web`.
@@ -385,13 +401,18 @@ headers, footers and numbering are kept, its body is discarded) or else a blank
 document made with docxgo. docxgo has no bookmarks, internal hyperlinks,
 footnotes or table shading, so `blocks.go` and `inline.go` write the body as raw
 OOXML, `styles.go` maps elements to the template's style names, and `package.go`
-patches the relationships, content types and settings.
+patches the relationships, content types and settings. `comments.go` writes a
+draft's comments as Word comments in `comments.xml`, the replies as further
+paragraphs of the same comment.
 
 ### 5.6 `internal/docrender`
 
 The PDF layout (gopdf) and the DOCX cover. The layout works on its own
 `Block`/`Run` model; `FromMarkdown` (`markdown.go`) converts the parsed tree into
-it, so the PDF is fed from the same document as the DOCX. `fonts.go` loads the Go
+it, so the PDF is fed from the same document as the DOCX. A draft's passages
+and todos are `Run.Mark`, drawn on a highlight; a comment is a `Run.Note` of
+its own, which narrows the text column by `noteCol` and is set in that margin
+level with its line (`pdfWriter.note`). `fonts.go` loads the Go
 fonts and the `_brand.yml` fonts, `cover.go` puts the cover (an image, the
 title and the subtitle) in front of
 either file.

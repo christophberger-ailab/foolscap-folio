@@ -63,8 +63,11 @@ func isFencedCode(p any) bool {
 
 // Parse parses Markdown source.
 func Parse(src []byte) *Document {
+	src = unblockComments(src)
 	root := New().Parser().Parse(text.NewReader(src))
-	return &Document{Root: root, Source: src}
+	d := &Document{Root: root, Source: src}
+	reblock(d)
+	return d
 }
 
 // HTML renders a document as an HTML fragment.

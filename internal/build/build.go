@@ -249,7 +249,7 @@ func Document(sel config.Selection, log Logf) (*markdown.Document, Book, error) 
 		return nil, Book{}, err
 	}
 	doc := markdown.Parse([]byte(text))
-	doc.Prepare(markdown.Options{Keep: sel.Keep, Formats: sel.Types(), Lang: sel.Config.Lang, CalloutTitles: sel.Config.CalloutTitles, Warn: warn(log)})
+	doc.Prepare(markdown.Options{Keep: sel.Keep, Formats: sel.Types(), Lang: sel.Config.Lang, CalloutTitles: sel.Config.CalloutTitles, Draft: sel.Draft, Warn: warn(log)})
 	dropTitle(doc, book.Anchor)
 	if f := sel.Format; f.NumberedHeadings {
 		markdown.NumberHeadings(doc, f.SectionPrefix, f.ChapterPrefix)
@@ -295,6 +295,9 @@ func Flatten(sel config.Selection, log Logf) (string, Book, error) {
 	tree, err := loadTopic(root, sel.Topic)
 	if err == nil {
 		tree.Drop(sel.Excludes)
+		if !sel.Draft {
+			tree.DropDrafts()
+		}
 	}
 	if err != nil {
 		return "", Book{}, err
@@ -308,6 +311,7 @@ func Flatten(sel config.Selection, log Logf) (string, Book, error) {
 		ExtractSlides: true,
 		SectionPrefix: section,
 		ChapterPrefix: chapter,
+		Draft:         sel.Draft,
 	})
 	if err != nil {
 		return "", Book{}, err
@@ -452,6 +456,7 @@ func renderSite(sel config.Selection, dir string, dryRun bool, log Logf) error {
 		Formats:       sel.Types(),
 		CSS:           css,
 		Expand:        exp.Expand,
+		Draft:         sel.Draft,
 		Log:           log,
 	})
 	if err != nil {

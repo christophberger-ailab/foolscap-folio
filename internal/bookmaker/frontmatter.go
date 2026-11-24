@@ -70,3 +70,40 @@ func parseFrontMatter(src string) (FrontMatter, string, error) {
 	}
 	return fm, body, nil
 }
+
+// value returns key's top-level value, else its value under the
+// `folio:` or `qm:` mapping such keys sat in before (issue #94).
+func (fm FrontMatter) value(key string) any {
+	if v, ok := fm.Meta[key]; ok {
+		return v
+	}
+	for _, m := range []string{"folio", "qm"} {
+		if sub, ok := fm.Meta[m].(map[string]any); ok {
+			if v, ok := sub[key]; ok {
+				return v
+			}
+		}
+	}
+	return nil
+}
+
+// IsDraft reports whether the page says `draft: true`, which keeps it out
+// of a render other than a draft.
+func (fm FrontMatter) IsDraft() bool { return fm.Meta["draft"] == true }
+
+// IsNew reports whether the page is new: `new: true`, or `status: new` as
+// the editor's tree reads it.
+func (fm FrontMatter) IsNew() bool { return fm.value("new") == true || fm.value("status") == "new" }
+
+// Review returns what to review on the page, its whitespace collapsed,
+// and whether it is to be reviewed: `review:` holds a text or is true.
+func (fm FrontMatter) Review() (string, bool) {
+	switch v := fm.value("review").(type) {
+	case string:
+		s := strings.Join(strings.Fields(v), " ")
+		return s, s != ""
+	case bool:
+		return "", v
+	}
+	return "", false
+}

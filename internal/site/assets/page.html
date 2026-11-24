@@ -18,7 +18,7 @@
 <script>document.documentElement.classList.add('js')</script>
 <script src="{{.Base}}_site/site.js" defer></script>
 </head>
-<body>
+<body{{if .Draft}} class="draft"{{end}}>
 <a class="skip-link" href="#main">{{.L.Skip}}</a>
 <header class="navbar">
   <div class="navbar-inner">

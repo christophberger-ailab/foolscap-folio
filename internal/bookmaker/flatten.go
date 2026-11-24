@@ -5,6 +5,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 
@@ -44,6 +45,10 @@ type Options struct {
 	// every section and chapter, with its number: "Part 2: Title".
 	// Sections and chapters are each numbered through the book.
 	SectionPrefix, ChapterPrefix string
+
+	// Draft shows below each page's title that the page is new and what
+	// to review on it, as its front matter says (spec-render.yaml DRAFT).
+	Draft bool
 
 	// site renders a page for a website, which keeps its headings as
 	// written. PageMarkdown sets it.
@@ -196,9 +201,12 @@ func renderPage(n *Node, targets linkTargets, opts Options, res *Result) (page, 
 	// title in the second case would wrongly promote a section to chapter
 	// rank, so a declared title counts as present in the body only when a
 	// heading at that shallowest level actually spells it out.
-	declared := ""
+	declared, banner := "", ""
 	if n.Page != nil {
 		declared = n.Page.Title
+		if opts.Draft {
+			banner = draftBanner(n.Page.FrontMatter)
+		}
 	}
 
 	edit := titleEdit{ID: n.Anchor, Text: n.titleOverride}
@@ -221,12 +229,13 @@ func renderPage(n *Node, targets linkTargets, opts Options, res *Result) (page, 
 	// a title whose included files bring the heading needs none generated.
 	if base == 0 && declared == "" && !n.bookRoot && n.Page != nil && opts.ProjectRoot != "" &&
 		includesHeading(lines, opts.ProjectRoot, path.Dir(n.Page.Rel), 0) {
-		return strings.Join(lines, "\n"), slides
+		return below(banner, strings.Join(lines, "\n")), slides
 	}
 
 	if base == 0 || !echoesTitle(headings, base, declared) {
 		head := strings.Repeat("#", level) + " " + edit.Prefix + n.Title() +
 			" " + mergeAttrs("", n.Anchor, edit.Classes)
+		head = strings.TrimRight(below(head, banner), "\n")
 		if base == 0 {
 			if len(lines) == 0 {
 				return head, slides
@@ -245,7 +254,60 @@ func renderPage(n *Node, targets linkTargets, opts Options, res *Result) (page, 
 	}
 
 	lines = shiftHeadings(lines, headings, n, base+delta, base, edit, res)
+	if banner != "" {
+		lines = bannerBelowTitles(lines, headings, base, banner)
+	}
 	return strings.Join(lines, "\n"), slides
+}
+
+// draftBanner is what a draft shows below a page's title: 🆕 for a new
+// page, and its review in a box.
+func draftBanner(fm FrontMatter) string {
+	var parts []string
+	if fm.IsNew() {
+		parts = append(parts, "🆕")
+	}
+	if text, ok := fm.Review(); ok {
+		if text == "" {
+			text = "**Needs review**"
+		} else {
+			text = "**Review:** " + text
+		}
+		parts = append(parts, "::: {.callout-warning .folio-review title=\"\"}\n"+text+"\n:::")
+	}
+	return strings.Join(parts, "\n\n")
+}
+
+// below joins b below a with a blank line between them; either may be
+// empty.
+func below(a, b string) string {
+	if a == "" || b == "" {
+		return a + b
+	}
+	return a + "\n\n" + b
+}
+
+// bannerBelowTitles puts the banner below every heading of lines that is
+// the page's title: the first at level base, and those that repeat it in
+// sibling divs, of which the render may keep any one.
+func bannerBelowTitles(lines []string, headings []heading, base int, banner string) []string {
+	title := ""
+	var at []int
+	for _, h := range headings {
+		if h.Level != base {
+			continue
+		}
+		if title == "" {
+			title = normaliseTitle(h.Text())
+		}
+		if normaliseTitle(h.Text()) == title {
+			at = append(at, h.Index)
+		}
+	}
+	for i := len(at) - 1; i >= 0; i-- {
+		lines = slices.Insert(lines, at[i]+1, "", banner)
+	}
+	return lines
 }
 
 // prefix returns what goes before the title of n in print: the section or

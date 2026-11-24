@@ -62,6 +62,11 @@ type Run struct {
 	Bold, Italic, Code, Heading bool
 	// Role, if set, is the font role in FontRoles the text is set in.
 	Role string
+	// Mark highlights the text: a draft's commented passage or todo.
+	Mark bool
+	// Note, if set, is a draft's comment, a run of its own, set in the
+	// margin level with the line it ends on.
+	Note string
 }
 
 // Cell is a table cell's content in reading order: text runs (lines joined

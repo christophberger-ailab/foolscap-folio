@@ -100,6 +100,8 @@ type Options struct {
 	CalloutTitles map[string]map[string]string
 	// Demote is added to every heading level.
 	Demote int
+	// Draft makes todos and comments visible (see Todo and Comment).
+	Draft bool
 	// Warn, if set, receives the problems that do not stop the render,
 	// such as a diagram that cannot be drawn.
 	Warn func(format string, args ...any)
@@ -118,6 +120,9 @@ func (d *Document) Prepare(o Options) {
 		}
 	}
 	filter(d, o.Keep, formats)
+	if o.Draft {
+		drafts(d)
+	}
 	drawDiagrams(d, o.Warn)
 	Demote(d, o.Demote)
 	settleCallouts(d, CalloutTitles(o.CalloutTitles, o.Lang))

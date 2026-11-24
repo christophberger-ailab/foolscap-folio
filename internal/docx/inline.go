@@ -23,6 +23,7 @@ type runProps struct {
 	code                 bool // inline code
 	link                 bool // inside a hyperlink
 	sup                  bool
+	highlight            string // a highlight color's name
 	// font is a heading's font from _brand.yml, set over its style.
 	font Font
 }
@@ -52,6 +53,9 @@ func (rp runProps) String(s *styleSet) string {
 	}
 	if sz := int(math.Round(rp.font.Size * 2)); sz > 0 {
 		fmt.Fprintf(&b, `<w:sz w:val="%d"/><w:szCs w:val="%d"/>`, sz, sz)
+	}
+	if rp.highlight != "" {
+		fmt.Fprintf(&b, `<w:highlight w:val="%s"/>`, rp.highlight)
 	}
 	if rp.sup {
 		b.WriteString(`<w:vertAlign w:val="superscript"/>`)
@@ -140,6 +144,10 @@ func (w *writer) inline(buf *bytes.Buffer, n ast.Node, rp runProps, c ctx) {
 			return
 		}
 		w.inlines(buf, n, rp, c)
+	case *markdown.Comment:
+		w.comment(buf, n, rp, c)
+	case *markdown.Todo:
+		w.todo(buf, n, rp, c)
 	case *east.FootnoteLink:
 		w.footnoteRef(buf, n, c)
 	default:

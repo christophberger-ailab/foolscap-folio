@@ -282,6 +282,23 @@ func (c *mdConverter) inlines(parent ast.Node, style Run) ([]Run, error) {
 				break
 			}
 			continue
+		case *markdown.Todo:
+			r.Text, r.Bold, r.Mark = "TODO", true, true
+			if x.Hidden {
+				out = append(out, r, Run{Note: x.Note})
+				continue
+			}
+		case *markdown.Comment:
+			r.Mark = true
+			rr, err := c.inlines(n, r)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, rr...)
+			if len(x.Thread) > 0 {
+				out = append(out, Run{Note: noteText(x.Thread)})
+			}
+			continue
 		case *east.FootnoteLink:
 			r.Text = fmt.Sprintf("[%d]", x.Index)
 		case *east.FootnoteBacklink:
@@ -300,4 +317,21 @@ func (c *mdConverter) inlines(parent ast.Node, style Run) ([]Run, error) {
 		out = append(out, r)
 	}
 	return out, nil
+}
+
+// noteText is a comment's thread as a note: who wrote each entry and when,
+// as far as it says, the replies on lines of their own.
+func noteText(thread []markdown.Note) string {
+	var lines []string
+	for i, n := range thread {
+		s := n.Text
+		if m := n.Meta(); m != "" {
+			s = m + ": " + s
+		}
+		if i > 0 {
+			s = "» " + s
+		}
+		lines = append(lines, s)
+	}
+	return strings.Join(lines, "\n")
 }
