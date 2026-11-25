@@ -146,27 +146,41 @@ func declareNS(prefix string) string {
 }
 
 var (
-	reSectW    = regexp.MustCompile(`<w:pgSz\b[^>]*\bw:w="(\d+)"`)
-	reMarLeft  = regexp.MustCompile(`<w:pgMar\b[^>]*\bw:left="(\d+)"`)
-	reMarRight = regexp.MustCompile(`<w:pgMar\b[^>]*\bw:right="(\d+)"`)
+	reSectW     = regexp.MustCompile(`<w:pgSz\b[^>]*\bw:w="(\d+)"`)
+	reSectH     = regexp.MustCompile(`<w:pgSz\b[^>]*\bw:h="(\d+)"`)
+	reMarLeft   = regexp.MustCompile(`<w:pgMar\b[^>]*\bw:left="(\d+)"`)
+	reMarRight  = regexp.MustCompile(`<w:pgMar\b[^>]*\bw:right="(\d+)"`)
+	reMarTop    = regexp.MustCompile(`<w:pgMar\b[^>]*\bw:top="-?(\d+)"`)
+	reMarBottom = regexp.MustCompile(`<w:pgMar\b[^>]*\bw:bottom="-?(\d+)"`)
 )
+
+// sectNum is a number of the section properties, def if they say nothing.
+func sectNum(sect string, re *regexp.Regexp, def int) int {
+	if m := re.FindStringSubmatch(sect); m != nil {
+		if v, err := strconv.Atoi(m[1]); err == nil {
+			return v
+		}
+	}
+	return def
+}
 
 // textWidth is the width of the text area in twips, read from the section
 // properties; A4 with 2.5 cm margins if they say nothing.
 func textWidth(sect string) int {
-	num := func(re *regexp.Regexp, def int) int {
-		if m := re.FindStringSubmatch(sect); m != nil {
-			if v, err := strconv.Atoi(m[1]); err == nil {
-				return v
-			}
-		}
-		return def
-	}
-	w := num(reSectW, 11906) - num(reMarLeft, 1417) - num(reMarRight, 1417)
+	w := sectNum(sect, reSectW, 11906) - sectNum(sect, reMarLeft, 1417) - sectNum(sect, reMarRight, 1417)
 	if w < 1440 {
 		w = 9072
 	}
 	return w
+}
+
+// textHeight is the height of the text area in twips, like textWidth.
+func textHeight(sect string) int {
+	h := sectNum(sect, reSectH, 16838) - sectNum(sect, reMarTop, 1417) - sectNum(sect, reMarBottom, 1417)
+	if h < 1440 {
+		h = 14004
+	}
+	return h
 }
 
 const defaultSect = `<w:sectPr><w:pgSz w:w="11906" w:h="16838"/>` +

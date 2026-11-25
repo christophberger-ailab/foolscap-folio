@@ -62,15 +62,15 @@ func (w *writer) image(buf *bytes.Buffer, n *ast.Image, rp runProps, c ctx) {
 		}
 		data, svg = svgimage.Placeholder(w.opt.Root), true
 	}
-	if !w.picture(buf, data, svg, alt, filepath.Base(dest), markdown.AttrsOf(n)) {
+	if !w.picture(buf, data, svg, alt, filepath.Base(dest), markdown.AttrsOf(n), rp.em) {
 		placeholder() // SVG in disguise, WebP, ...
 	}
 }
 
 // picture writes an inline picture of an image's data, an SVG drawn as a
-// PNG, sized by its attributes. It reports whether the data is a picture
+// PNG, sized by its attributes, an em being em pt (0: the body text's). It reports whether the data is a picture
 // it can embed.
-func (w *writer) picture(buf *bytes.Buffer, data []byte, svg bool, alt, name string, a markdown.Attrs) bool {
+func (w *writer) picture(buf *bytes.Buffer, data []byte, svg bool, alt, name string, a markdown.Attrs, em float64) bool {
 	var svgW, svgH float64
 	var err error
 	if svg {
@@ -92,7 +92,7 @@ func (w *writer) picture(buf *bytes.Buffer, data []byte, svg bool, alt, name str
 	if svg { // the PNG is drawn larger than the SVG's own size
 		natW, natH = int64(svgW*emuPerPx), int64(svgH*emuPerPx)
 	}
-	cx, cy := w.imageSize(a, natW, natH)
+	cx, cy := w.imageSize(a, em, natW, natH)
 	w.drawID++
 	media := fmt.Sprintf("folio-image%d.%s", w.drawID, ext)
 	w.media = append(w.media, mediaFile{name: media, data: data})
@@ -141,13 +141,16 @@ func (w *writer) join(dest string) string {
 }
 
 // imageSize applies the width and height (see markdown.Attrs.Size) to the
-// natural size (in EMU), and caps the result at the text width.
-func (w *writer) imageSize(a markdown.Attrs, nw, nh int64) (int64, int64) {
+// natural size (in EMU), and shrinks the result to fit the text area, less
+// room for a caption, as the PDF does. A percentage of the height is one of
+// that height.
+func (w *writer) imageSize(a markdown.Attrs, emPt float64, nw, nh int64) (int64, int64) {
 	full := int64(w.textW) * emuPerTwip
-	em := int64(cmp.Or(w.styles.size(w.styles.normal()), 11) * emuPerPoint)
+	maxH := int64(w.textH-captionRoom) * emuPerTwip
+	em := int64(cmp.Or(emPt, w.styles.size(w.styles.normal()), 11) * emuPerPoint)
 	wv, hv := a.Size()
 	width, okW := dimension(wv, full, em)
-	height, okH := dimension(hv, full, em)
+	height, okH := dimension(hv, maxH, em)
 	cw, ch := nw, nh
 	switch {
 	case okW && okH:
@@ -157,12 +160,19 @@ func (w *writer) imageSize(a markdown.Attrs, nw, nh int64) (int64, int64) {
 	case okH:
 		cw, ch = nw*height/nh, height
 	}
-	if cw > full {
-		ch = ch * full / cw
-		cw = full
+	if cw > full || ch > maxH {
+		if cw*maxH > ch*full { // the width is the tighter fit
+			cw, ch = full, ch*full/cw
+		} else {
+			cw, ch = cw*maxH/ch, maxH
+		}
 	}
 	return max(cw, 1), max(ch, 1)
 }
+
+// captionRoom is the height (in twips) a picture leaves on its page for a
+// caption: 20 pt, as in the PDF.
+const captionRoom = 400
 
 // dimension parses 50%, 300px, 8cm, 3in, 20mm, 12pt, 2em or a bare number
 // (pixels) to EMU; a percentage is relative to full, an em is em.
@@ -189,7 +199,7 @@ func dimension(v string, full, em int64) (int64, bool) {
 func (w *writer) diagram(n *markdown.Diagram, c ctx) {
 	var buf bytes.Buffer
 	svg, err := mermaid.Static(n.SVG)
-	if err != nil || !w.picture(&buf, []byte(svg), true, "", "diagram.svg", markdown.Attrs{}) {
+	if err != nil || !w.picture(&buf, []byte(svg), true, "", "diagram.svg", markdown.Attrs{}, 0) {
 		if w.opt.Warn != nil {
 			w.opt.Warn("a Mermaid diagram cannot be drawn; it is left out")
 		}

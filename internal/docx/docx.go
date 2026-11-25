@@ -101,6 +101,7 @@ func Write(path string, d *markdown.Document, o Options) error {
 		st.look = o.Look
 	}
 	w := newWriter(d, o, p, st, textWidth(sect))
+	w.textH = textHeight(sect)
 	w.document()
 	if w.err != nil {
 		return w.err

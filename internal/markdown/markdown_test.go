@@ -198,3 +198,17 @@ func TestAttrsSize(t *testing.T) {
 		}
 	}
 }
+
+// Attributes straight after an image at the end of a heading are the
+// image's; only ones after a space are the heading's (issue #149).
+func TestHeadingImageAttrs(t *testing.T) {
+	got := render(t, "## Call ![](s.png){height=1.5em}\n\n## Icon ![](s.png) {#own}\n", Options{})
+	for _, want := range []string{`style="height:1.5em"`, `<h2 id="own">`} {
+		if !strings.Contains(got, want) {
+			t.Errorf("missing %q in\n%s", want, got)
+		}
+	}
+	if strings.Contains(got, `<h2 height=`) {
+		t.Errorf("the heading took the image's attributes:\n%s", got)
+	}
+}

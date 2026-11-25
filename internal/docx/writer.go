@@ -25,6 +25,7 @@ type writer struct {
 	opt    Options
 	styles *styleSet
 	textW  int // text area width in twips
+	textH  int // text area height in twips
 
 	out  *bytes.Buffer // where blocks are written; swapped to capture
 	lead string        // XML to put at the start of the next paragraph
@@ -244,7 +245,7 @@ func (w *writer) heading(n *ast.Heading, c ctx) {
 	if w.prelims || section && level > 1 {
 		style = w.styles.unlistedHeading(level)
 	}
-	w.inlines(&content, n, runProps{font: font}, c)
+	w.inlines(&content, n, runProps{font: font, em: cmp.Or(font.Size, w.styles.size(style))}, c)
 	if id != "" {
 		fmt.Fprintf(&content, `<w:bookmarkEnd w:id="%d"/>`, w.bmID)
 	}

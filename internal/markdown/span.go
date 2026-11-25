@@ -75,6 +75,12 @@ func headingAttrs(h *ast.Heading, src []byte) {
 		return
 	}
 	val := string(t.Segment.Value(src))
+	switch t.PreviousSibling().(type) {
+	case *ast.Image, *ast.Link:
+		if strings.HasPrefix(val, "{") {
+			return // the image's or link's own, see trailingLinkAttrs
+		}
+	}
 	rest, a, ok := trailingAttrs(val)
 	if !ok {
 		return
