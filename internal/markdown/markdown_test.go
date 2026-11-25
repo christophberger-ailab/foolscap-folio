@@ -178,3 +178,23 @@ func TestCalloutTitlesFollowTheLanguage(t *testing.T) {
 		}
 	}
 }
+
+// An image's size comes from its width and height attributes or from the
+// declarations of its style attribute, the later one winning, as the
+// website's CSS has it (issue #147).
+func TestAttrsSize(t *testing.T) {
+	for _, c := range []struct{ attrs, w, h string }{
+		{`{width=50%}`, "50%", ""},
+		{`{height=2cm}`, "", "2cm"},
+		{`{style="width: 50%; height:3cm;"}`, "50%", "3cm"},
+		{`{style="border: 0; WIDTH : 4in"}`, "4in", ""},
+		{`{width=1cm style="width:2cm"}`, "2cm", ""},
+		{`{style="width:2cm" width=1cm}`, "1cm", ""},
+		{`{.x}`, "", ""},
+	} {
+		a, _ := ParseAttrs(c.attrs)
+		if w, h := a.Size(); w != c.w || h != c.h {
+			t.Errorf("%s: size %q x %q, want %q x %q", c.attrs, w, h, c.w, c.h)
+		}
+	}
+}

@@ -25,6 +25,8 @@ type projectPrefs struct {
 	Audiences map[string][]string `json:"audiences"`
 	// Formats are the selected format names (handout, handbook, ...).
 	Formats []string `json:"formats"`
+	// Draft renders drafts, as `folio render --draft` does.
+	Draft bool `json:"draft,omitempty"`
 	// Page is the project-relative path of the page last opened in the
 	// editor.
 	Page string `json:"page"`

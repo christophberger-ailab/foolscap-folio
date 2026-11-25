@@ -320,6 +320,7 @@
         {{range .Formats}}<label><input type="checkbox" name="format" value="{{.Name}}"{{if .Selected}} checked{{end}}> {{.Name}}</label>
         {{end}}
       </fieldset>
+      <label class="draft" title="Render a draft: show todos, comments, reviews and new pages, and keep pages marked draft"><input type="checkbox" name="draft" value="on"{{if .Draft}} checked{{end}}> Draft</label>
       <button type="button" id="render-run" hx-post="/render" hx-target="#render-log" hx-swap="innerHTML"
               title="Render the selected topics in the selected formats and audiences">Render</button>
     </form>

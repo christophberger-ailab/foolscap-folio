@@ -355,6 +355,7 @@ type configEntry struct {
 type renderView struct {
 	Books   []bookView
 	Formats []checkbox
+	Draft   bool
 	// Error is why the panel cannot be built, e.g. a broken folio.yml.
 	Error string
 }
@@ -425,7 +426,7 @@ func (s *server) lastPage() *contentView {
 // axes each of them declares. The caller must hold s.mu.
 func (s *server) renderView() renderView {
 	prefs := s.prefsFor(s.root)
-	var v renderView
+	v := renderView{Draft: prefs.Draft}
 	cfg, err := config.Load(s.root)
 	if err != nil {
 		v.Error = err.Error()
@@ -1066,6 +1067,7 @@ func rebaseEvent(res project.Rebased) string {
 func formValues(p projectPrefs, form map[string][]string, root string) projectPrefs {
 	p.Topics = form["book"]
 	p.Formats = form["format"]
+	p.Draft = len(form["draft"]) > 0
 	p.Audiences = map[string][]string{}
 	var topics []string
 	if cfg, err := config.Load(root); err == nil {
@@ -1168,14 +1170,14 @@ func (s *server) selections(prefs projectPrefs) ([]config.Selection, error) {
 		if len(docs) == 0 || len(auds) == 0 {
 			continue
 		}
-		part, err := cfg.Expand(config.Request{Topics: []string{t}, Formats: docs, Audiences: auds})
+		part, err := cfg.Expand(config.Request{Topics: []string{t}, Formats: docs, Audiences: auds, Draft: prefs.Draft})
 		if err != nil {
 			continue // this topic takes no part in the ticked formats
 		}
 		sels = append(sels, part...)
 	}
 	if len(webs) > 0 && len(webAudiences) > 0 {
-		part, err := cfg.Expand(config.Request{Topics: prefs.Topics, Formats: webs, Audiences: webAudiences})
+		part, err := cfg.Expand(config.Request{Topics: prefs.Topics, Formats: webs, Audiences: webAudiences, Draft: prefs.Draft})
 		if err == nil {
 			sels = append(part, sels...)
 		}

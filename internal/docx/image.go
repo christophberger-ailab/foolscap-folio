@@ -2,6 +2,7 @@ package docx
 
 import (
 	"bytes"
+	"cmp"
 	"fmt"
 	"image"
 	_ "image/gif"  // register decoders for image.DecodeConfig
@@ -139,21 +140,15 @@ func (w *writer) join(dest string) string {
 	return filepath.Join(w.opt.Root, filepath.FromSlash(dest))
 }
 
-// imageSize applies the width and height attributes to the natural size
-// (in EMU), and caps the result at the text width.
+// imageSize applies the width and height (see markdown.Attrs.Size) to the
+// natural size (in EMU), and caps the result at the text width.
 func (w *writer) imageSize(a markdown.Attrs, nw, nh int64) (int64, int64) {
 	full := int64(w.textW) * emuPerTwip
+	em := int64(cmp.Or(w.styles.size(w.styles.normal()), 11) * emuPerPoint)
+	wv, hv := a.Size()
+	width, okW := dimension(wv, full, em)
+	height, okH := dimension(hv, full, em)
 	cw, ch := nw, nh
-	wv, hasW := a.Get("width")
-	hv, hasH := a.Get("height")
-	width, okW := int64(0), false
-	height, okH := int64(0), false
-	if hasW {
-		width, okW = dimension(wv, full)
-	}
-	if hasH {
-		height, okH = dimension(hv, full)
-	}
 	switch {
 	case okW && okH:
 		cw, ch = width, height
@@ -169,19 +164,19 @@ func (w *writer) imageSize(a markdown.Attrs, nw, nh int64) (int64, int64) {
 	return max(cw, 1), max(ch, 1)
 }
 
-// dimension parses 50%, 300px, 8cm, 3in, 20mm, 12pt or a bare number
-// (pixels) to EMU; a percentage is relative to full.
-func dimension(v string, full int64) (int64, bool) {
+// dimension parses 50%, 300px, 8cm, 3in, 20mm, 12pt, 2em or a bare number
+// (pixels) to EMU; a percentage is relative to full, an em is em.
+func dimension(v string, full, em int64) (int64, bool) {
 	v = strings.ToLower(strings.TrimSpace(v))
 	units := []struct {
 		suffix string
 		emu    float64
-	}{{"%", float64(full) / 100}, {"px", emuPerPx}, {"cm", emuPerCm}, {"mm", emuPerMm}, {"in", emuPerInch}, {"pt", emuPerPoint}, {"", emuPerPx}}
+	}{{"%", float64(full) / 100}, {"px", emuPerPx}, {"cm", emuPerCm}, {"mm", emuPerMm}, {"in", emuPerInch}, {"pt", emuPerPoint}, {"em", float64(em)}, {"", emuPerPx}}
 	for _, u := range units {
 		if !strings.HasSuffix(v, u.suffix) {
 			continue
 		}
-		f, err := strconv.ParseFloat(strings.TrimSuffix(v, u.suffix), 64)
+		f, err := strconv.ParseFloat(strings.TrimSpace(strings.TrimSuffix(v, u.suffix)), 64)
 		if err != nil || f <= 0 {
 			return 0, false
 		}

@@ -317,11 +317,15 @@ func TestImages(t *testing.T) {
 ![vector](logo.svg)
 
 Inline ![small](img/a.png){height=1cm} picture.
+
+![styled](img/a.png){style="width: 4cm; height: 1cm"}
+
+![em](img/a.png){width=10em}
 `, Options{Root: root})
 	doc := p["word/document.xml"]
 	exts := regexp.MustCompile(`<wp:extent cx="(\d+)" cy="(\d+)"/>`).FindAllStringSubmatch(doc, -1)
-	if len(exts) != 8 {
-		t.Fatalf("%d pictures, want 8:\n%s", len(exts), abbreviate(doc))
+	if len(exts) != 10 {
+		t.Fatalf("%d pictures, want 10:\n%s", len(exts), abbreviate(doc))
 	}
 	full := 9072 * 635 // A4 with 2.5 cm margins, in EMU
 	want := [][2]int{
@@ -330,9 +334,11 @@ Inline ![small](img/a.png){height=1cm} picture.
 		{8 * 360000, 4 * 360000},
 		{300 * 9525, 150 * 9525},
 		{3 * 914400, 3 * 914400 / 2},
-		{full, full / 2},       // capped at the text width
-		{40 * 9525, 20 * 9525}, // an SVG, at its natural size
-		{720000, 360000},       // height=1cm keeps the aspect ratio
+		{full, full / 2},          // capped at the text width
+		{40 * 9525, 20 * 9525},    // an SVG, at its natural size
+		{720000, 360000},          // height=1cm keeps the aspect ratio
+		{4 * 360000, 360000},      // the style's width and height (issue #147)
+		{110 * 12700, 55 * 12700}, // 10em of the 11 pt body text
 	}
 	for i, w := range want {
 		var cx, cy int

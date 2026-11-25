@@ -55,3 +55,20 @@ func TestPDFMarkdown(t *testing.T) {
 		t.Fatalf("pdf not written: %v", err)
 	}
 }
+
+// The PDF takes an image's size from its style attribute too (issue #147).
+func TestPDFImageStyleSize(t *testing.T) {
+	d := markdown.Parse([]byte(`![a](a.png){style="width:4cm; height:1cm"}` + "\n"))
+	d.Prepare(markdown.Options{})
+	bb, err := FromMarkdown(d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []Run
+	for _, b := range bb {
+		got = append(got, b.Runs...)
+	}
+	if len(got) == 0 || got[0].ImageWidth != "4cm" || got[0].ImageHeight != "1cm" {
+		t.Fatalf("runs %+v", got)
+	}
+}

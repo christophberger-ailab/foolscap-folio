@@ -365,3 +365,38 @@ func TestSavedSelectionIgnoresRemovedEntries(t *testing.T) {
 		t.Errorf("surviving audience not restored:\n%s", body)
 	}
 }
+
+// The Render pane's Draft checkbox renders drafts, as `folio render
+// --draft` does, and is remembered with the rest of the selection
+// (issue #146).
+func TestRenderDraftCheckbox(t *testing.T) {
+	srv, _ := testServer(t)
+	body := get(t, srv, "/").Body.String()
+	if !strings.Contains(body, `<input type="checkbox" name="draft" value="on">`) {
+		t.Fatalf("render panel has no unchecked draft checkbox:\n%s", body)
+	}
+	form := renderForm()
+	form.Set("draft", "on")
+	if rec := post(t, srv, "/render/select", form); rec.Code != http.StatusNoContent {
+		t.Fatalf("select: status %d: %s", rec.Code, rec.Body)
+	}
+	if body := get(t, srv, "/").Body.String(); !strings.Contains(body, `name="draft" value="on" checked`) {
+		t.Errorf("draft not remembered:\n%s", body)
+	}
+	srv.mu.Lock()
+	sels, err := srv.selections(srv.prefsFor(srv.root))
+	srv.mu.Unlock()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, s := range sels {
+		if !s.Draft {
+			t.Errorf("%s · %s is no draft render", s.Topic.Name, s.Format.Name)
+		}
+	}
+	form.Del("draft")
+	post(t, srv, "/render/select", form)
+	if body := get(t, srv, "/").Body.String(); strings.Contains(body, `name="draft" value="on" checked`) {
+		t.Errorf("draft still checked after unchecking it:\n%s", body)
+	}
+}
