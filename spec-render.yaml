@@ -135,6 +135,7 @@ constraints:
       0: The site looks like a Quarto website in its default theme -- a navbar in the accent color, a plain sidebar and contents list that mark the current entry by the link color, Quarto's text and code colors and its 17px body size
       1: Each topic is one entry in a top navbar; the current topic's page tree is a left sidebar; the headings of the current page are a right "On this page" contents list with scroll-spy; each page has previous/next links
       1-1: The site's home page lists the topics
+      1-2: The navbar names the site by folio.yml's `title`, else by the `title` in the front matter of the root index.qmd or index.md, else by the project's folder name
       2: Pages are rendered from the same tree as a document and keep their headings as written (no demotion by folder depth), with the same shortcodes and conditional filter
       2-1: An image alone in its paragraph with alt text is a `<figure>` with that text as its `<figcaption>`, as Pandoc writes an implicit figure; an image among text or without alt text stays in its paragraph
       2-1-1: A Mermaid diagram (DOCUMENT 7) is inline SVG in a `<div class="mermaid">`, centred, in the site's colors for the light and the dark scheme

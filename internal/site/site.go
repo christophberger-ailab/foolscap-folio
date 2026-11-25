@@ -2,6 +2,7 @@ package site
 
 import (
 	"bytes"
+	"cmp"
 	"embed"
 	"fmt"
 	"html"
@@ -33,7 +34,7 @@ type Topic struct {
 type Options struct {
 	Root   string // project root, absolute
 	OutDir string // output directory, absolute
-	Title  string // site title; "" = name of the root folder
+	Title  string // site title; "" = title of the root index page, else name of the root folder
 	Lang   string // html lang attribute
 	// CalloutTitles are the user's own callout titles by language and
 	// type (see markdown.CalloutTitles).
@@ -133,9 +134,6 @@ func Build(o Options) error {
 	b := &builder{o: o, root: root, rootAbs: root, outAbs: out,
 		pages: map[string]*pageInfo{}, copied: map[string]bool{}}
 	b.title = o.Title
-	if b.title == "" {
-		b.title = filepath.Base(root)
-	}
 	if b.o.Lang == "" {
 		b.o.Lang = "en"
 	}
@@ -196,8 +194,10 @@ func (b *builder) load() error {
 		p := &pageInfo{node: n, out: "index.html", title: n.Title(), srcDir: ".", home: true}
 		b.homePg = p
 		b.pages[""] = p
+		b.title = cmp.Or(b.title, title)
 		break
 	}
+	b.title = cmp.Or(b.title, filepath.Base(b.root))
 	for _, t := range b.o.Topics {
 		dir := filepath.Join(b.root, filepath.FromSlash(t.Folder))
 		tree, err := bookmaker.LoadTree(dir, b.root)

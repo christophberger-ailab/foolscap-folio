@@ -449,3 +449,28 @@ func TestDefinitionList(t *testing.T) {
 	css := strings.Join(strings.Fields(read(t, out, "_site/style.css")), " ")
 	has(t, "css", css, "dt { font-weight: bold; }", "dd { margin: 0 0 0.5em 1.6em; }")
 }
+
+// Without a title of its own, the site is named after the title of the
+// root index page, and only without one after its folder (issue #153).
+func TestTitleFromIndex(t *testing.T) {
+	for _, c := range []struct{ name, index, want string }{
+		{"front matter", "---\ntitle: Handbook\n---\n\nWelcome.\n", `class="site-title" href="index.html">Handbook</a>`},
+		{"no title", "Welcome.\n", `">` + "%s</a>"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			root, out := project(t)
+			write(t, root, "index.md", c.index)
+			o := opts(root, out)
+			o.Title = ""
+			if err := Build(o); err != nil {
+				t.Fatal(err)
+			}
+			want := c.want
+			if strings.Contains(want, "%s") {
+				want = fmt.Sprintf(want, filepath.Base(root))
+			}
+			has(t, "home", read(t, out, "index.html"), want)
+			has(t, "page", read(t, out, "x/page.html"), strings.Replace(want, `href="index.html"`, `href="../index.html"`, 1))
+		})
+	}
+}

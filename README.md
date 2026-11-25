@@ -254,7 +254,7 @@ Top level keys:
 
 | key         | meaning                                                                                       |
 | ----------- | --------------------------------------------------------------------------------------------- |
-| `title`     | the site title and, for documents, the default document title                                 |
+| `title`     | the site title and, for documents, the default document title; without it, the site is named by the `title` of the root `index.md`, else by its folder |
 | `lang`      | the document language (`de`, `en-US`, …); sets the proofing language and the contents heading |
 | `output`    | the directory renders are written below; default `_output`                                    |
 | `vars`      | variables for `{{< var name >}}` and `{name}` placeholders                                    |
