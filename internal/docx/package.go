@@ -213,8 +213,21 @@ func addRels(p *pkg, rels []relationship) {
 // relTarget finds the target of the first document relationship of a type,
 // as a package part name.
 func relTarget(p *pkg, typ string) string {
+	return findRel(p, func(id, t string) bool { return t == typ })
+}
+
+// relByID finds the target of the document relationship with an id, as a
+// package part name.
+func relByID(p *pkg, id string) string {
+	return findRel(p, func(i, _ string) bool { return i == id })
+}
+
+// findRel finds the target of the first document relationship whose id
+// and type match accepts, as a package part name.
+func findRel(p *pkg, match func(id, typ string) bool) string {
 	var rels struct {
 		R []struct {
+			ID     string `xml:"Id,attr"`
 			Type   string `xml:"Type,attr"`
 			Target string `xml:"Target,attr"`
 		} `xml:"Relationship"`
@@ -223,7 +236,7 @@ func relTarget(p *pkg, typ string) string {
 		return ""
 	}
 	for _, r := range rels.R {
-		if r.Type == typ {
+		if match(r.ID, r.Type) {
 			t := strings.TrimPrefix(r.Target, "/")
 			if !strings.HasPrefix(r.Target, "/") {
 				t = "word/" + t

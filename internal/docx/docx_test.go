@@ -731,8 +731,8 @@ func TestSectionTitleOpensAPageInALargerSize(t *testing.T) {
 		`<w:sz w:val="80"/><w:szCs w:val="80"/></w:rPr><w:t xml:space="preserve">Part One</w:t>`)
 }
 
-// The page footer of folio.yml is the document's default footer, unless a
-// template brings one of its own (issue #124).
+// The page footer of folio.yml is the document's default footer; a template's
+// own default footer gets it below its content (issues #124, #151).
 func TestFooter(t *testing.T) {
 	footer := markdown.Parse([]byte("Version **dev** · [site](https://example.com)"))
 	footer.Prepare(markdown.Options{})
@@ -747,11 +747,27 @@ func TestFooter(t *testing.T) {
 	// Without a footer, nothing is added.
 	lacks(t, build(t, "Text.\n", Options{})["word/document.xml"], "footerReference")
 
-	// A template's own footer stays.
+	// A template's own footer stays, and the page footer is added to it
+	// (issue #151).
 	tpl := makeTemplateWithFooter(t, "TEMPLATE-FOOTER")
-	p = build(t, "Text.\n", Options{Template: tpl, Footer: footer})
+	p = build(t, "Text.\n", Options{Template: tpl, Footer: footer, Margins: func(b []byte) []byte {
+		return bytes.ReplaceAll(b, []byte("Version"), []byte("REWRITTEN"))
+	}})
 	if _, ok := p["word/folio-footer.xml"]; ok {
 		t.Error("the template's footer was replaced")
+	}
+	if n := strings.Count(p["word/document.xml"], `<w:footerReference w:type="default"`); n != 1 {
+		t.Errorf("%d default footers, want 1", n)
+	}
+	var footers string
+	for name, part := range p {
+		if strings.HasPrefix(name, "word/footer") {
+			footers += part
+		}
+	}
+	has(t, footers, "TEMPLATE-FOOTER", `>Version </w:t>`, `>dev</w:t>`)
+	if i, j := strings.Index(footers, "TEMPLATE-FOOTER"), strings.Index(footers, ">Version "); i > j {
+		t.Error("the page footer comes before the template's")
 	}
 }
 

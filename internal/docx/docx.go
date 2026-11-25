@@ -54,8 +54,8 @@ type Options struct {
 	// Margins, if set, rewrites the XML of each of the template's headers
 	// and footers, as to resolve their placeholders.
 	Margins func([]byte) []byte
-	// Footer, if set, is the page footer, unless the template has a
-	// default footer of its own.
+	// Footer, if set, is the page footer; a template's own default footer
+	// keeps its content and gets Footer below it.
 	Footer *markdown.Document
 	// Warn, if set, receives the problems that do not stop the render,
 	// such as an image that is not there.
@@ -107,7 +107,14 @@ func Write(path string, d *markdown.Document, o Options) error {
 		return w.err
 	}
 
-	if o.Footer != nil && !hasFooter.MatchString(sect) {
+	if o.Template != "" && o.Margins != nil {
+		for _, name := range p.names {
+			if marginPart.MatchString(name) {
+				p.set(name, o.Margins(p.get(name)))
+			}
+		}
+	}
+	if o.Footer != nil {
 		sect = w.footer(p, o.Footer, sect)
 	}
 	p.set("word/document.xml", []byte(declareNS(prefix)+w.out.String()+sect+suffix))
@@ -115,13 +122,6 @@ func Write(path string, d *markdown.Document, o Options) error {
 	w.finishParts(p)
 	if o.Template != "" {
 		setTitle(p, o.Title)
-		if o.Margins != nil {
-			for _, name := range p.names {
-				if marginPart.MatchString(name) {
-					p.set(name, o.Margins(p.get(name)))
-				}
-			}
-		}
 	}
 	data, err := p.bytes()
 	if err != nil {
