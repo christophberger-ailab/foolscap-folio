@@ -120,6 +120,67 @@ func TestAuthEnv(t *testing.T) {
 	}
 }
 
+// A token set for another host goes to that host alone, beside the
+// GitHub one; "" takes it back.
+func TestAuthEnvPerHost(t *testing.T) {
+	SetGitHubToken("gh")
+	SetToken("https://dev.azure.com/", "pat")
+	t.Cleanup(func() { SetGitHubToken(""); SetToken("https://dev.azure.com/", "") })
+	basic := func(t string) string {
+		return "Authorization: Basic " + base64.StdEncoding.EncodeToString([]byte("x-access-token:"+t))
+	}
+	env := authEnv(nil)
+	want := []string{
+		"GIT_CONFIG_COUNT=2",
+		"GIT_CONFIG_KEY_0=http.https://dev.azure.com/.extraheader", "GIT_CONFIG_VALUE_0=" + basic("pat"),
+		"GIT_CONFIG_KEY_1=http.https://github.com/.extraheader", "GIT_CONFIG_VALUE_1=" + basic("gh"),
+	}
+	if !slices.Equal(env, want) {
+		t.Errorf("env = %v\nwant %v", env, want)
+	}
+	SetToken("https://dev.azure.com/", "")
+	if env := authEnv(nil); !slices.Contains(env, "GIT_CONFIG_COUNT=1") || slices.Contains(env, want[1]) {
+		t.Errorf("token not taken back: %v", env)
+	}
+}
+
+// A token is only ever sent over https, to the host the URL names, with
+// whatever user the URL carries left out: git matches a header without one
+// to every user.
+func TestOrigin(t *testing.T) {
+	for url, want := range map[string]string{
+		"https://dev.azure.com/org/proj/_git/repo":     "https://dev.azure.com/",
+		"https://org@dev.azure.com/org/proj/_git/repo": "https://dev.azure.com/",
+		"https://u:pw@GitLab.example.com:8443/g/r.git": "https://gitlab.example.com:8443/",
+		"http://example.com/r.git":                     "",
+		"git@github.com:o/r.git":                       "",
+		"ssh://git@example.com/r.git":                  "",
+		"https:///r":                                   "",
+	} {
+		if got := Origin(url); got != want {
+			t.Errorf("Origin(%q) = %q, want %q", url, got, want)
+		}
+	}
+}
+
+// What git says when a remote wants a sign-in it could not give is told
+// apart from other failures.
+func TestAuthFailed(t *testing.T) {
+	for out, want := range map[string]bool{
+		"fatal: could not read Username for 'https://dev.azure.com': terminal prompts disabled":                                                                                                                                    true,
+		"remote: TF401019: ...\nfatal: Authentication failed for 'https://dev.azure.com/o/p/_git/r/'":                                                                                                                              true,
+		"fatal: unable to update url base from redirection:\n  asked for: https://dev.azure.com/o/p/_git/r/info/refs?service=git-upload-pack\n   redirect: https://spsprodweu5.vssps.visualstudio.com/_signin?realm=dev.azure.com": true,
+		"fatal: unable to access 'https://x/r/': The requested URL returned error: 401":                                                                                                                                            true,
+		"fatal: unable to access 'https://x/r/': The requested URL returned error: 403":                                                                                                                                            true,
+		"fatal: repository 'https://x/r/' not found":                                                                                                                                                                               false,
+		"fatal: unable to access 'https://x/r/': Could not resolve host: x":                                                                                                                                                        false,
+	} {
+		if got := AuthFailed(out); got != want {
+			t.Errorf("AuthFailed(%q) = %v, want %v", out, got, want)
+		}
+	}
+}
+
 // The token reaches git in its environment, never on its command line,
 // where any process on the machine could read it.
 func TestTokenStaysOffTheCommandLine(t *testing.T) {

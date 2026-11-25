@@ -4,9 +4,12 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"maps"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -88,39 +91,87 @@ func Clone(url, dest string) (string, error) {
 	return runFor(CloneTimeout, parent, 0, "clone", "--", url, dest)
 }
 
-// token is the GitHub token git authenticates with, if the user signed
-// in to GitHub from folio.
-var token struct {
+// GitHubOrigin is where the GitHub sign-in's token goes.
+const GitHubOrigin = "https://github.com/"
+
+// tokens are the access tokens git authenticates with, by the https
+// origin each is sent to: the GitHub sign-in's, and those the user gave
+// for other hosts, such as Azure DevOps, which git could not ask for
+// itself with no terminal to prompt on.
+var tokens struct {
 	sync.Mutex
-	value string
+	m map[string]string
 }
 
-// SetGitHubToken sets the token every git command run from here on sends
-// to github.com; "" sends none, and git falls back on the user's own
-// credential helpers.
-func SetGitHubToken(t string) {
-	token.Lock()
-	defer token.Unlock()
-	token.value = t
-}
-
-// authEnv is environ with the GitHub token added as an HTTP header for
-// https://github.com/ and nothing else.
-//
-// It goes in as configuration through the environment (GIT_CONFIG_COUNT
-// and its pairs) rather than as a -c option: the command line of a
-// process is readable by every user of the machine, its environment only
-// by its owner. Pairs the user set the same way are kept, and the token's
-// is numbered after them.
-func authEnv(environ []string) []string {
-	token.Lock()
-	t := token.value
-	token.Unlock()
+// SetToken sets the token every git command run from here on sends to
+// origin, as Origin names it; "" sends none, and git falls back on the
+// user's own credential helpers.
+func SetToken(origin, t string) {
+	tokens.Lock()
+	defer tokens.Unlock()
 	if t == "" {
+		delete(tokens.m, origin)
+		return
+	}
+	if tokens.m == nil {
+		tokens.m = map[string]string{}
+	}
+	tokens.m[origin] = t
+}
+
+// SetGitHubToken sets the token git sends to github.com.
+func SetGitHubToken(t string) { SetToken(GitHubOrigin, t) }
+
+// Origin is the origin of an https URL as git matches http.<url>.*
+// settings -- "https://host[:port]/", without the user -- or "" for any
+// other URL: a token goes over https only.
+func Origin(rawURL string) string {
+	u, err := url.Parse(rawURL)
+	if err != nil || u.Scheme != "https" || u.Host == "" {
+		return ""
+	}
+	return "https://" + strings.ToLower(u.Host) + "/"
+}
+
+// AuthFailed reports whether git's output says the remote wanted a
+// sign-in that git had no way to give: no token, no credential helper
+// that answered, and no terminal to ask on. Azure DevOps, asked without
+// one, may answer with a redirect to its sign-in page rather than a 401.
+func AuthFailed(out string) bool {
+	out = strings.ToLower(out)
+	for _, s := range []string{
+		"could not read username", "could not read password", "terminal prompts disabled",
+		"authentication failed", "unable to update url base from redirection",
+		"returned error: 401", "returned error: 403",
+	} {
+		if strings.Contains(out, s) {
+			return true
+		}
+	}
+	return false
+}
+
+// authEnv is environ with each token added as an HTTP header for its
+// origin and nothing else.
+//
+// They go in as configuration through the environment (GIT_CONFIG_COUNT
+// and its pairs) rather than as -c options: the command line of a
+// process is readable by every user of the machine, its environment only
+// by its owner. Pairs the user set the same way are kept, and the tokens'
+// are numbered after them, in the order of their origins.
+func authEnv(environ []string) []string {
+	tokens.Lock()
+	origins := slices.Sorted(maps.Keys(tokens.m))
+	ts := make([]string, len(origins))
+	for i, o := range origins {
+		ts[i] = tokens.m[o]
+	}
+	tokens.Unlock()
+	if len(origins) == 0 {
 		return environ
 	}
 	n := 0
-	out := make([]string, 0, len(environ)+3)
+	out := make([]string, 0, len(environ)+1+2*len(origins))
 	for _, kv := range environ {
 		if v, ok := strings.CutPrefix(kv, "GIT_CONFIG_COUNT="); ok {
 			n, _ = strconv.Atoi(v)
@@ -128,11 +179,11 @@ func authEnv(environ []string) []string {
 		}
 		out = append(out, kv)
 	}
-	header := "Authorization: Basic " + base64.StdEncoding.EncodeToString([]byte("x-access-token:"+t))
-	i := strconv.Itoa(n)
-	return append(out,
-		"GIT_CONFIG_COUNT="+strconv.Itoa(n+1),
-		"GIT_CONFIG_KEY_"+i+"=http.https://github.com/.extraheader",
-		"GIT_CONFIG_VALUE_"+i+"="+header,
-	)
+	out = append(out, "GIT_CONFIG_COUNT="+strconv.Itoa(n+len(origins)))
+	for i, o := range origins {
+		k := strconv.Itoa(n + i)
+		header := "Authorization: Basic " + base64.StdEncoding.EncodeToString([]byte("x-access-token:"+ts[i]))
+		out = append(out, "GIT_CONFIG_KEY_"+k+"=http."+o+".extraheader", "GIT_CONFIG_VALUE_"+k+"="+header)
+	}
+	return out
 }

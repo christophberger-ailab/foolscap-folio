@@ -110,9 +110,11 @@ func cmd(c *start.Command) error {
 // the server stops.
 func Serve(flagAddr string, root string) error {
 	restartAddr, restartRoot := takeRestartEnv()
-	if restartRoot != "" {
-		root = restartRoot
+	open := startRoot(root, restartRoot)
+	if open == "" && root != "" {
+		fmt.Fprintf(os.Stderr, "folio web: %s holds no folio.yml; open a project with the Open button\n", root)
 	}
+	root = open
 	srv, err := newServer(defaultConfigFile())
 	if err != nil {
 		return fmt.Errorf("web: %w", err)
@@ -147,6 +149,21 @@ func Serve(flagAddr string, root string) error {
 	case <-srv.restart:
 		return restart(srv, ln, served)
 	}
+}
+
+// startRoot is the project to open at start: the one a restart hands
+// over, which was open before it whatever it holds, else root if it holds
+// a folio.yml, else none. A folder without one is no book -- the Start
+// menu starts folio web in the home folder -- and loading it as one would
+// list whatever Markdown lies about; the Open button opens a project.
+func startRoot(root, restarted string) string {
+	if restarted != "" {
+		return restarted
+	}
+	if root == "" || config.Find(root) == "" {
+		return ""
+	}
+	return root
 }
 
 // restart hands the address and the open project to the updated binary

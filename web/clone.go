@@ -2,6 +2,7 @@ package web
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -17,7 +18,8 @@ var cloneRepo = gitrepo.Clone
 
 // cloneView is the Open dialog's "From a repository" form: the URL to
 // clone, the folder the clone goes into, and the GitHub sign-in that lets
-// it reach a private repository and push back to it.
+// it reach a private repository and push back to it. An access token for
+// another host is a field of the form, and never part of the view.
 type cloneView struct {
 	URL    string
 	Dir    string
@@ -65,12 +67,40 @@ func (s *server) cloneHandler(w http.ResponseWriter, r *http.Request) {
 		fail(errors.New("the URL names no repository folder to clone into"))
 		return
 	}
+	// The token is never put back into the form: a page is no place for it.
+	token := strings.TrimSpace(r.FormValue("token"))
+	origin := gitrepo.Origin(v.URL)
+	if token != "" {
+		if origin == "" {
+			fail(errors.New("an access token is sent only over https://: use the repository's https:// address"))
+			return
+		}
+		if origin == gitrepo.GitHubOrigin && v.GitHub.Login != "" {
+			fail(errors.New("you are signed in to GitHub, and git uses that sign-in there: leave the token out"))
+			return
+		}
+	}
 	dest := filepath.Join(filepath.Clean(v.Dir), name)
+	var prev string
+	if token != "" {
+		prev = s.setHostToken(origin, token)
+	}
 	out, err := cloneRepo(v.URL, dest)
 	if err != nil {
+		if token != "" {
+			s.setHostToken(origin, prev)
+		}
 		v.Output = strings.TrimSpace(out)
+		if hint := signInHint(out, origin, token != ""); hint != "" {
+			err = errors.New(hint)
+		}
 		fail(err)
 		return
+	}
+	if token != "" {
+		if err := s.saveHostTokens(); err != nil {
+			fmt.Fprintf(os.Stderr, "folio web: the access token for %s is not kept for the next start: %v\n", origin, err)
+		}
 	}
 
 	s.mu.Lock()

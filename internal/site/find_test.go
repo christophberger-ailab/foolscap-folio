@@ -98,3 +98,27 @@ func TestFindInPage(t *testing.T) {
 	}
 	hasNot(t, "x/page", read(t, out, "x/page.html"), `class="find"`)
 }
+
+// SITE.6-10-1: clearing the search box takes the hit's marks off the page,
+// and off its address; the find field's marks are its own.
+func TestClearingSearchUnmarks(t *testing.T) {
+	out := longPage(t)
+	got := browse(t, "file://"+filepath.Join(out, "x", "long.html")+"?mark=zebra", marks+`
+  await page.fill('.search input', 'zebra');
+  console.log(await marks());
+  await page.click('.search-clear');
+  console.log(await marks(), JSON.stringify(new URL(page.url()).search));
+  await page.goto(page.url());
+  console.log(await marks());
+  await page.fill('.find input', 'zebra');
+  await page.fill('.search input', 'z');
+  await page.fill('.search input', '');
+  console.log((await marks()).split(' ')[0]);`)
+	want := "4 zebra,ZEBRA,zébra,zebra current:0 inview:true\n" +
+		"0  current:-1 inview:false \"\"\n" +
+		"0  current:-1 inview:false\n" +
+		"4\n"
+	if got != want {
+		t.Errorf("got:\n%s\nwant:\n%s", got, want)
+	}
+}

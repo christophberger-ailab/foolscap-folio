@@ -170,6 +170,18 @@
       if (clear) clear.hidden = !input.value;
       store(key, input.value);
     }
+    // unmark takes a hit's marks off the page once the search box is
+    // cleared, and its ?mark= off the address, so a reload does not bring
+    // them back. The find field's marks are its own.
+    function unmark() {
+      if (input.value.trim() || !article) return;
+      var f = finder && finder.querySelector('input');
+      if (!f || !f.value.trim()) mark([]);
+      var u = new URL(location.href);
+      if (!u.searchParams.has('mark')) return;
+      u.searchParams.delete('mark');
+      try { history.replaceState(history.state, '', u.href); } catch (e) {}
+    }
     if (!input.value) input.value = stored(key);
     changed();
 
@@ -320,6 +332,7 @@
     input.addEventListener('focus', load);
     input.addEventListener('input', function () {
       changed();
+      unmark();
       clearTimeout(timer);
       timer = setTimeout(run, 120);
     });
@@ -342,6 +355,7 @@
     if (clear) clear.addEventListener('click', function () {
       input.value = '';
       changed();
+      unmark();
       run();
       input.focus();
     });

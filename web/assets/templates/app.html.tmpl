@@ -158,6 +158,9 @@
   <label>Repository URL
     <input type="text" name="url" value="{{.URL}}" placeholder="https://github.com/owner/book.git" autocomplete="off" spellcheck="false" required autofocus>
   </label>
+  <label>Access token <span class="hint">(optional)</span>
+    <input type="password" name="token" autocomplete="off" spellcheck="false" placeholder="for a private repository on Azure DevOps, GitLab, …">
+  </label>
   <label>Clone into the folder
     <input type="text" name="dir" value="{{.Dir}}" autocomplete="off" spellcheck="false" required>
   </label>
