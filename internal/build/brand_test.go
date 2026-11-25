@@ -272,7 +272,7 @@ func TestBrandLogo(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", name, err)
 		}
-		l, notes := b.logo()
+		l, _, notes := b.logos()
 		at := func(f string) string {
 			if f == "" {
 				return ""
@@ -287,8 +287,36 @@ func TestBrandLogo(t *testing.T) {
 		}
 	}
 	var none *brand
-	if l, notes := none.logo(); l != (site.Logo{}) || notes != nil {
+	if l, m, notes := none.logos(); l != (site.Logo{}) || m != (site.Logo{}) || notes != nil {
 		t.Error("no brand: a logo")
+	}
+}
+
+// The sidebar's logo is the brand's medium one, else the large, else the
+// small; a file that is not there is noted once (issue #152).
+func TestBrandSidebarLogo(t *testing.T) {
+	for name, c := range map[string]struct{ yml, small, medium string }{
+		"sizes":  {"logo:\n  small: fonts/Mono.ttf\n  medium: fonts/Sans.woff2\n", "Mono.ttf", "Sans.woff2"},
+		"large":  {"logo:\n  small: fonts/Mono.ttf\n  large: fonts/Sans.woff2\n", "Mono.ttf", "Sans.woff2"},
+		"small":  {"logo:\n  small: fonts/Mono.ttf\n", "Mono.ttf", "Mono.ttf"},
+		"single": {"logo: fonts/Mono.ttf\n", "Mono.ttf", "Mono.ttf"},
+	} {
+		root := brandProject(t, c.yml)
+		b, err := loadBrand(root, "")
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		s, m, _ := b.logos()
+		if s.Light != filepath.Join(root, "fonts", c.small) || m.Light != filepath.Join(root, "fonts", c.medium) {
+			t.Errorf("%s: small %q, medium %q", name, s.Light, m.Light)
+		}
+	}
+	b, err := loadBrand(brandProject(t, "logo:\n  small: nope.png\n"), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, notes := b.logos(); len(notes) != 1 {
+		t.Errorf("notes %q, want one", notes)
 	}
 }
 

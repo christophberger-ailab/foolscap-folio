@@ -363,7 +363,7 @@ func TestLogo(t *testing.T) {
 	}
 	page := read(t, out, "dispatcher/b.html")
 	has(t, "logo", page,
-		`<img class="site-logo" src="../_site/logo.svg" alt="Acme &#34;Inc&#34;">Test Site</a>`,
+		`<span class="navbar-logo"><img class="site-logo" src="../_site/logo.svg" alt="Acme &#34;Inc&#34;"></span>Test Site</a>`,
 		`<link rel="icon" href="../_site/logo.svg">`)
 	if got := read(t, out, "_site/logo.svg"); got != "<svg/>" {
 		t.Errorf("logo = %q", got)
@@ -381,7 +381,7 @@ func TestLogo(t *testing.T) {
 		t.Fatal(err)
 	}
 	has(t, "dark", read(t, out, "index.html"),
-		`<img class="site-logo logo-light" src="_site/logo.png" alt="Acme"><img class="site-logo logo-dark" src="_site/logo-dark.png" alt="Acme">Test Site</a>`,
+		`<span class="navbar-logo"><img class="site-logo logo-light" src="_site/logo.png" alt="Acme"><img class="site-logo logo-dark" src="_site/logo-dark.png" alt="Acme"></span>Test Site</a>`,
 		`<link rel="icon" href="_site/logo.png">`)
 	if got := read(t, out, "_site/logo-dark.png"); got != "D" {
 		t.Errorf("dark logo = %q", got)
@@ -473,4 +473,52 @@ func TestTitleFromIndex(t *testing.T) {
 			has(t, "page", read(t, out, "x/page.html"), strings.Replace(want, `href="index.html"`, `href="../index.html"`, 1))
 		})
 	}
+}
+
+// The medium logo stands above the sidebar; the navbar's small logo shows
+// on pages with that sidebar only where the sidebar is off-canvas, and no
+// logo shows where the page is too narrow for one (issue #152).
+func TestSidebarLogo(t *testing.T) {
+	root, out := project(t)
+	write(t, root, "assets/small.svg", "S")
+	write(t, root, "assets/medium.png", "M")
+	write(t, root, "assets/medium-dark.png", "MD")
+	o := opts(root, out)
+	o.Logo = Logo{Light: filepath.Join(root, "assets", "small.svg"), Alt: "Acme"}
+	o.SidebarLogo = Logo{Light: filepath.Join(root, "assets", "medium.png"), Dark: filepath.Join(root, "assets", "medium-dark.png"), Alt: "Acme"}
+	if err := Build(o); err != nil {
+		t.Fatal(err)
+	}
+	page := read(t, out, "dispatcher/b.html")
+	side := regexp.MustCompile(`(?s)<aside id="sidebar".*?</aside>`).FindString(page)
+	has(t, "sidebar", side, `<a class="sidebar-logo" href="../index.html"><img class="site-logo logo-light" src="../_site/logo-medium.png" alt="Acme"><img class="site-logo logo-dark" src="../_site/logo-medium-dark.png" alt="Acme"></a>`)
+	if strings.Index(side, "sidebar-logo") > strings.Index(side, "sidebar-title") {
+		t.Error("the logo is not above the sidebar's title")
+	}
+	has(t, "navbar", page, `<span class="navbar-logo beside-sidebar"><img class="site-logo" src="../_site/logo.svg" alt="Acme"></span>Test Site</a>`,
+		`<link rel="icon" href="../_site/logo.svg">`)
+	if got := read(t, out, "_site/logo-medium.png") + read(t, out, "_site/logo-medium-dark.png"); got != "MMD" {
+		t.Errorf("medium logo = %q", got)
+	}
+
+	// The home page has no sidebar: the navbar shows the small logo.
+	home := read(t, out, "index.html")
+	has(t, "home", home, `<span class="navbar-logo"><img class="site-logo" src="_site/logo.svg" alt="Acme"></span>`)
+	hasNot(t, "home", home, "sidebar-logo")
+
+	css := read(t, out, "_site/style.css")
+	has(t, "css", css, ".beside-sidebar", ".sidebar-logo", ".navbar-logo")
+
+	// Without a medium logo, the sidebar has none and the navbar keeps its own.
+	o.SidebarLogo = Logo{}
+	root, out = project(t)
+	o.Root, o.OutDir = root, out
+	write(t, root, "assets/small.svg", "S")
+	o.Logo.Light = filepath.Join(root, "assets", "small.svg")
+	if err := Build(o); err != nil {
+		t.Fatal(err)
+	}
+	page = read(t, out, "dispatcher/b.html")
+	hasNot(t, "no medium", page, "sidebar-logo", "beside-sidebar")
+	has(t, "no medium", page, `<span class="navbar-logo"><img class="site-logo" src="../_site/logo.svg" alt="Acme"></span>`)
 }

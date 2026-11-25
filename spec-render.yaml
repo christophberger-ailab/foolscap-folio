@@ -121,6 +121,7 @@ constraints:
       1-3: 'A color may be given as `light` and `dark` variants, as brand.yml allows; folio uses the light one'
       2: 'A website links a stylesheet made from the brand after folio''s own and before the format''s `css`: text, page and accent colors, the link color (`typography.link.color`, else `primary`), the families, weights, sizes and line heights of base, headings and monospace, the heading color, and the colors of inline and block code'
       2-0: 'The navbar is in the primary color, its text white or black, whichever contrasts more; the brand''s small logo, else the medium, else the large one -- a path, the name of an entry of `logo.images`, or the light one of two variants -- stands before the site title and is the site''s icon; `logo:` may be a single path that stands for every size'
+      2-0-0-1: 'On a page with a sidebar, the brand''s medium logo, else the large, else the small one stands above the sidebar, linking to the home page, while the sidebar is beside the page; the navbar''s logo then shows only while the sidebar is off-canvas; a window 25em wide or narrower shows no logo'
       2-0-1: A logo's dark variant replaces the light one in the navbar when the reader's system uses the dark color scheme
       2-1: Fonts with `files` are copied into the site and declared with `@font-face`; fonts with `source` google or bunny are imported from that service
       2-2: The brand's colors apply to the light color scheme; the dark scheme keeps folio's colors

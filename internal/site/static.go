@@ -29,7 +29,8 @@ func (b *builder) writeStatic() error {
 			return err
 		}
 	}
-	for _, f := range [][2]string{{b.o.Logo.Light, b.logo.Light}, {b.o.Logo.Dark, b.logo.Dark}} {
+	for _, f := range [][2]string{{b.o.Logo.Light, b.logo.Light}, {b.o.Logo.Dark, b.logo.Dark},
+		{b.o.SidebarLogo.Light, b.sideLogo.Light}, {b.o.SidebarLogo.Dark, b.sideLogo.Dark}} {
 		src, dst := f[0], f[1]
 		if dst == "" {
 			continue

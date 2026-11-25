@@ -267,33 +267,42 @@ func (l *brandLogo) UnmarshalYAML(n *yaml.Node) error {
 	return nil // anything else is no logo
 }
 
-// logo is the logo of a website, from the brand's small logo, else the
-// medium, else the large one: the image files for the light and the dark
-// color scheme and the alt text. A variant that is not a usable file is
-// left out with a note.
-func (b *brand) logo() (logo site.Logo, notes []string) {
+// logos are the logos of a website: the navbar's from the brand's small
+// logo, else the medium, else the large one, and the sidebar's from the
+// medium, else the large, else the small one. Each has the image files for
+// the light and the dark color scheme and the alt text. A variant that is
+// not a usable file is left out with a note.
+func (b *brand) logos() (small, medium site.Logo, notes []string) {
 	if b == nil {
-		return logo, nil
+		return small, medium, nil
 	}
+	noted := map[string]bool{}
 	file := func(name string) string {
 		if name == "" {
 			return ""
 		}
 		path, err := foliocore.ProjectPath(b.dir, name)
 		if st, serr := os.Stat(path); err != nil || serr != nil || st.IsDir() {
-			notes = append(notes, fmt.Sprintf("%s: logo: %s is not a file the website can use", BrandFile, name))
+			if !noted[name] {
+				noted[name] = true
+				notes = append(notes, fmt.Sprintf("%s: logo: %s is not a file the website can use", BrandFile, name))
+			}
 			return ""
 		}
 		return path
 	}
-	for _, l := range []brandLogo{b.Logo.Small, b.Logo.Medium, b.Logo.Large} {
-		light, dark, alt := b.variants(l)
-		if logo.Light = file(light); logo.Light != "" {
-			logo.Dark, logo.Alt = file(dark), alt
-			return logo, notes
+	first := func(sizes ...brandLogo) site.Logo {
+		for _, l := range sizes {
+			light, dark, alt := b.variants(l)
+			if path := file(light); path != "" {
+				return site.Logo{Light: path, Dark: file(dark), Alt: alt}
+			}
 		}
+		return site.Logo{}
 	}
-	return logo, notes
+	small = first(b.Logo.Small, b.Logo.Medium, b.Logo.Large)
+	medium = first(b.Logo.Medium, b.Logo.Large, b.Logo.Small)
+	return small, medium, notes
 }
 
 // variants returns the light and the dark image of l and its alt text,

@@ -1,3 +1,4 @@
+{{define "logo"}}{{if .Dark}}<img class="site-logo logo-light" src="{{.Light}}" alt="{{.Alt}}"><img class="site-logo logo-dark" src="{{.Dark}}" alt="{{.Alt}}">{{else}}<img class="site-logo" src="{{.Light}}" alt="{{.Alt}}">{{end}}{{end}}
 {{define "label"}}{{if .URL}}<a href="{{.URL}}"{{if .Current}} aria-current="page"{{end}}>{{.Title}}</a>{{else}}<span class="group">{{.Title}}</span>{{end}}{{end}}
 {{define "item"}}<li>{{if .Children}}<details{{if .Open}} open{{end}}><summary>{{template "label" .}}</summary><ul>{{range .Children}}{{template "item" .}}{{end}}</ul></details>{{else}}{{template "label" .}}{{end}}</li>
 {{end}}
@@ -13,7 +14,7 @@
 {{end -}}
 {{range .CSS}}<link rel="stylesheet" href="{{$.Base}}{{.}}">
 {{end -}}
-{{with .Logo.Light}}<link rel="icon" href="{{$.Base}}{{.}}">
+{{with .Logo.Light}}<link rel="icon" href="{{.}}">
 {{end -}}
 <script>document.documentElement.classList.add('js')</script>
 <script src="{{.Base}}_site/site.js" defer></script>
@@ -23,7 +24,7 @@
 <header class="navbar">
   <div class="navbar-inner">
     {{if .Sidebar}}<button class="icon-button sidebar-toggle" type="button" aria-controls="sidebar" aria-expanded="false" aria-label="{{.L.Sidebar}}"><span class="icon icon-sidebar" aria-hidden="true"></span><span class="btn-label">{{.L.Contents}}</span></button>{{end}}
-    <a class="site-title" href="{{.HomeURL}}">{{with .Logo}}{{if .Dark}}<img class="site-logo logo-light" src="{{$.Base}}{{.Light}}" alt="{{.Alt}}"><img class="site-logo logo-dark" src="{{$.Base}}{{.Dark}}" alt="{{.Alt}}">{{else if .Light}}<img class="site-logo" src="{{$.Base}}{{.Light}}" alt="{{.Alt}}">{{end}}{{end}}{{.SiteTitle}}</a>
+    <a class="site-title" href="{{.HomeURL}}">{{if .Logo.Light}}<span class="navbar-logo{{if .SidebarLogo.Light}} beside-sidebar{{end}}">{{template "logo" .Logo}}</span>{{end}}{{.SiteTitle}}</a>
     {{if .Nav}}<button class="icon-button menu-toggle" type="button" aria-controls="topics" aria-expanded="false" aria-label="{{.L.Menu}}"><span class="icon icon-menu" aria-hidden="true"></span></button>
     <nav id="topics" class="topics" aria-label="{{.L.Topics}}"><ul>
       {{range .Nav}}<li><a href="{{.URL}}"{{if .Active}} class="active" aria-current="true"{{end}}>{{.Title}}</a></li>
@@ -38,6 +39,7 @@
 </header>
 <div class="layout{{if not .Sidebar}} no-sidebar{{end}}{{if not .TOC}} no-toc{{end}}">
   {{if .Sidebar}}<aside id="sidebar" class="sidebar" aria-label="{{.L.Sidebar}}">
+    {{if .SidebarLogo.Light}}<a class="sidebar-logo" href="{{.HomeURL}}">{{template "logo" .SidebarLogo}}</a>{{end}}
     <nav>
       <p class="sidebar-title">{{if .Sidebar.URL}}<a href="{{.Sidebar.URL}}"{{if .Sidebar.Current}} aria-current="page"{{end}}>{{.Sidebar.Title}}</a>{{else}}{{.Sidebar.Title}}{{end}}</p>
       <ul class="tree">{{range .Sidebar.Items}}{{template "item" .}}{{end}}</ul>

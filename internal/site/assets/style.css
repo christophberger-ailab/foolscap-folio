@@ -141,6 +141,36 @@ a:hover {
   width: auto;
   max-width: 12em;
 }
+.navbar-logo {
+  display: flex;
+}
+/* The medium logo above the sidebar, while the sidebar is beside the page;
+   the navbar's logo then gives way to it. */
+.sidebar-logo {
+  display: block;
+  margin-bottom: 1em;
+}
+.sidebar-logo .site-logo {
+  height: auto;
+  max-width: 100%;
+  max-height: 6em;
+}
+@media (min-width: 50.0001em) {
+  .navbar-logo.beside-sidebar {
+    display: none;
+  }
+}
+@media (max-width: 50em) {
+  .sidebar-logo {
+    display: none;
+  }
+}
+/* Too narrow for any logo. */
+@media (max-width: 25em) {
+  .navbar-logo {
+    display: none;
+  }
+}
 /* A logo with a dark variant shows the one that fits the color scheme. */
 .logo-dark { display: none; }
 @media (prefers-color-scheme: dark) {
