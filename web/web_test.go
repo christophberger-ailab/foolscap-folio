@@ -68,3 +68,21 @@ func TestTheListenAddressComesFromTheFlagOrTheProject(t *testing.T) {
 		}
 	}
 }
+
+// COMMAND.3-1-1: at start, a folder without a folio.yml is not opened --
+// the Start menu starts folio web in the home folder, which is no book --
+// while the project a restart hands over is opened whatever it holds.
+func TestStartRoot(t *testing.T) {
+	book, plain := t.TempDir(), t.TempDir()
+	os.WriteFile(filepath.Join(book, "folio.yml"), []byte(testConfig), 0o644)
+	for _, c := range []struct{ name, root, restarted, want string }{
+		{"book", book, "", book},
+		{"plain folder", plain, "", ""},
+		{"none", "", "", ""},
+		{"restart", book, plain, plain},
+	} {
+		if got := startRoot(c.root, c.restarted); got != c.want {
+			t.Errorf("%s: startRoot(%q, %q) = %q, want %q", c.name, c.root, c.restarted, got, c.want)
+		}
+	}
+}

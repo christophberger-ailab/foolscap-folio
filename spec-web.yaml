@@ -10,6 +10,7 @@ components:
       2: No subcommand
       3: Parameters
       3-1: Flag --project sets the path to the document tree. Defaults to the current directory
+      3-1-1: At start, the document tree is opened only if it holds a folio.yml (or the legacy qm.yml); otherwise no project is open -- the Start menu starts folio web in the home folder, which is no book -- a note on stderr says so, and the Open button opens one. A folder without folio.yml that the user opens from the Open dialog is opened as asked, and is reopened by a restart after an update
       3-2: Flag --addr sets the listen address. Without it, the address is the `web` section of the opened project's folio.yml -- `baseurl` and `port`, which default to "localhost" and 8199 -- read once at start; a port outside 1 to 65535 is an error in folio.yml
       3-2-1: When the port from folio.yml is taken -- by another folio web, most likely -- the next port up is tried, and so on, until a free one is found; the address actually served is printed. An address given with --addr wins over folio.yml, is used as given, and a taken one is an error
       3-3: A positional path names the project to open and takes precedence over --project
