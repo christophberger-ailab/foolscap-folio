@@ -47,6 +47,32 @@ func (a Attrs) Get(k string) (string, bool) {
 	return "", false
 }
 
+// Size returns the width and height of an image: its width and height
+// attributes or the declarations of its style attribute, whichever comes
+// later, as in the website's CSS; "" for one not given.
+func (a Attrs) Size() (width, height string) {
+	set := func(k, v string) {
+		switch k {
+		case "width":
+			width = v
+		case "height":
+			height = v
+		}
+	}
+	for _, kv := range a.KV {
+		if kv[0] != "style" {
+			set(kv[0], kv[1])
+			continue
+		}
+		for _, decl := range strings.Split(kv[1], ";") {
+			if k, v, ok := strings.Cut(decl, ":"); ok {
+				set(strings.ToLower(strings.TrimSpace(k)), strings.TrimSpace(v))
+			}
+		}
+	}
+	return width, height
+}
+
 // Empty reports whether there are no attributes at all.
 func (a Attrs) Empty() bool { return a.ID == "" && len(a.Classes) == 0 && len(a.KV) == 0 }
 

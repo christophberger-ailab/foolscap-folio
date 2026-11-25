@@ -267,9 +267,7 @@ func (c *mdConverter) inlines(parent ast.Node, style Run) ([]Run, error) {
 			r.Link = string(x.URL(c.src))
 		case *ast.Image:
 			r.Image = string(x.Destination)
-			a := markdown.AttrsOf(x)
-			r.ImageWidth, _ = a.Get("width")
-			r.ImageHeight, _ = a.Get("height")
+			r.ImageWidth, r.ImageHeight = markdown.AttrsOf(x).Size()
 		case *ast.RawHTML:
 			var raw strings.Builder
 			for i := 0; i < x.Segments.Len(); i++ {
