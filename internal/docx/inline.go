@@ -26,6 +26,7 @@ type runProps struct {
 	highlight            string // a highlight color's name
 	// font is a heading's font from _brand.yml, set over its style.
 	font Font
+	em   float64 // the text's font size in pt, 0 for the body text's
 }
 
 func (rp runProps) String(s *styleSet) string {

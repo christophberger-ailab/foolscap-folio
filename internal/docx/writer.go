@@ -245,7 +245,7 @@ func (w *writer) heading(n *ast.Heading, c ctx) {
 	if w.prelims || section && level > 1 {
 		style = w.styles.unlistedHeading(level)
 	}
-	w.inlines(&content, n, runProps{font: font}, c)
+	w.inlines(&content, n, runProps{font: font, em: cmp.Or(font.Size, w.styles.size(style))}, c)
 	if id != "" {
 		fmt.Fprintf(&content, `<w:bookmarkEnd w:id="%d"/>`, w.bmID)
 	}

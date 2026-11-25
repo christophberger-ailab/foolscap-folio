@@ -791,3 +791,12 @@ func TestTemplateMargins(t *testing.T) {
 	has(t, margins, "Version dev")
 	lacks(t, p["word/document.xml"], "Version dev")
 }
+
+// An image in a heading keeps its size, and an em there is the heading's
+// font size, as in the PDF (issue #149).
+func TestHeadingImage(t *testing.T) {
+	root := t.TempDir()
+	writePNG(t, filepath.Join(root, "a.png"), 200, 100)
+	doc := build(t, "# Call ![](a.png){height=2em}\n", Options{Root: root})["word/document.xml"]
+	has(t, doc, fmt.Sprintf(`<wp:extent cx="%d" cy="%d"/>`, 64*12700, 32*12700)) // 2em of 16 pt
+}
