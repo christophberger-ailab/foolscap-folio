@@ -75,6 +75,8 @@ type server struct {
 	// github is the sign-in to GitHub that clone, push, and sync use
 	// (see github.go).
 	github githubState
+	// hostTokens are the access tokens for other hosts (see hosttoken.go).
+	hostTokens hostTokens
 }
 
 func newServer(configFile string) (*server, error) {
@@ -110,6 +112,7 @@ func newServer(configFile string) (*server, error) {
 		return nil, err
 	}
 	s.cfg = cfg
+	s.loadHostTokens()
 	s.loadGitHubToken()
 	static, err := iofs.Sub(assets, "assets/static")
 	if err != nil {
