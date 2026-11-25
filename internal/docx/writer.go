@@ -25,6 +25,7 @@ type writer struct {
 	opt    Options
 	styles *styleSet
 	textW  int // text area width in twips
+	textH  int // text area height in twips
 
 	out  *bytes.Buffer // where blocks are written; swapped to capture
 	lead string        // XML to put at the start of the next paragraph

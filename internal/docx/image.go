@@ -141,13 +141,16 @@ func (w *writer) join(dest string) string {
 }
 
 // imageSize applies the width and height (see markdown.Attrs.Size) to the
-// natural size (in EMU), and caps the result at the text width.
+// natural size (in EMU), and shrinks the result to fit the text area, less
+// room for a caption, as the PDF does. A percentage of the height is one of
+// that height.
 func (w *writer) imageSize(a markdown.Attrs, nw, nh int64) (int64, int64) {
 	full := int64(w.textW) * emuPerTwip
+	maxH := int64(w.textH-captionRoom) * emuPerTwip
 	em := int64(cmp.Or(w.styles.size(w.styles.normal()), 11) * emuPerPoint)
 	wv, hv := a.Size()
 	width, okW := dimension(wv, full, em)
-	height, okH := dimension(hv, full, em)
+	height, okH := dimension(hv, maxH, em)
 	cw, ch := nw, nh
 	switch {
 	case okW && okH:
@@ -157,12 +160,19 @@ func (w *writer) imageSize(a markdown.Attrs, nw, nh int64) (int64, int64) {
 	case okH:
 		cw, ch = nw*height/nh, height
 	}
-	if cw > full {
-		ch = ch * full / cw
-		cw = full
+	if cw > full || ch > maxH {
+		if cw*maxH > ch*full { // the width is the tighter fit
+			cw, ch = full, ch*full/cw
+		} else {
+			cw, ch = cw*maxH/ch, maxH
+		}
 	}
 	return max(cw, 1), max(ch, 1)
 }
+
+// captionRoom is the height (in twips) a picture leaves on its page for a
+// caption: 20 pt, as in the PDF.
+const captionRoom = 400
 
 // dimension parses 50%, 300px, 8cm, 3in, 20mm, 12pt, 2em or a bare number
 // (pixels) to EMU; a percentage is relative to full, an em is em.

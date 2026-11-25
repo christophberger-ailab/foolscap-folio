@@ -301,6 +301,7 @@ func TestImages(t *testing.T) {
 	}
 	writePNG(t, filepath.Join(root, "img", "a.png"), 200, 100)
 	writePNG(t, filepath.Join(root, "big.png"), 3000, 1500)
+	writePNG(t, filepath.Join(root, "tall.png"), 1000, 4000)
 	os.WriteFile(filepath.Join(root, "logo.svg"), []byte(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20"><rect width="40" height="20" fill="blue"/></svg>`), 0o644)
 	p := build(t, `![natural](img/a.png)
 
@@ -321,13 +322,20 @@ Inline ![small](img/a.png){height=1cm} picture.
 ![styled](img/a.png){style="width: 4cm; height: 1cm"}
 
 ![em](img/a.png){width=10em}
+
+![quarter height](tall.png){height=25%}
+
+![tall](tall.png)
+
+![tall and wide](img/a.png){width=10cm height=40cm}
 `, Options{Root: root})
 	doc := p["word/document.xml"]
 	exts := regexp.MustCompile(`<wp:extent cx="(\d+)" cy="(\d+)"/>`).FindAllStringSubmatch(doc, -1)
-	if len(exts) != 10 {
-		t.Fatalf("%d pictures, want 10:\n%s", len(exts), abbreviate(doc))
+	if len(exts) != 13 {
+		t.Fatalf("%d pictures, want 13:\n%s", len(exts), abbreviate(doc))
 	}
-	full := 9072 * 635 // A4 with 2.5 cm margins, in EMU
+	full := 9072 * 635                   // A4 with 2.5 cm margins, in EMU
+	tall := (16838 - 2*1417 - 400) * 635 // its text height, less room for a caption
 	want := [][2]int{
 		{200 * 9525, 100 * 9525},
 		{full / 2, full / 4},
@@ -339,6 +347,9 @@ Inline ![small](img/a.png){height=1cm} picture.
 		{720000, 360000},          // height=1cm keeps the aspect ratio
 		{4 * 360000, 360000},      // the style's width and height (issue #147)
 		{110 * 12700, 55 * 12700}, // 10em of the 11 pt body text
+		{tall / 16, tall / 4},     // a percentage of the height is one of the text height (issue #149)
+		{tall / 4, tall},          // shrunk to fit the page's height
+		{tall / 4, tall},          // both given, shrunk to fit, keeping their ratio
 	}
 	for i, w := range want {
 		var cx, cy int
