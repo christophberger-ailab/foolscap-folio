@@ -3,6 +3,8 @@ package bookmaker
 import (
 	"regexp"
 	"strings"
+
+	"github.com/christophberger-ailab/foolscap-folio/internal/markdown"
 )
 
 // This file implements the Markdown-level surgery the bookmaker performs on
@@ -331,6 +333,15 @@ func (e titleEdit) empty() bool {
 	return e.ID == "" && e.Text == "" && len(e.Classes) == 0 && e.Prefix == ""
 }
 
+// prefixAttr is the attribute that tells the parser the heading's prefix
+// (markdown.PrefixAttr), none without one.
+func (e titleEdit) prefixAttr() []string {
+	if e.Prefix == "" {
+		return nil
+	}
+	return []string{markdown.PrefixAttr + `="` + strings.ReplaceAll(e.Prefix, `"`, `\"`) + `"`}
+}
+
 // renderHeading rebuilds a heading line at the given level and applies edit
 // to it. A heading that already declares an identifier keeps it; other
 // attributes are preserved and the new ones are merged in.
@@ -350,7 +361,7 @@ func renderHeading(h heading, level int, edit titleEdit) string {
 	if edit.Prefix != "" {
 		text = " " + edit.Prefix + strings.TrimLeft(text, " \t")
 	}
-	attrs = mergeAttrs(attrs, edit.ID, edit.Classes)
+	attrs = mergeAttrs(attrs, edit.ID, edit.Classes, edit.prefixAttr()...)
 
 	line := h.Indent + strings.Repeat("#", level) + text
 	switch {
@@ -383,7 +394,7 @@ func splitHeadingRest(rest string) (text, attrs string, spaced bool) {
 // attribute block, leaving the attributes that are already there alone. A
 // heading that declares its own identifier keeps it, because the source
 // page may be linking to it.
-func mergeAttrs(block, id string, classes []string) string {
+func mergeAttrs(block, id string, classes []string, extra ...string) string {
 	inner := ""
 	if block != "" {
 		inner = strings.TrimSpace(block[1 : len(block)-1])
@@ -402,6 +413,7 @@ func mergeAttrs(block, id string, classes []string) string {
 		}
 	}
 
+	parts = append(parts, extra...)
 	if len(parts) == 0 {
 		return block
 	}

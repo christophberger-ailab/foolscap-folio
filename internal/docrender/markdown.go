@@ -74,6 +74,11 @@ func (c *mdConverter) block(n ast.Node, indent int) ([]Block, error) {
 					rr[i].Caption = caption
 				}
 			}
+			for ch := n.FirstChild(); ch != nil; ch = ch.NextSibling() {
+				if img, ok := ch.(*ast.Image); ok {
+					b.ID = markdown.AttrsOf(img).ID // a cross-reference's target
+				}
+			}
 		}
 		b.Runs = rr
 	case *ast.Heading:

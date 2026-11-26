@@ -311,9 +311,9 @@ func TestFlattenPrefixes(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, want := range []string{
-		"# Teil 1: Erster Abschnitt {#bm-book-erster}",
-		"# Kapitel 1: Alpha-Seite {#bm-book-erster-alpha}",
-		"## Kapitel 2: Beta-Seite {#bm-book-erster-beta}",
+		`# Teil 1: Erster Abschnitt {#bm-book-erster folio-prefix="Teil 1: "}`,
+		`# Kapitel 1: Alpha-Seite {#bm-book-erster-alpha folio-prefix="Kapitel 1: "}`,
+		`## Kapitel 2: Beta-Seite {#bm-book-erster-beta folio-prefix="Kapitel 2: "}`,
 		"# Teil 2: Zweiter Abschnitt",
 		"# Teil 3: Nur Feuerwehr",
 		"## Kapitel 3: Feuerwehr-Detailseite",
@@ -324,6 +324,23 @@ func TestFlattenPrefixes(t *testing.T) {
 	}
 	if strings.Contains(res.Content, "Kapitel 1: Tiefe") || strings.Contains(res.Content, "Teil 1: Test Book") {
 		t.Errorf("a prefix went to a page that is neither section nor chapter:\n%s", res.Content)
+	}
+}
+
+// With page markers, each page's content starts with a div that names the
+// page, and its id if the front matter gives one.
+func TestFlattenPageMarkers(t *testing.T) {
+	root := loadTestTree(t)
+	res, err := Flatten(root, Options{ProjectRoot: testProject, PageMarkers: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "::: {.folio-page page=\"book/erster/alpha\"}\n:::\n\n::: explanation\n# Alpha-Seite"
+	if !strings.Contains(res.Content, want) {
+		t.Errorf("missing %q:\n%s", want, res.Content)
+	}
+	if res, _ := Flatten(loadTestTree(t), Options{ProjectRoot: testProject}); strings.Contains(res.Content, "folio-page") {
+		t.Errorf("page markers without the option")
 	}
 }
 

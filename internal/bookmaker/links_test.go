@@ -39,7 +39,7 @@ func TestLinkTargetsLookup(t *testing.T) {
 		{name: "relative sibling", dest: "../page/", baseDir: "book/deep/leaf", want: "#bm-book-deep-page", ok: true},
 		{name: "relative child", dest: "page/", baseDir: "book/deep", want: "#bm-book-deep-page", ok: true},
 
-		{name: "keeps an explicit fragment", dest: "/book/intro/#details", want: "#details", ok: true},
+		{name: "keeps an explicit fragment", dest: "/book/intro/#details", want: "#book/intro:details", ok: true},
 		{name: "ignores a query string", dest: "/book/intro/?x=1", want: "#bm-book-intro", ok: true},
 
 		{name: "outside the book", dest: "/other/page/"},

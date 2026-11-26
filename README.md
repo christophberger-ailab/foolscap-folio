@@ -394,7 +394,29 @@ In the DOCX the headings of a section's intro and of the preliminaries use their
 
 With `section_prefix: true` in a format, each section title gets "Part 1: " in front of it, and with `chapter_prefix: true` each chapter title gets "Chapter 1: ". Sections and chapters are each numbered continuously through the book. The words come from the `strings` map in the settings file (`config.cue`), per language (the `lang` of folio.yml), under the keys `section_prefix` and `chapter_prefix`. It ships with `en` (Part, Chapter) and `de` (Teil, Kapitel). A language that is missing falls back to its primary language, then to folio's built-in strings, then to English, as for callout titles.
 
-With `numbered_headings: true` in a format, a document numbers its headings: the chapters through the book (as `chapter_prefix` counts them) as 1, 2, 3, and the headings of each chapter below it as 1.1, 1.1.1 and so on. A book without chapters numbers its sections the same way. The preliminaries, and in a book with chapters the sections and their intros, are not numbered, nor is a heading with the class `unnumbered`, as in `## Notes {.unnumbered}` or `## Notes {-}`; such a heading does not count either. A chapter title that `chapter_prefix` numbers gets no second number ("Chapter 1: Pages", then "1.1 Front matter"). The contents show the numbers. A website ignores the setting.
+With `numbered_headings: true` in a format, a document numbers its headings: the chapters through the book (as `chapter_prefix` counts them) as 1, 2, 3, and the headings of each chapter below it as 1.1, 1.1.1 and so on. A book without chapters numbers its sections the same way. The preliminaries, and in a book with chapters the sections and their intros, are not numbered, nor is a heading with the class `unnumbered`, as in `## Notes {.unnumbered}` or `## Notes {-}`; such a heading does not count either. A chapter title that `chapter_prefix` numbers gets no second number ("Chapter 1: Pages", then "1.1 Front matter"). The contents show the numbers. A website with the setting numbers each topic's pages as the topic's book does, so the website and the document show the same numbers.
+
+With `numbered_figures: true` in a format, the captions of the figures (an image with alt text alone in its paragraph) start with "Figure 1: ", "Figure 2: " and so on, through a document or through a website's topic. The word comes from the `strings` map of `config.cue` under the key `figure_prefix`, shipped with `en` (Figure) and `de` (Abbildung), with the same fallbacks as the prefixes.
+
+### Cross-references
+
+A cross-reference is a link to a heading or a figure, written as a Markdown link whose destination is the target's key:
+
+| You write | It shows |
+|---|---|
+| `See [this section](#installing).` | See this section, linked |
+| `See [](#installing).` | See 2.3, Installing: number and name, linked |
+| `See [](#installing){.name}.` | See Installing |
+| `See [](#installing){.number}.` | See 2.3 |
+
+- **Headings.** A heading's key is the identifier it declares, `## Installing {#install}`, else its text's slug: `## Installing it` is `#installing-it`. A page's title is addressed by its text too.
+- **Figures.** An image with alt text alone in its paragraph is a figure; its key is its identifier, `![Map](map.png){#the-map}`, else its alt text's slug, `#map`. An image with an identifier is a target as well, even without alt text, but then a reference to it needs a text of its own. A figure whose key a heading of the page has already is no target, with a warning; the heading wins. Its name is the alt text, its number "Figure 3" with `numbered_figures`.
+- **Numbers.** Without numbering, or for a heading that is not numbered, a reference shows the name alone, and `{.number}` falls back to the name with a warning. A chapter or section that `chapter_prefix` or `section_prefix` numbers has the prefix as its number: "Chapter 3".
+- **Pages.** Keys are unique per page: a second `## Overview` on the same page is `#overview-2`. A reference prefers its own page's target; one that several other pages have is ambiguous, links to the first, and is warned about. To name the page, write `#<page>:<key>`, where `<page>` is the `id:` of the page's front matter, as in `[](#install:overview)` for a page with `id: install`, or its path in the project, `[](#guide/install:overview)`, which breaks when the page moves.
+- **Outputs.** A website links across its pages. A DOCX or PDF covers one topic for one audience, so a reference to a target in another topic, or in content the audience does not see, shows the target's name (or the link's text) without a link, with a warning. A reference to nothing shows `??key` (or keeps its text) and is warned about too. A link to an anchor that is not a target, such as a span `[here]{#spot}` or an HTML `id`, is a link as before.
+- **Lint.** `folio lint` reports the references to nothing, the ambiguous ones, and those that name a page by its path.
+
+A link from one page to a heading on another, `[setup](/guide/install.md#overview)`, links in a document to that page's heading even when other pages have one alike.
 
 In the folio web tree, the root `index.md` is the home page. It is listed first, without a number, and it is the only page that needs no `order:`. Topic pages are not numbered. Sections are numbered 1, 2, … within each topic, and chapters 1.1, 1.2, and so on deeper down. A page whose headings would render as h7 or deeper in print at its place in the tree gets a light grey row with a tooltip, and the pages above it are greyed as well.
 

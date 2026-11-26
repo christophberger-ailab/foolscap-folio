@@ -50,6 +50,11 @@ type Options struct {
 	// to review on it, as its front matter says (spec-render.yaml DRAFT).
 	Draft bool
 
+	// PageMarkers puts an empty div before each page's content that names
+	// the page (markdown.PageClass), so that cross-references can tell
+	// the pages of the book apart.
+	PageMarkers bool
+
 	// site renders a page for a website, which keeps its headings as
 	// written. PageMarkdown sets it.
 	site bool
@@ -135,6 +140,9 @@ func renderNode(n *Node, parentAudience string, targets linkTargets, opts Option
 	slideBlocks := make([]string, 0, len(n.Children)+1)
 
 	page, pageSlides := renderPage(n, targets, opts, res)
+	if page != "" && opts.PageMarkers {
+		page = pageMarker(n) + "\n\n" + page
+	}
 	if page != "" && n.Depth == 1 {
 		page = wrapInDiv(page, SectionClass)
 	}
@@ -178,6 +186,17 @@ func renderNode(n *Node, parentAudience string, targets linkTargets, opts Option
 		}
 	}
 	return book, slides
+}
+
+// pageMarker is the div that says where n's page starts.
+func pageMarker(n *Node) string {
+	attrs := fmt.Sprintf("page=%q", n.Rel)
+	if n.Page != nil {
+		if id := n.Page.PageID(); id != "" {
+			attrs += fmt.Sprintf(" pageid=%q", id)
+		}
+	}
+	return "::: {." + markdown.PageClass + " " + attrs + "}\n:::"
 }
 
 // renderPage produces the flattened Markdown for a single node's own page:
@@ -234,7 +253,7 @@ func renderPage(n *Node, targets linkTargets, opts Options, res *Result) (page, 
 
 	if base == 0 || !echoesTitle(headings, base, declared) {
 		head := strings.Repeat("#", level) + " " + edit.Prefix + n.Title() +
-			" " + mergeAttrs("", n.Anchor, edit.Classes)
+			" " + mergeAttrs("", n.Anchor, edit.Classes, edit.prefixAttr()...)
 		head = strings.TrimRight(below(head, banner), "\n")
 		if base == 0 {
 			if len(lines) == 0 {

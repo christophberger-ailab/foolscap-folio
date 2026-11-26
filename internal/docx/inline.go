@@ -126,6 +126,13 @@ func (w *writer) inline(buf *bytes.Buffer, n ast.Node, rp runProps, c ctx) {
 		label.link = true
 		w.hyperlink(buf, dest, w.run(label, string(n.Label(w.src))), c, rp)
 	case *ast.Image:
+		if id := markdown.AttrsOf(n).ID; id != "" {
+			buf.WriteString(w.bookmarkStart(id))
+			bm := w.bmID
+			w.image(buf, n, rp, c)
+			fmt.Fprintf(buf, `<w:bookmarkEnd w:id="%d"/>`, bm)
+			return
+		}
 		w.image(buf, n, rp, c)
 	case *ast.RawHTML:
 		var b strings.Builder

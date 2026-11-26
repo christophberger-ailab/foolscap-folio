@@ -59,8 +59,88 @@ func NumberHeadings(d *Document, sectionPrefixed, chapterPrefixed bool) {
 		for i, c := range count[:level] {
 			num[i] = fmt.Sprint(c)
 		}
-		x.h.InsertBefore(x.h, x.h.FirstChild(), ast.NewString([]byte(strings.Join(num, ".")+" ")))
+		SetHeadingNumber(x.h, strings.Join(num, "."))
 	}
+}
+
+var numberKey = []byte("folio-number")
+
+// SetHeadingNumber puts num, as "1.2", before a heading's text.
+func SetHeadingNumber(h *ast.Heading, num string) {
+	h.InsertBefore(h, h.FirstChild(), ast.NewString([]byte(num+" ")))
+	h.SetAttribute(numberKey, num)
+}
+
+// HeadingNumber is the number SetHeadingNumber put before a heading, or
+// the prefix that numbers a section's or chapter's title ("Chapter 3"),
+// "" for neither.
+func HeadingNumber(h *ast.Heading) string {
+	if p, ok := AttrsOf(h).Get(PrefixAttr); ok {
+		return strings.TrimRight(strings.TrimSpace(p), ":")
+	}
+	if v, ok := h.Attribute(numberKey); ok {
+		return v.(string)
+	}
+	return ""
+}
+
+// HeadingName is a heading's text without its number and prefix.
+func HeadingName(h *ast.Heading, src []byte) string {
+	s := strings.TrimSpace(PlainText(h, src))
+	if v, ok := h.Attribute(numberKey); ok {
+		s = strings.TrimPrefix(s, v.(string)+" ")
+	}
+	if p, ok := AttrsOf(h).Get(PrefixAttr); ok {
+		s = strings.TrimPrefix(s, p)
+	}
+	return strings.TrimSpace(s)
+}
+
+// PrefixAttr is the heading attribute that holds the prefix the
+// flattener put before a section's or chapter's title, "Chapter 3: ".
+const PrefixAttr = "folio-prefix"
+
+// NumberFigures labels the figures of a document "<label> 1", "<label> 2"
+// and so on through the document (see FigureLabel); the caption shows the
+// label before the alt text.
+func NumberFigures(d *Document, label string) {
+	for i, img := range Figures(d) {
+		SetFigureLabel(img, fmt.Sprintf("%s %d", label, i+1))
+	}
+}
+
+// Figures lists the images of a document that have a caption, in document
+// order, leaving out those in table cells and footnotes, which show none.
+func Figures(d *Document) []*ast.Image {
+	var out []*ast.Image
+	_ = ast.Walk(d.Root, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if !entering {
+			return ast.WalkContinue, nil
+		}
+		switch n.Kind().String() {
+		case "TableCell", "Footnote":
+			return ast.WalkSkipChildren, nil
+		}
+		if _, ok := FigureCaption(n, d.Source); ok {
+			out = append(out, figureImage(n, d.Source))
+			return ast.WalkSkipChildren, nil
+		}
+		return ast.WalkContinue, nil
+	})
+	return out
+}
+
+var figureKey = []byte("folio-figure")
+
+// SetFigureLabel gives a figure's image its label, as "Figure 3".
+func SetFigureLabel(img *ast.Image, label string) { img.SetAttribute(figureKey, label) }
+
+// FigureLabel is the label SetFigureLabel gave an image, "" for none.
+func FigureLabel(img ast.Node) string {
+	if v, ok := img.Attribute(figureKey); ok {
+		return v.(string)
+	}
+	return ""
 }
 
 // TOCMarker returns the div that marks where a book's contents go, or nil.

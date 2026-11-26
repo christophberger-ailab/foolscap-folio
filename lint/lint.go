@@ -16,6 +16,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/christophberger-ailab/foolscap-folio/internal/build"
 	"github.com/christophberger-ailab/foolscap-folio/internal/config"
 	"github.com/christophberger-ailab/foolscap-folio/internal/foliocore"
 	"github.com/christophberger-ailab/foolscap-folio/internal/project"
@@ -98,6 +99,8 @@ func Run(docPath, topicArg, audience string) error {
 		}
 	}
 
+	findings = append(findings, referenceFindings(docPath, files)...)
+
 	for _, f := range findings {
 		fmt.Fprintln(os.Stderr, f)
 	}
@@ -106,6 +109,54 @@ func Run(docPath, topicArg, audience string) error {
 	}
 	fmt.Printf("lint: %d file(s) checked, no findings\n", len(files))
 	return nil
+}
+
+var quotedRef = regexp.MustCompile(`"(#[^"]+)"`)
+
+// referenceFindings lists the cross-references of files that cannot be
+// linked (see build.CheckReferences), with the line of the reference
+// where it can be found. A project without a folio.yml that folio can read
+// has none.
+func referenceFindings(docPath string, files []string) []string {
+	cfg, err := config.Load(docPath)
+	if err != nil {
+		return nil
+	}
+	in := map[string]bool{}
+	for _, f := range files {
+		in[f] = true
+	}
+	var out []string
+	for _, p := range build.CheckReferences(cfg) {
+		if !in[p.File] {
+			continue
+		}
+		line := 0
+		if m := quotedRef.FindStringSubmatch(p.Message); m != nil {
+			line = lineOf(filepath.Join(docPath, filepath.FromSlash(p.File)), "("+m[1])
+		}
+		where := p.File
+		if line > 0 {
+			where = fmt.Sprintf("%s:%d", p.File, line)
+		}
+		out = append(out, fmt.Sprintf("%s: references: %s", where, p.Message))
+	}
+	return out
+}
+
+// lineOf is the number of the first line of a file that holds s, 0 for
+// none.
+func lineOf(file, s string) int {
+	data, err := os.ReadFile(file)
+	if err != nil {
+		return 0
+	}
+	for i, l := range strings.Split(string(data), "\n") {
+		if strings.Contains(l, s) {
+			return i + 1
+		}
+	}
+	return 0
 }
 
 // topicFiles returns the sorted list of doc-root-relative file paths that

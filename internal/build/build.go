@@ -21,6 +21,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/yuin/goldmark/ast"
@@ -224,6 +225,31 @@ func footerDoc(sel config.Selection, log Logf) *markdown.Document {
 	return doc
 }
 
+// ProjectTargets lists the headings and figures of every topic of the
+// project, all their content kept, for the references a render leaves
+// unlinked. A topic that cannot be read is left out.
+func ProjectTargets(cfg *config.Config) []markdown.Target {
+	var out []markdown.Target
+	for _, e := range cfg.Topics {
+		tree, err := loadTopic(cfg.Root, e.Value)
+		if err != nil {
+			continue
+		}
+		res, err := bookmaker.Flatten(tree, bookmaker.Options{ProjectRoot: cfg.Root, Title: e.Value.Title, PageMarkers: true})
+		if err != nil {
+			continue
+		}
+		text, err := Expander(config.Selection{Config: cfg, Topic: e.Value}, nil).Expand(res.Content)
+		if err != nil {
+			continue
+		}
+		doc := markdown.Parse([]byte(text))
+		markdown.AssignIDs(doc)
+		out = append(out, markdown.Targets(doc, "", "", nil)...)
+	}
+	return out
+}
+
 // placeholderCover writes the project's placeholder as a PNG to a
 // temporary file, for a cover that is not there. The caller removes it.
 func placeholderCover(root string) (string, error) {
@@ -254,6 +280,15 @@ func Document(sel config.Selection, log Logf) (*markdown.Document, Book, error) 
 	if f := sel.Format; f.NumberedHeadings {
 		markdown.NumberHeadings(doc, f.SectionPrefix, f.ChapterPrefix)
 	}
+	if l := sel.FigureLabel(); l != "" {
+		markdown.NumberFigures(doc, l)
+	}
+	markdown.Resolver{
+		Local: markdown.NewIndex(markdown.Targets(doc, "", "", warn(log))),
+		All:   func() markdown.Index { return markdown.NewIndex(ProjectTargets(sel.Config)) },
+		Href:  func(t markdown.Target) string { return "#" + t.ID },
+		Warn:  warn(log),
+	}.Resolve(doc)
 	vars := variables(sel, log, nil)
 	for _, f := range []struct {
 		name string
@@ -312,6 +347,7 @@ func Flatten(sel config.Selection, log Logf) (string, Book, error) {
 		SectionPrefix: section,
 		ChapterPrefix: chapter,
 		Draft:         sel.Draft,
+		PageMarkers:   true,
 	})
 	if err != nil {
 		return "", Book{}, err
@@ -459,6 +495,10 @@ func renderSite(sel config.Selection, dir string, dryRun bool, log Logf) error {
 		Expand:        exp.Expand,
 		Draft:         sel.Draft,
 		Log:           log,
+
+		NumberedHeadings: sel.Format.NumberedHeadings,
+		FigureLabel:      sel.FigureLabel(),
+		AllTargets:       sync.OnceValue(func() markdown.Index { return markdown.NewIndex(ProjectTargets(sel.Config)) }),
 	})
 	if err != nil {
 		return err
@@ -496,4 +536,67 @@ func rel(root, p string) string {
 		return filepath.ToSlash(r)
 	}
 	return p
+}
+
+// RefProblem is a cross-reference that a render could not link: its
+// page's source file, project-relative, and what is wrong.
+type RefProblem struct{ File, Message string }
+
+// CheckReferences resolves the cross-references of every page of the
+// project's topics against the headings and figures of the whole project,
+// all content kept, and reports those that name nothing, are ambiguous,
+// or name their page by its path rather than its `id:`.
+func CheckReferences(cfg *config.Config) []RefProblem {
+	type page struct {
+		file string
+		doc  *markdown.Document
+		key  string
+	}
+	var pages []page
+	var all []markdown.Target
+	for _, e := range cfg.Topics {
+		tree, err := loadTopic(cfg.Root, e.Value)
+		if err != nil {
+			continue
+		}
+		bookmaker.Pages(tree, e.Value.Title)
+		exp := Expander(config.Selection{Config: cfg, Topic: e.Value}, nil)
+		tree.Walk(func(n *bookmaker.Node) {
+			if n.Page == nil {
+				return
+			}
+			md, _ := bookmaker.PageMarkdown(n, "", bookmaker.Options{ProjectRoot: cfg.Root})
+			if s, err := exp.Expand(md); err == nil {
+				md = s
+			}
+			doc := markdown.Parse([]byte(md))
+			markdown.AssignIDs(doc)
+			all = append(all, markdown.Targets(doc, n.Rel, n.Page.PageID(), nil)...)
+			pages = append(pages, page{n.Page.Rel, doc, n.Rel})
+		})
+	}
+	idx := markdown.NewIndex(all)
+	ids := map[string]bool{}
+	for _, t := range all {
+		if t.PageID != "" {
+			ids[t.PageID] = true
+		}
+	}
+	var out []RefProblem
+	for _, p := range pages {
+		report := func(format string, args ...any) {
+			out = append(out, RefProblem{p.file, fmt.Sprintf(format, args...)})
+		}
+		_ = ast.Walk(p.doc.Root, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+			if l, ok := n.(*ast.Link); ok && entering {
+				if q, _, ok := strings.Cut(string(l.Destination), ":"); ok && strings.HasPrefix(q, "#") && strings.Contains(q, "/") && !ids[q[1:]] {
+					report("reference %q names its page by its path, which changes when the page moves; give the page an `id:` in its front matter and use that", string(l.Destination))
+				}
+			}
+			return ast.WalkContinue, nil
+		})
+		markdown.Resolver{Page: p.key, Local: idx, Warn: report, Unnumbered: true,
+			Href: func(t markdown.Target) string { return "#" + t.ID }}.Resolve(p.doc)
+	}
+	return out
 }

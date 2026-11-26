@@ -167,8 +167,11 @@ type Format struct {
 	SectionPrefix bool `yaml:"section_prefix"`
 	ChapterPrefix bool `yaml:"chapter_prefix"`
 	// NumberedHeadings numbers a document's chapters and the headings
-	// below them: "1.2 Title".
+	// below them: "1.2 Title". A website numbers each topic as its book.
 	NumberedHeadings bool `yaml:"numbered_headings"`
+	// NumberedFigures numbers the figures, "Figure 3: Caption", through
+	// a document or a website's topic.
+	NumberedFigures bool `yaml:"numbered_figures"`
 	// Template is a reference DOCX whose styles, page setup, headers and
 	// footers the DOCX output uses.
 	Template string `yaml:"template"`
@@ -612,8 +615,17 @@ func (s Selection) Cover() (string, error) {
 // key, as folio ships them. English is the last resort for every
 // language.
 var DefaultStrings = map[string]map[string]string{
-	"en": {"section_prefix": "Part", "chapter_prefix": "Chapter"},
-	"de": {"section_prefix": "Teil", "chapter_prefix": "Kapitel"},
+	"en": {"section_prefix": "Part", "chapter_prefix": "Chapter", "figure_prefix": "Figure"},
+	"de": {"section_prefix": "Teil", "chapter_prefix": "Kapitel", "figure_prefix": "Abbildung"},
+}
+
+// FigureLabel returns the word before a figure's number, "Figure", ""
+// unless the format numbers its figures.
+func (s Selection) FigureLabel() string {
+	if !s.Format.NumberedFigures {
+		return ""
+	}
+	return Localize(s.Config.Strings, DefaultStrings, s.Config.Lang, "figure_prefix")
 }
 
 // Footer returns the selection's page footer, its placeholders not
