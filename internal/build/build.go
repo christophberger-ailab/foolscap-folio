@@ -224,6 +224,31 @@ func footerDoc(sel config.Selection, log Logf) *markdown.Document {
 	return doc
 }
 
+// ProjectTargets lists the headings and figures of every topic of the
+// project, all their content kept, for the references a render leaves
+// unlinked. A topic that cannot be read is left out.
+func ProjectTargets(cfg *config.Config) []markdown.Target {
+	var out []markdown.Target
+	for _, e := range cfg.Topics {
+		tree, err := loadTopic(cfg.Root, e.Value)
+		if err != nil {
+			continue
+		}
+		res, err := bookmaker.Flatten(tree, bookmaker.Options{ProjectRoot: cfg.Root, Title: e.Value.Title, PageMarkers: true})
+		if err != nil {
+			continue
+		}
+		text, err := Expander(config.Selection{Config: cfg, Topic: e.Value}, nil).Expand(res.Content)
+		if err != nil {
+			continue
+		}
+		doc := markdown.Parse([]byte(text))
+		markdown.AssignIDs(doc)
+		out = append(out, markdown.Targets(doc, "", "", nil)...)
+	}
+	return out
+}
+
 // placeholderCover writes the project's placeholder as a PNG to a
 // temporary file, for a cover that is not there. The caller removes it.
 func placeholderCover(root string) (string, error) {
@@ -254,6 +279,15 @@ func Document(sel config.Selection, log Logf) (*markdown.Document, Book, error) 
 	if f := sel.Format; f.NumberedHeadings {
 		markdown.NumberHeadings(doc, f.SectionPrefix, f.ChapterPrefix)
 	}
+	if l := sel.FigureLabel(); l != "" {
+		markdown.NumberFigures(doc, l)
+	}
+	markdown.Resolver{
+		Local: markdown.NewIndex(markdown.Targets(doc, "", "", warn(log))),
+		All:   func() markdown.Index { return markdown.NewIndex(ProjectTargets(sel.Config)) },
+		Href:  func(t markdown.Target) string { return "#" + t.ID },
+		Warn:  warn(log),
+	}.Resolve(doc)
 	vars := variables(sel, log, nil)
 	for _, f := range []struct {
 		name string
@@ -312,6 +346,7 @@ func Flatten(sel config.Selection, log Logf) (string, Book, error) {
 		SectionPrefix: section,
 		ChapterPrefix: chapter,
 		Draft:         sel.Draft,
+		PageMarkers:   true,
 	})
 	if err != nil {
 		return "", Book{}, err
@@ -459,6 +494,10 @@ func renderSite(sel config.Selection, dir string, dryRun bool, log Logf) error {
 		Expand:        exp.Expand,
 		Draft:         sel.Draft,
 		Log:           log,
+
+		NumberedHeadings: sel.Format.NumberedHeadings,
+		FigureLabel:      sel.FigureLabel(),
+		AllTargets:       func() markdown.Index { return markdown.NewIndex(ProjectTargets(sel.Config)) },
 	})
 	if err != nil {
 		return err

@@ -400,3 +400,76 @@ func TestDocumentNumbersHeadings(t *testing.T) {
 		}
 	}
 }
+
+// A document resolves its cross-references: across its pages, to a page's
+// heading by the page's id, to numbered figures, and to the headings of
+// another topic as plain text, with warnings (issue: cross-references).
+func TestDocumentResolvesReferences(t *testing.T) {
+	root := writeProject(t, map[string]string{
+		"folio.yml": "formats:\n  handout: {type: docx, numbered_headings: true, numbered_figures: true}\n" +
+			"topics:\n  book: {}\n  other: {}\n",
+		"book/index.md":         "# Book\n",
+		"book/part/index.md":    "---\norder: 1\n---\n# Basics\n",
+		"book/part/chapter.md":  "---\norder: 1\n---\n# Start\n\n## Overview\n\n![The Picture](pic.png)\n\nSee [](#next:overview), [](#the-picture) and [](#run){.number}.\n",
+		"book/part/chapter2.md": "---\norder: 2\nid: next\n---\n# Next\n\n## Overview\n\n## Run\n\nBack to [](#start), [there](/book/part/chapter.md#overview), [](#elsewhere) and [](#nowhere).\n",
+		"other/index.md":        "# Other\n\n## Elsewhere\n",
+	})
+	cfg, err := config.Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sels, err := cfg.Expand(config.Request{Topics: []string{"book"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var log []string
+	doc, _, err := Document(sels[0], func(f string, a ...any) { log = append(log, fmt.Sprintf(f, a...)) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	html, _ := markdown.HTML(doc)
+	for _, w := range []string{
+		`<figcaption>Figure 1: The Picture</figcaption>`,
+		`See <a href="#overview-2">2.1, Overview</a>, <a href="#the-picture">Figure 1, The Picture</a> and <a href="#run">2.2</a>.`,
+		`Back to <a href="#bm-book-part-chapter">1, Start</a>, <a href="#overview">there</a>, Elsewhere and ??nowhere.`,
+	} {
+		if !strings.Contains(html, w) {
+			t.Errorf("missing %q:\n%s", w, html)
+		}
+	}
+	warnings := strings.Join(log, "\n")
+	for _, w := range []string{`"#elsewhere"`, `"#nowhere"`} {
+		if !strings.Contains(warnings, w) {
+			t.Errorf("no warning about %s:\n%s", w, warnings)
+		}
+	}
+}
+
+// A figure that a reference points to is a bookmark in the DOCX, and the
+// PDF renders with the link to it.
+func TestDocumentLinksFigures(t *testing.T) {
+	root := writeProject(t, map[string]string{
+		"folio.yml":     "formats:\n  handout: {type: [docx, pdf], numbered_figures: true}\n",
+		"book/index.md": "# Book\n\n## Pictures\n\n![The Picture](pic.png)\n\nSee [](#the-picture).\n",
+	})
+	cfg, err := config.Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sels, err := cfg.Expand(config.Request{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := Run(Options{Selections: sels}, nil); err != nil {
+		t.Fatal(err)
+	}
+	body := docxPart(t, filepath.Join(root, "_output", "handout", "book.docx"), "word/document.xml")
+	for _, w := range []string{`w:name="the-picture"`, `<w:hyperlink w:anchor="the-picture"`, ">Figure 1, The Picture<", ">Figure 1: The Picture<"} {
+		if !strings.Contains(body, w) {
+			t.Errorf("missing %s in the DOCX", w)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(root, "_output", "handout", "book.pdf")); err != nil {
+		t.Error(err)
+	}
+}

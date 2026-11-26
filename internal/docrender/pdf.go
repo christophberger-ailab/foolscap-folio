@@ -341,6 +341,10 @@ func (w *pdfWriter) body(bb []Block) error {
 		if b.Code {
 			size = 9
 		}
+		if b.Level == 0 && b.ID != "" {
+			p.SetXY(left, w.y)
+			p.SetAnchor(b.ID)
+		}
 		if err := w.paragraph(b.Runs, size, left, w.right-left); err != nil {
 			return err
 		}

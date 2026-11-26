@@ -102,6 +102,9 @@ type Options struct {
 	Demote int
 	// Draft makes todos and comments visible (see Todo and Comment).
 	Draft bool
+	// NoDiagrams leaves Mermaid diagrams as code blocks, for a document
+	// read only for its headings and figures.
+	NoDiagrams bool
 	// Warn, if set, receives the problems that do not stop the render,
 	// such as a diagram that cannot be drawn.
 	Warn func(format string, args ...any)
@@ -123,7 +126,9 @@ func (d *Document) Prepare(o Options) {
 	if o.Draft {
 		drafts(d)
 	}
-	drawDiagrams(d, o.Warn)
+	if !o.NoDiagrams {
+		drawDiagrams(d, o.Warn)
+	}
 	Demote(d, o.Demote)
 	settleCallouts(d, CalloutTitles(o.CalloutTitles, o.Lang))
 	AssignIDs(d)
@@ -174,6 +179,7 @@ func AssignIDs(d *Document) {
 		id := a.ID
 		if id == "" {
 			id = Slug(PlainText(h, d.Source))
+			h.SetAttribute(autoIDKey, true)
 		}
 		if k, dup := seen[id]; dup {
 			seen[id] = k + 1
@@ -201,6 +207,17 @@ func Demote(d *Document, delta int) {
 		}
 		return ast.WalkContinue, nil
 	})
+}
+
+// autoIDKey marks a heading whose identifier AssignIDs made from its text.
+var autoIDKey = []byte("folio-auto-id")
+
+// autoID reports whether a heading's identifier is one AssignIDs made
+// from its text, or one the flattener generated for a page's title, rather
+// than one its author wrote.
+func autoID(h *ast.Heading) bool {
+	_, ok := h.Attribute(autoIDKey)
+	return ok || strings.HasPrefix(HeadingID(h), AnchorPrefix)
 }
 
 // HeadingID is the identifier AssignIDs gave a heading.

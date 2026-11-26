@@ -89,6 +89,15 @@ func (fm FrontMatter) value(key string) any {
 
 // IsDraft reports whether the page says `draft: true`, which keeps it out
 // of a render other than a draft.
+// PageID is the page's `id:`, the name references give the page
+// (`#install:overview`); "" for none.
+func (fm FrontMatter) PageID() string {
+	if s, ok := fm.Meta["id"].(string); ok {
+		return strings.TrimSpace(s)
+	}
+	return ""
+}
+
 func (fm FrontMatter) IsDraft() bool { return fm.Meta["draft"] == true }
 
 // IsNew reports whether the page is new: `new: true`, or `status: new` as

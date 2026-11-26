@@ -10,8 +10,11 @@ import (
 var refDefinition = regexp.MustCompile(`^ {0,3}\[([^\]]+)\]:[ \t]+(\S+)(.*)$`)
 
 // linkTargets maps the website URL forms of every page in the book to the
-// anchor that page's heading carries in the flattened document.
-type linkTargets map[string]string
+// page: the anchor its heading carries in the flattened document, and its
+// path.
+type linkTargets map[string]linkTarget
+
+type linkTarget struct{ anchor, rel string }
 
 // buildLinkTargets registers every URL spelling under which a node of the
 // tree can be referenced from another page.
@@ -21,7 +24,7 @@ type linkTargets map[string]string
 func buildLinkTargets(root *Node) linkTargets {
 	targets := linkTargets{}
 	root.Walk(func(n *Node) {
-		id := n.Anchor
+		id := linkTarget{n.Anchor, n.Rel}
 		base := "/" + n.Rel
 		if n.IsDir() {
 			for _, form := range []string{base, base + "/", base + "/index.qmd", base + "/index.html", base + "/index.md"} {
@@ -78,12 +81,12 @@ func (t linkTargets) lookup(dest, baseDir string) (string, bool) {
 	}
 
 	// A link that carries its own fragment addresses a heading inside the
-	// target page. That heading keeps its own identifier, so once both
-	// pages live in the same document the fragment alone is the answer.
+	// target page: the cross-reference to it on that page (see
+	// markdown.Resolver), as headings of other pages may have the same.
 	if hasFragment && fragment != "" {
-		return "#" + fragment, true
+		return "#" + id.rel + ":" + fragment, true
 	}
-	return "#" + id, true
+	return "#" + id.anchor, true
 }
 
 // rewriteLinks converts every in-book link in the given lines into an anchor

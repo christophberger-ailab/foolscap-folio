@@ -66,6 +66,14 @@ type Options struct {
 	// Draft shows todos, comments, reviews and new pages, and keeps the
 	// pages marked `draft: true`, which are otherwise left out.
 	Draft bool
+	// NumberedHeadings numbers the headings of each topic as its book
+	// numbers them (see markdown.NumberHeadings); FigureLabel, if set,
+	// numbers its figures, "Figure 3", through the topic.
+	NumberedHeadings bool
+	FigureLabel      string
+	// AllTargets returns the headings and figures of the whole project,
+	// for references to pages the site leaves out; may be nil.
+	AllTargets func() markdown.Index
 	// Log receives warnings and progress; may be nil.
 	Log func(format string, args ...any)
 }
@@ -109,6 +117,10 @@ type pageInfo struct {
 	home     bool
 	// landing, when set, is generated content for a page without source.
 	landing template.HTML
+	// doc is the page's prepared document, targets its headings and
+	// figures.
+	doc     *markdown.Document
+	targets []markdown.Target
 }
 
 type topicInfo struct {
@@ -136,6 +148,7 @@ type builder struct {
 	outAbs   string
 	rootAbs  string
 	search   []searchDoc
+	local    markdown.Index // the targets of the site's pages
 }
 
 func (b *builder) logf(format string, args ...any) {
@@ -180,6 +193,19 @@ func Build(o Options) error {
 	if err := b.load(); err != nil {
 		return err
 	}
+	for _, p := range b.allPages() {
+		if err := b.preparePage(p); err != nil {
+			return err
+		}
+	}
+	if err := b.number(); err != nil {
+		return err
+	}
+	var local []markdown.Target
+	for _, p := range b.allPages() {
+		local = append(local, p.targets...)
+	}
+	b.local = markdown.NewIndex(local)
 	for _, p := range b.allPages() {
 		if err := b.renderPage(p); err != nil {
 			return err
@@ -305,28 +331,56 @@ type tocItem struct {
 	Level    int // 1 or 2
 }
 
+// key is the page's key in b.pages, which its targets name it by.
+func (p *pageInfo) key() string {
+	if p.home {
+		return ""
+	}
+	return p.node.Rel
+}
+
+// preparePage reads, parses and prepares a page's document and lists its
+// headings and figures.
+func (b *builder) preparePage(p *pageInfo) (err error) {
+	if p.landing != "" {
+		return nil
+	}
+	md, warns := bookmaker.PageMarkdown(p.node, p.audience,
+		bookmaker.Options{ProjectRoot: b.root, WrapAudience: true, Draft: b.o.Draft})
+	for _, w := range warns {
+		b.logf("warning: %s", w)
+	}
+	if b.o.Expand != nil {
+		if md, err = b.o.Expand(md); err != nil {
+			return fmt.Errorf("site: %s: %w", p.node.Page.Rel, err)
+		}
+	}
+	warn := func(format string, args ...any) {
+		b.logf("warning: %s: "+format, append([]any{p.node.Page.Rel}, args...)...)
+	}
+	p.doc = markdown.Parse([]byte(md))
+	p.doc.Prepare(markdown.Options{Keep: b.o.Keep, Formats: b.o.Formats, Lang: b.o.Lang, CalloutTitles: b.o.CalloutTitles, Draft: b.o.Draft, Warn: warn})
+	p.targets = markdown.Targets(p.doc, p.key(), p.node.Page.PageID(), warn)
+	return nil
+}
+
 func (b *builder) renderPage(p *pageInfo) (err error) {
 	var content template.HTML
 	var toc []tocItem
 	if p.landing != "" {
 		content = p.landing
 	} else {
-		md, warns := bookmaker.PageMarkdown(p.node, p.audience,
-			bookmaker.Options{ProjectRoot: b.root, WrapAudience: true, Draft: b.o.Draft})
-		for _, w := range warns {
-			b.logf("warning: %s", w)
-		}
-		if b.o.Expand != nil {
-			if md, err = b.o.Expand(md); err != nil {
-				return fmt.Errorf("site: %s: %w", p.node.Page.Rel, err)
-			}
-		}
-		doc := markdown.Parse([]byte(md))
-		doc.Prepare(markdown.Options{Keep: b.o.Keep, Formats: b.o.Formats, Lang: b.o.Lang, CalloutTitles: b.o.CalloutTitles, Draft: b.o.Draft,
-			Warn: func(format string, args ...any) {
-				b.logf("warning: %s: "+format, append([]any{p.node.Page.Rel}, args...)...)
-			}})
+		doc := p.doc
 		b.rewriteLinks(doc, p)
+		markdown.Resolver{Page: p.key(), Local: b.local, All: b.o.AllTargets,
+			Href: func(t markdown.Target) string {
+				if t.Page == p.key() {
+					return "#" + t.ID
+				}
+				return relURL(p.out, b.pages[t.Page].out) + "#" + t.ID
+			},
+			Warn: func(format string, args ...any) { b.logf("warning: "+format, args...) },
+		}.Resolve(doc)
 		b.expandSubpages(doc, p)
 		toc = tocOf(doc)
 		var s string
@@ -421,4 +475,72 @@ func (b *builder) footer(p *pageInfo) (template.HTML, error) {
 		s = strings.TrimSuffix(inner, "</p>")
 	}
 	return template.HTML(s), nil
+}
+
+// number numbers the headings and figures of every topic's pages as the
+// topic's book numbers them, when the options ask for it: the topic is
+// flattened and numbered as a document is, and each page takes the
+// numbers of its headings, by key, and of its figures, in order.
+func (b *builder) number() error {
+	if !b.o.NumberedHeadings && b.o.FigureLabel == "" {
+		return nil
+	}
+	for _, t := range b.topics {
+		res, err := bookmaker.Flatten(t.root, bookmaker.Options{ProjectRoot: b.root, Title: t.Title,
+			WrapAudience: true, PageMarkers: true, Draft: b.o.Draft})
+		if err != nil {
+			return fmt.Errorf("site: topic %q: %w", t.Name, err)
+		}
+		md := res.Content
+		if b.o.Expand != nil {
+			if md, err = b.o.Expand(md); err != nil {
+				return fmt.Errorf("site: topic %q: %w", t.Name, err)
+			}
+		}
+		book := markdown.Parse([]byte(md))
+		book.Prepare(markdown.Options{Keep: b.o.Keep, Formats: b.o.Formats, Lang: b.o.Lang, NoDiagrams: true})
+		if b.o.NumberedHeadings {
+			markdown.NumberHeadings(book, false, false)
+		}
+		if b.o.FigureLabel != "" {
+			markdown.NumberFigures(book, b.o.FigureLabel)
+		}
+		headings := map[[2]string]string{}
+		figures := map[string][]string{}
+		for _, x := range markdown.Targets(book, "", "", nil) {
+			switch {
+			case x.Number == "":
+			case x.Figure:
+				figures[x.Page] = append(figures[x.Page], x.Number)
+			default:
+				headings[[2]string{x.Page, x.Key}] = x.Number
+			}
+		}
+		for _, p := range t.pages {
+			if p.doc == nil {
+				continue
+			}
+			for i, x := range p.targets {
+				if h, ok := x.Node.(*ast.Heading); ok {
+					if num := headings[[2]string{p.key(), x.Key}]; num != "" {
+						markdown.SetHeadingNumber(h, num)
+						p.targets[i].Number = num
+					}
+				}
+			}
+			labels := figures[p.key()]
+			for i, img := range markdown.Figures(p.doc) {
+				if i >= len(labels) {
+					break
+				}
+				markdown.SetFigureLabel(img, labels[i])
+				for j := range p.targets {
+					if p.targets[j].Node == img {
+						p.targets[j].Number = labels[i]
+					}
+				}
+			}
+		}
+	}
+	return nil
 }
