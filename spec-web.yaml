@@ -239,6 +239,7 @@ constraints:
       10-2: Each entry can be staged or unstaged individually, and each list as a whole
       10-3: The panel commits the staged changes under a message the user types, and pushes the branch to its remote; a branch that tracks nothing yet is pushed with its upstream set
       10-3-1: The commit message is a field of several lines, so a message can have a subject, a blank line and a body; Enter starts a new line, and Ctrl+Enter (Cmd+Enter on a Mac) commits
+      10-3-2: The message typed stays in its field across every other operation of the panel -- staging, unstaging, pushing, syncing, refreshing -- and across a commit that failed; only a commit that went through clears it
       10-4: Committing is offered only while something is staged, and a commit without a message is refused before git is called, since git would otherwise open an editor there is no terminal for
       10-5: The panel names the branch, its upstream, and how far the two have drifted apart
       10-6: What git said is shown as it stands -- the summary of a commit, the transcript of a push, the reason a hook or a remote refused

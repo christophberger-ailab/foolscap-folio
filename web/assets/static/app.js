@@ -2210,6 +2210,24 @@ document.body.addEventListener('input', function (evt) {
   }
 });
 
+// The commit message is kept the same way: staging, unstaging, pushing,
+// syncing and refreshing all swap the field away, and a message typed
+// before them is still meant for the commit that follows.
+var gitMessage = '';
+
+// gitMessageAfter is the message the field holds once the request to path
+// has answered: a commit that went through has used it up, anything else
+// leaves it standing, a commit that failed included.
+function gitMessageAfter(message, path, failed) {
+  return path === '/git/commit' && !failed ? '' : message;
+}
+
+document.body.addEventListener('input', function (evt) {
+  if (evt.target.id === 'git-message') {
+    gitMessage = evt.target.value;
+  }
+});
+
 document.body.addEventListener('htmx:afterSwap', function (evt) {
   var target = evt.detail && evt.detail.target;
   if (target && target.id === 'git-body') {
@@ -2218,6 +2236,12 @@ document.body.addEventListener('htmx:afterSwap', function (evt) {
       field.value = gitFilter;
     }
     applyGitFilter();
+    var info = evt.detail.pathInfo;
+    gitMessage = gitMessageAfter(gitMessage, info && info.requestPath, !!target.querySelector(':scope > .error'));
+    var message = document.getElementById('git-message');
+    if (message) {
+      message.value = gitMessage;
+    }
   }
 });
 
