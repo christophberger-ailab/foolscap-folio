@@ -212,6 +212,8 @@ cosign verify-blob SHA256SUMS.txt \
 sha256sum --check --ignore-missing SHA256SUMS.txt
 ```
 
+Every release also carries a software bill of materials for each platform, `folio_<version>_<os>_<arch>.cdx.json`, in [CycloneDX](https://cyclonedx.org) JSON. It lists everything compiled into that binary: the Go modules (read from the binary itself, so only the ones linked in), the Rust crates of the embedded SVG renderer, resvg, and the embedded Fuse.js. The SBOMs are listed in `SHA256SUMS.txt`, so the commands above check them too, and any tool that reads CycloneDX takes them, such as [Grype](https://github.com/anchore/grype) (`grype sbom:folio_<version>_linux_amd64.cdx.json`) or Dependency-Track.
+
 Where releases come from and how often `folio web` looks is the `update` section of the settings file (below):
 
 ```cue

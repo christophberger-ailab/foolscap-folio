@@ -60,6 +60,24 @@ checksum:
   extra_files:
     - glob: ./installer/*.exe
 
+# A CycloneDX SBOM for every binary, folio_<tag>_<os>_<arch>.cdx.json, next
+# to its archive: the Go modules linked into it, the Rust crates of the
+# embedded resvg and the embedded Fuse.js (packaging/sbom/sbom.sh says how).
+# They are listed in SHA256SUMS.txt like every other file, so the signature
+# below covers them too. release.yml installs syft.
+sboms:
+  - id: folio
+    artifacts: binary
+    ids: [folio]
+    # GoReleaser runs the command in dist/.
+    cmd: ../packaging/sbom/sbom.sh
+    documents:
+      - "folio_{{ .Tag }}_{{ .Os }}_{{ .Arch }}.cdx.json"
+    args:
+      - $artifact
+      - $document
+      - "{{ .Tag }}"
+
 # Keyless: cosign gets a short-lived certificate from Sigstore that names
 # this workflow run (the job has id-token: write). SHA256SUMS.txt pins every
 # other file, so signing it signs the release.

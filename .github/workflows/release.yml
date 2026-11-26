@@ -149,7 +149,8 @@ jobs:
     secrets: inherit
 
   # GoReleaser builds the six targets, packages them (archives, deb, rpm,
-  # apk, Arch), adds the Windows setup program, writes and signs
+  # apk, Arch), writes an SBOM for each, adds the Windows setup program,
+  # writes and signs
   # SHA256SUMS.txt, publishes the release, pushes the Homebrew cask and Scoop
   # manifest and opens the winget pull request. .goreleaser.yaml has the
   # details, and the names folio upgrade depends on.
@@ -182,6 +183,12 @@ jobs:
       - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
         with:
           cosign-release: v3.1.4
+
+      # syft writes the SBOMs (packaging/sbom/sbom.sh). Like the scanners in
+      # vulncheck.yml it is built from a pinned version, checked against the
+      # Go checksum database; setup-go puts it on the PATH.
+      - name: Install syft
+        run: go install github.com/anchore/syft/cmd/syft@v1.57.2
 
       # A local tag only: the release GoReleaser creates makes the tag on
       # GitHub, pinned to the merged commit (target_commitish).
