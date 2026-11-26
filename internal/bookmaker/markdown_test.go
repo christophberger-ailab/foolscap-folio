@@ -101,6 +101,30 @@ func TestBalanceFences(t *testing.T) {
 			want: "## H\n::: a\n:::\n::: b\n:::",
 		},
 		{
+			// Issue #163: an HTML comment is read first; its fences are
+			// part of it, as Markdown reads them.
+			name: "fences in a comment are the comment's",
+			in:   "::: a\n<!--\n:::: {.callout-note}\ntext\n::::\n:::\n-->\n:::",
+			want: "::: a\n<!--\n:::: {.callout-note}\ntext\n::::\n:::\n-->\n:::",
+		},
+		{
+			name: "an unclosed div in a comment stays unclosed",
+			in:   "  <!-- ::: {.note}\nlater -->\ntext",
+			want: "  <!-- ::: {.note}\nlater -->\ntext",
+		},
+		{
+			name:   "a comment closed on its line is no block",
+			in:     "<!-- note -->\n\n::: a\ntext",
+			want:   "<!-- note -->\n\n::: a\ntext\n:::",
+			repair: fenceRepair{Divs: 1},
+		},
+		{
+			name:   "closes an unterminated comment",
+			in:     "::: a\ntext\n:::\n<!--\nnote",
+			want:   "::: a\ntext\n:::\n<!--\nnote\n-->",
+			repair: fenceRepair{Comment: true},
+		},
+		{
 			name: "a closing fence may stay glued to its content",
 			in:   "::: a\ntext\n:::",
 			want: "::: a\ntext\n:::",

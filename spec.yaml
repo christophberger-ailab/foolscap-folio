@@ -70,6 +70,9 @@ constraints:
       1: 'A class is a format class when a format lists it under `show`, and an audience class when an audience lists it under `show` or is named like it. Other classes are not conditional'
       2: 'A div or span with format classes is kept when the selected format shows one of them; one with audience classes is kept when the selected audience shows one of them; one with both kinds must pass both checks'
       3: 'A dropped div or span is removed with its content'
+      3-1: 'A paragraph, list item, list or quote that a dropped span leaves empty goes with it'
+      3-2: 'A span that holds a whole line, starting with a list item''s or a quote''s marker, `[- Only for POL]{.pol}`, is read before the list: its marker is the line''s, so the line is a list item of the span''s audience, and none at all where the span is dropped'
+      3-3: 'HTML comments are read before the divs and spans around them: a fence or a span inside a comment is the comment''s text, so a callout commented out neither closes the div the comment is in nor hides the rest of the page; a page that ends inside a comment has it closed, with a warning'
       4: '`.content-visible` and `.content-hidden` with `when-format` or `unless-format` compare against the format''s types and its name; conditions on profiles or metadata are not supported and the content is kept'
       5: 'A `::: slide` div and a `.notes` div are always dropped, since PPTX slide decks are not supported'
 

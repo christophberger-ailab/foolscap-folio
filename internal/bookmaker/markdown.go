@@ -91,16 +91,34 @@ func splitAttrTokens(s string) []string {
 }
 
 // codeTracker follows fenced-code-block state across a sequence of lines so
-// that callers can ignore Markdown constructs that appear inside code.
+// that callers can ignore Markdown constructs that appear inside code. An
+// HTML comment that starts a line and runs on over the next ones counts as
+// code: Markdown reads it before the divs and headings in it, as an HTML
+// block that ends with the line holding "-->" (issue #163).
 type codeTracker struct {
-	open   bool
-	marker byte
-	length int
+	open    bool
+	marker  byte
+	length  int
+	comment bool
 }
 
+// commentStart matches a line that opens an HTML block with a comment.
+var commentStart = regexp.MustCompile(`^ {0,3}<!--`)
+
 // step advances the tracker by one line and reports whether that line is
-// part of a fenced code block (including its delimiters).
+// part of a fenced code block (including its delimiters) or of a comment
+// over several lines.
 func (t *codeTracker) step(line string) bool {
+	if t.comment {
+		t.comment = !strings.Contains(line, "-->")
+		return true
+	}
+	if !t.open {
+		if loc := commentStart.FindStringIndex(line); loc != nil && !strings.Contains(line[loc[1]:], "-->") {
+			t.comment = true
+			return true
+		}
+	}
 	m := codeFence.FindStringSubmatch(line)
 	if m == nil {
 		return t.open
@@ -127,8 +145,9 @@ func (t *codeTracker) step(line string) bool {
 
 // fenceRepair records the corrections balanceFences had to make.
 type fenceRepair struct {
-	// Code is set when the page ended inside a fenced code block.
-	Code bool
+	// Code is set when the page ended inside a fenced code block, Comment
+	// inside an HTML comment.
+	Code, Comment bool
 	// Divs is the number of fenced divs left open by the page.
 	Divs int
 	// Stray is the number of closing div fences that had nothing to close.
@@ -139,7 +158,7 @@ type fenceRepair struct {
 }
 
 func (r fenceRepair) clean() bool {
-	return !r.Code && r.Divs == 0 && r.Stray == 0 && r.Glued == 0
+	return !r.Code && !r.Comment && r.Divs == 0 && r.Stray == 0 && r.Glued == 0
 }
 
 // balanceFences makes a page's fenced constructs self-contained.
@@ -202,6 +221,10 @@ func balanceFences(lines []string) ([]string, fenceRepair) {
 	if code.open {
 		repair.Code = true
 		out = append(out, strings.Repeat(string(code.marker), code.length))
+	}
+	if code.comment {
+		repair.Comment = true
+		out = append(out, "-->")
 	}
 	for ; depth > 0; depth-- {
 		repair.Divs++

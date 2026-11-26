@@ -373,6 +373,16 @@ Fire engines [(Feuerwehr only)]{.fw} arrive first.
 
 A render keeps a conditional div or span only if the selection shows it. Format classes and audience classes are checked separately, and a block that carries both kinds must pass both. Classes that no format or audience lists are ordinary styling classes and do not matter. A div that is not kept is removed with its content; one that is kept stays as a wrapper for its content.
 
+A list item for one audience is a span around the whole line, marker included; for any other audience the item is gone, not left empty:
+
+```markdown
+- Item 1
+[- Item 2 is only for POL]{.pol}
+- Item 3
+```
+
+An HTML comment hides what it holds, fences and spans too: commenting out a callout leaves the divs around it intact.
+
 Quarto's `.content-visible` and `.content-hidden` divs with `when-format` or `unless-format` also work; they compare against the format's types (`html`, `docx`, `pdf`) and its name. Conditions on profiles or metadata are not supported, and such content is kept.
 
 A `::: slide` div and a `.notes` div are always dropped. PPTX slide decks are not supported for now.

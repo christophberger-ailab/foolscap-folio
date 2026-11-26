@@ -1,6 +1,9 @@
 package markdown
 
 import (
+	"bytes"
+	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/yuin/goldmark/ast"
@@ -240,4 +243,52 @@ func makeSpan(parent ast.Node, o bracket, closeNode *ast.Text, closeOff, attrsEn
 	if closeNode.Segment.Len() == 0 && !closeNode.SoftLineBreak() && !closeNode.HardLineBreak() {
 		parent.RemoveChild(parent, closeNode)
 	}
+}
+
+// lineSpan matches a line that is all one span whose text starts with
+// what opens a block: a list item's marker or a quote's.
+var lineSpan = regexp.MustCompile(`^( {0,3})\[((?:[-*+]|\d{1,9}[.)])[ \t]+|>[ \t]?)(.*)\](\{[^{}]*\})[ \t]*$`)
+
+// blockSpans moves the marker of a block out of a span that holds the
+// whole line, outside fenced code: `[- Only for POL]{.pol}` becomes
+// `- [Only for POL]{.pol}`, so that the span is read before the list and
+// the item is the span's; Filter takes out the item with the span
+// (issue #163).
+func blockSpans(src []byte) []byte {
+	if !bytes.Contains(src, []byte("]{")) {
+		return src
+	}
+	lines := bytes.SplitAfter(src, []byte("\n"))
+	var code fenceTracker
+	for i, line := range lines {
+		if code.step(line) {
+			continue
+		}
+		body := bytes.TrimRight(line, "\r\n")
+		m := lineSpan.FindSubmatch(body)
+		if m == nil || !balanced(m[3]) {
+			continue
+		}
+		if _, ok := ParseAttrs(string(m[4])); !ok {
+			continue
+		}
+		lines[i] = slices.Concat(m[1], m[2], []byte("["), m[3], []byte("]"), m[4], line[len(body):])
+	}
+	return bytes.Join(lines, nil)
+}
+
+// balanced reports whether the brackets of s pair up.
+func balanced(s []byte) bool {
+	depth := 0
+	for _, c := range s {
+		switch c {
+		case '[':
+			depth++
+		case ']':
+			if depth--; depth < 0 {
+				return false
+			}
+		}
+	}
+	return depth == 0
 }

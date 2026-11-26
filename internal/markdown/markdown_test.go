@@ -41,6 +41,37 @@ func TestFenceInCodeDoesNotCloseDiv(t *testing.T) {
 	}
 }
 
+// Issue #163: an HTML comment is read before the divs around it, so a
+// fence in it, a whole callout even, does not close the div the comment
+// is in, which would leave the comment open and the rest of the page
+// unseen.
+func TestFenceInCommentDoesNotCloseDiv(t *testing.T) {
+	src := "::: {.pol}\nIn.\n\n<!--\n\n:::: {.callout-caution}\nWarn\n\n::::\n\nNote\n-->\n\nStill in.\n:::\n\nAfter\n"
+	got := render(t, src, Options{})
+	want := "<div class=\"pol\">\n<p>In.</p>\n<!--\n\n:::: {.callout-caution}\nWarn\n\n::::\n\nNote\n-->\n<p>Still in.</p>\n</div>\n<p>After</p>\n"
+	if got != want {
+		t.Errorf("got\n%s\nwant\n%s", got, want)
+	}
+}
+
+// Issue #163: a span that holds a whole line, its list marker included,
+// is read before the list, so that the item is the audience's: a list
+// item where the span is kept, and nothing where it is not.
+func TestSpanHoldsAListItem(t *testing.T) {
+	src := "- Item 1\n- Item 2\n[- Item 3 is only for POL]{.pol}\n- Item 4\n\n[> Only POL]{.pol}\n\n[Only POL]{.pol}\n\n```\n[- code]{.pol}\n```\n"
+	pol := render(t, src, Options{Keep: func(c []string) bool { return true }})
+	for _, w := range []string{"<li>Item 2</li>\n<li><span class=\"pol\">Item 3 is only for POL</span></li>\n<li>Item 4</li>", "<blockquote>\n<p><span class=\"pol\">Only POL</span></p>\n</blockquote>", "<code>[- code]{.pol}\n</code>"} {
+		if !strings.Contains(pol, w) {
+			t.Errorf("pol: missing %q in\n%s", w, pol)
+		}
+	}
+	std := render(t, src, Options{Keep: func(c []string) bool { return len(c) == 0 || c[0] != "pol" }})
+	want := "<ul>\n<li>Item 1</li>\n<li>Item 2</li>\n<li>Item 4</li>\n</ul>\n<pre><code>[- code]{.pol}\n</code></pre>\n"
+	if std != want {
+		t.Errorf("std: got\n%s\nwant\n%s", std, want)
+	}
+}
+
 func TestLazyFenceIsText(t *testing.T) {
 	got := render(t, "para\n::: a\n", Options{})
 	if strings.Contains(got, "<div") {

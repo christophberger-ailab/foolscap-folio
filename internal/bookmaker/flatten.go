@@ -483,6 +483,9 @@ func describeRepair(r fenceRepair) string {
 	if r.Code {
 		parts = append(parts, "closed an unterminated code fence")
 	}
+	if r.Comment {
+		parts = append(parts, "closed an unterminated HTML comment")
+	}
 	if r.Divs > 0 {
 		parts = append(parts, fmt.Sprintf("closed %d unterminated div(s)", r.Divs))
 	}
