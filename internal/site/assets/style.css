@@ -866,7 +866,7 @@ table.subpages tbody tr:hover {
   color: var(--link);
 }
 
-/* ---------- draft: todos, comments, reviews (folio render --draft) ---------- */
+/* ---------- draft: todos, comments, reviews, bookmarks (folio render --draft) ---------- */
 :root {
   --todo: #c2410c;
   --comment: #fff3bf;
@@ -883,6 +883,20 @@ table.subpages tbody tr:hover {
 /* The comments stand right of the text, as in Word's margin. */
 .draft .page {
   padding-right: calc(var(--note-w) + 2em);
+}
+/* A bookmarked page's 🔖 stands in the top right corner of the page. */
+.draft .page {
+  position: relative;
+}
+.folio-bookmark {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 1.5em;
+  line-height: 1;
+}
+.folio-bookmark p {
+  margin: 0;
 }
 mark.folio-todo {
   display: inline-block;

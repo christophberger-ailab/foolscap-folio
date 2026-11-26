@@ -207,6 +207,10 @@ func (w *writer) div(n *markdown.Div, c ctx) {
 		}
 		return
 	}
+	if n.Attrs.Has(markdown.BookmarkClass) {
+		w.bookmarkFrame()
+		return
+	}
 	if id := n.Attrs.ID; id != "" {
 		w.lead += w.bookmarkStart(id)
 		bm := w.bmID
@@ -217,6 +221,14 @@ func (w *writer) div(n *markdown.Div, c ctx) {
 		return
 	}
 	w.blocks(n, c)
+}
+
+// bookmarkFrame writes a bookmarked page's 🔖 as a frame at the right
+// margin, in the top margin of the page: Word sets a frame on the page its
+// paragraph falls on, which is the page of the title it follows, and keeps
+// it out of the text's flow (spec-render.yaml DRAFT 7).
+func (w *writer) bookmarkFrame() {
+	w.para(pPr{corner: true, spacing: true, jc: "right"}, `<w:r><w:rPr><w:rFonts w:ascii="Segoe UI Emoji" w:hAnsi="Segoe UI Emoji" w:eastAsia="Segoe UI Emoji" w:cs="Segoe UI Emoji"/><w:sz w:val="32"/></w:rPr><w:t>🔖</w:t></w:r>`)
 }
 
 func (w *writer) heading(n *ast.Heading, c ctx) {
@@ -328,6 +340,7 @@ func (w *writer) paraProps(c ctx) pPr {
 type pPr struct {
 	style     string
 	pageBreak bool // the paragraph opens a page
+	corner    bool // a frame at the right margin, in the top margin of its page
 	keepNext  bool
 	numID     int // 0: not numbered
 	ilvl      int
@@ -351,6 +364,9 @@ func (p pPr) String() string {
 	}
 	if p.pageBreak { // after keepNext and keepLines, as the schema orders them
 		b.WriteString(`<w:pageBreakBefore/>`)
+	}
+	if p.corner { // 340 twips is about 6 mm from the page's top edge
+		b.WriteString(`<w:framePr w:wrap="around" w:vAnchor="page" w:hAnchor="margin" w:xAlign="right" w:y="340"/>`)
 	}
 	if p.numID > 0 {
 		fmt.Fprintf(&b, `<w:numPr><w:ilvl w:val="%d"/><w:numId w:val="%d"/></w:numPr>`, p.ilvl, p.numID)

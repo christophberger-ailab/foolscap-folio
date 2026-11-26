@@ -816,3 +816,17 @@ func TestHeadingImage(t *testing.T) {
 	doc := build(t, "# Call ![](a.png){height=2em}\n", Options{Root: root})["word/document.xml"]
 	has(t, doc, fmt.Sprintf(`<wp:extent cx="%d" cy="%d"/>`, 64*12700, 32*12700)) // 2em of 16 pt
 }
+
+// RENDER.DRAFT.7: a bookmarked page's 🔖 is a frame at the top right of
+// the page its title is on, out of the text's flow.
+func TestBookmarkFrame(t *testing.T) {
+	doc := build(t, "# Marked\n\n::: {.folio-bookmark}\n🔖\n:::\n\nText\n", Options{})["word/document.xml"]
+	frame := regexp.MustCompile(`<w:p><w:pPr><w:framePr [^>]*/>.*?</w:p>`).FindString(doc)
+	has(t, frame, `w:vAnchor="page"`, `w:hAnchor="margin"`, `w:xAlign="right"`, "🔖")
+	if title, mark, text := strings.Index(doc, "Marked"), strings.Index(doc, "🔖"), strings.Index(doc, "Text"); title > mark || mark > text {
+		t.Errorf("title at %d, 🔖 at %d, text at %d", title, mark, text)
+	}
+	if strings.Count(doc, "🔖") != 1 {
+		t.Errorf("🔖 written more than once:\n%s", doc)
+	}
+}

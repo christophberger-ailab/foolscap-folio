@@ -67,3 +67,31 @@ func TestDropDrafts(t *testing.T) {
 		t.Errorf("page lost:\n%s", res.Content)
 	}
 }
+
+// RENDER.DRAFT.7: a draft puts a bookmarked page's 🔖 first below its
+// title, in a div the renderers set in the top right corner of the page
+// the title is on; without --draft it is left out.
+func TestDraftBookmark(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, filepath.Join(dir, "book", "index.md"), "---\ntitle: Book\n---\nIntro\n")
+	writeFile(t, filepath.Join(dir, "book", "a.md"), "---\ntitle: Alpha\norder: 1\nbookmarked: true\nstatus: new\n---\nAlpha text\n")
+	writeFile(t, filepath.Join(dir, "book", "b.md"), "---\ntitle: Beta\norder: 2\nbookmarked: false\n---\nBeta text\n")
+	tree, err := LoadTree(filepath.Join(dir, "book"), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := Flatten(tree, Options{ProjectRoot: dir, Draft: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := "}\n\n::: {.folio-bookmark}\n🔖\n:::\n\n🆕\n\nAlpha text"; !strings.Contains(res.Content, want) {
+		t.Errorf("missing %q in\n%s", want, res.Content)
+	}
+	if strings.Count(res.Content, "folio-bookmark") != 1 {
+		t.Errorf("bookmark on a page without one:\n%s", res.Content)
+	}
+	res, _ = Flatten(tree, Options{ProjectRoot: dir})
+	if strings.Contains(res.Content, "🔖") {
+		t.Errorf("bookmark without draft:\n%s", res.Content)
+	}
+}

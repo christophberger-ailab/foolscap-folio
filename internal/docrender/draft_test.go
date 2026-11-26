@@ -4,6 +4,8 @@ import (
 	"context"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -62,5 +64,49 @@ func TestDraftNotesInTheMargin(t *testing.T) {
 	ref, _ := exec.Command(pdftotext, "-layout", plain, "-").Output()
 	if strings.Count(string(out), "\n") <= strings.Count(string(ref), "\n") {
 		t.Errorf("text column not narrowed for the notes")
+	}
+}
+
+// RENDER.DRAFT.7: a bookmarked page's 🔖 is set in the top right corner of
+// the page its title is on, above the text, which it does not push down.
+func TestDraftBookmarkInTheCorner(t *testing.T) {
+	pdftotext, err := exec.LookPath("pdftotext")
+	if err != nil {
+		t.Skip("pdftotext not installed")
+	}
+	words := func(src string) string {
+		path := filepath.Join(t.TempDir(), "out.pdf")
+		if err := PDFMarkdown(context.Background(), path, draftDoc(src), Options{}); err != nil {
+			t.Fatal(err)
+		}
+		out, err := exec.Command(pdftotext, "-bbox", path, "-").Output()
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(out)
+	}
+	filler := strings.Repeat("word ", 900)
+	out := words("# Before\n\n" + filler + "\n\n# Marked\n\n::: {.folio-bookmark}\n🔖\n:::\n\nText\n")
+	// pdftotext reads the emoji back as some other character, so the
+	// bookmark is the one word set in the top margin.
+	top := regexp.MustCompile(`xMin="[\d.]+" yMin="([\d.]+)" xMax="([\d.]+)" yMax="([\d.]+)">[^<]*<`)
+	for i, page := range strings.Split(out, "<page ")[1:] {
+		var marks []string
+		for _, m := range top.FindAllStringSubmatch(page, -1) {
+			if yMax, _ := strconv.ParseFloat(m[3], 64); yMax < margin {
+				marks = append(marks, m[0])
+				if xMax, _ := strconv.ParseFloat(m[2], 64); xMax < pageW-margin-2 || xMax > pageW-margin+2 {
+					t.Errorf("🔖 ends at x %.1f, want %.1f", xMax, pageW-margin)
+				}
+			}
+		}
+		if want := strings.Contains(page, ">Marked<"); (len(marks) == 1) != want {
+			t.Errorf("page %d: marks in the top margin %v, want one: %v", i+1, marks, want)
+		}
+	}
+	plain := words("# Before\n\n" + filler + "\n\n# Marked\n\nText\n")
+	at := regexp.MustCompile(`yMin="([\d.]+)"[^>]*>Text<`)
+	if a, b := at.FindStringSubmatch(out), at.FindStringSubmatch(plain); a == nil || b == nil || a[1] != b[1] {
+		t.Errorf("the bookmark moved the text: %v, %v", a, b)
 	}
 }

@@ -99,8 +99,8 @@ constraints:
     description: >
       A draft render (--draft) shows what a page still needs, for the people
       who review it, in every format: the todos, the comments and their
-      passages, what a page's front matter asks to review, whether it is new,
-      and the pages marked as drafts. Without --draft none of it is shown.
+      passages, what a page's front matter asks to review, whether it is new
+      or bookmarked, and the pages marked as drafts. Without --draft none of it is shown.
     requirements:
       1: 'A page whose front matter says `draft: true` is left out of every render, with everything below it if it is a folder''s index page; a draft render keeps it'
       2: 'Every `==TODO==` outside code is shown as a TODO marker in a color of its own, as in the editor''s preview (spec-web.yaml 3-6-7); a `==TODO==` inside an ordinary HTML comment is an outlined marker where the comment stands, with the comment''s text as its tooltip on the website and as a Word comment in DOCX'
@@ -111,6 +111,7 @@ constraints:
       4: 'Below a page''s title, a page whose front matter sets `new: true`, or `status: new` as the editor''s tree reads it, shows 🆕'
       5: 'Below that, a page whose front matter sets `review` shows it in a box: "Review: " followed by the text, or "Needs review" when `review` is `true`'
       6: Comment markers that start a line followed by their passage are read as a paragraph, in every render, so the passage is Markdown and reaches DOCX and PDF instead of being taken for raw HTML
+      7: 'A page whose front matter sets `bookmarked: true` (spec-web.yaml 3-9) shows 🔖 in the top right corner of the page its title is on, outside the text, which it does not move: at the top right of the page on the website, and in the top margin at the right margin in the PDF and, as a frame, in DOCX'
 
   BRAND:
     description: A Quarto brand file, `_brand.yml`, styles the rendered output.

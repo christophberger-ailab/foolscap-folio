@@ -130,6 +130,7 @@ A page whose front matter says `draft: true` is left out of a render. `--draft` 
 - Every `==TODO==` is a TODO marker. One inside an HTML comment is an outlined marker, with the comment as its tooltip on the website and as a Word comment in DOCX.
 - A comment (`<!-- << The comment -->passage<!-- >> -->`) highlights its passage and shows the comment and its replies, each with its author and date, beside it. On the website and in the PDF they stand in the right margin, and the PDF's text column is narrower for them. In DOCX each comment is a Word comment on its passage.
 - Below a page's title, `new: true` (or `status: new`) shows 🆕, and `review:` shows a box with "Review: " and its text, or "Needs review" for `review: true`.
+- A page with `bookmarked: true` (the 🔖 button in `folio web`) shows 🔖 in the top right corner of the page its title is on.
 
 #### `folio web`
 

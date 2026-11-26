@@ -214,6 +214,11 @@ func IsPageBreak(d *Div) bool { return d.Attrs.Has("pagebreak") || d.Attrs.Has("
 // a book, whose headings the renderers set in the section's fonts.
 const SectionClass = "folio-section"
 
+// BookmarkClass is the class of the div a draft puts below the title of
+// a bookmarked page, holding 🔖; the renderers set it in the top right
+// corner of the page the title is on rather than in the text.
+const BookmarkClass = "folio-bookmark"
+
 // TOCClass is the class of the empty div that marks where a book's
 // contents go: after its preliminaries.
 const TOCClass = "folio-toc"
