@@ -2,6 +2,7 @@ package web
 
 import (
 	"net/url"
+	"os/exec"
 	"regexp"
 	"testing"
 )
@@ -70,5 +71,59 @@ func TestTreeWithoutGit(t *testing.T) {
 	srv, _ := testServer(t)
 	if modifiedRow(t, get(t, srv, "/tree").Body.String(), "chapter2/second.qmd") {
 		t.Errorf("page marked modified outside a repository")
+	}
+}
+
+// countGit counts the calls the server makes to read the changed files.
+func countGit(t *testing.T) *int {
+	t.Helper()
+	n := new(int)
+	orig := gitChanged
+	gitChanged = func(dir string) ([]string, error) {
+		*n++
+		return orig(dir)
+	}
+	t.Cleanup(func() { gitChanged = orig })
+	return n
+}
+
+// UI.1-8-2: the watch asks git only when the pages or the repository's
+// state moved; a poll that finds neither runs no git command.
+func TestWatchAsksGitOnlyOnChange(t *testing.T) {
+	srv, root := gitProject(t)
+	get(t, srv, "/watch")
+	calls := countGit(t)
+	for range 3 {
+		get(t, srv, "/watch")
+	}
+	if *calls != 0 {
+		t.Errorf("%d git reads for polls that found nothing changed", *calls)
+	}
+	writeFile(t, root, "chapter2/second.qmd", "---\ntitle: Second\norder: 1\n---\n# Edited\n")
+	if rec := get(t, srv, "/watch"); !modifiedRow(t, rec.Body.String(), "chapter2/second.qmd") {
+		t.Fatal("edit not marked")
+	}
+	if *calls != 1 {
+		t.Errorf("%d git reads for one edit, want 1", *calls)
+	}
+}
+
+// UI.1-8-1: a commit made outside the app, in a terminal, takes the marks
+// away as one made in the Git pane does.
+func TestWatchSeesOutsideCommit(t *testing.T) {
+	srv, root := gitProject(t)
+	writeFile(t, root, "chapter2/second.qmd", "---\ntitle: Second\norder: 1\n---\n# Edited\n")
+	if !modifiedRow(t, get(t, srv, "/watch").Body.String(), "chapter2/second.qmd") {
+		t.Fatal("edit not marked")
+	}
+	for _, args := range [][]string{{"add", "--all"}, {"commit", "-m", "outside"}} {
+		cmd := exec.Command("git", args...)
+		cmd.Dir = root
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v: %s", args, err, out)
+		}
+	}
+	if rec := get(t, srv, "/watch"); rec.Code != 200 || modifiedRow(t, rec.Body.String(), "chapter2/second.qmd") {
+		t.Errorf("outside commit not noticed: %d", rec.Code)
 	}
 }

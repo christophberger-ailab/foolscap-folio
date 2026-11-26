@@ -52,6 +52,13 @@ type server struct {
 	// the tree's modified marks, so /watch compares it on its own.
 	changedFP string
 
+	// changed is the project's files changed since the last commit, as git
+	// last reported them for statusKey; gitDir is the git directory of
+	// gitDirRoot (see changedFiles).
+	changed            []string
+	statusKey          string
+	gitDir, gitDirRoot string
+
 	// configFile is the one file the settings live in; empty keeps them
 	// to this run. cfg holds its content: the projects opened before,
 	// what is selected per project, the preview's stylesheet, and the
@@ -393,7 +400,7 @@ func (s *server) load() (state, error) {
 	tree, err := project.Load(s.root)
 	if tree != nil {
 		flattenTreeSpans(tree.Pages, spanSymbols(s.loadCSS(st.ActiveCSS)))
-		changed := changedPages(s.root)
+		changed := s.changedFiles()
 		markModified(tree.Pages, changed)
 		s.changedFP = strings.Join(changed, "\x00")
 	}
@@ -701,8 +708,6 @@ func (s *server) renderTree(w http.ResponseWriter, msg string) {
 // first poll after the app starts only takes note of the images as they
 // are: the page load has just fetched them.
 func (s *server) watch(w http.ResponseWriter, r *http.Request) {
-	// Git is asked without the lock held, as the Git pane asks it.
-	changed := strings.Join(changedPages(s.gitRoot()), "\x00")
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.root == "" {
@@ -716,7 +721,7 @@ func (s *server) watch(w http.ResponseWriter, r *http.Request) {
 		}
 		s.mediaFP = media
 	}
-	if tree == s.fp && changed == s.changedFP {
+	if tree == s.fp && strings.Join(s.changedFiles(), "\x00") == s.changedFP {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}

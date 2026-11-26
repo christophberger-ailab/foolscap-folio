@@ -89,6 +89,17 @@ func Root(dir string) (string, error) {
 	return filepath.FromSlash(strings.TrimSpace(out)), nil
 }
 
+// Dir is the git directory of the repository dir is in, absolute: where
+// git keeps the index and HEAD, whose changes say that the status may
+// have changed without a file of the working tree being touched.
+func Dir(dir string) (string, error) {
+	out, err := run(dir, "rev-parse", "--absolute-git-dir")
+	if err != nil {
+		return "", err
+	}
+	return filepath.FromSlash(strings.TrimSpace(out)), nil
+}
+
 // top is Root for the callers that have nowhere to report a failure: a
 // directory that is not in a working tree has no top, and the command run
 // there will say so better than this could.
@@ -129,7 +140,10 @@ func Changed(dir string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	out, err := run(root, "status", "--porcelain", "-z", "--untracked-files=all")
+	// --no-optional-locks keeps status from refreshing the index, which
+	// would otherwise change on every call and read as a change of its own
+	// to whoever watches it.
+	out, err := run(root, "--no-optional-locks", "status", "--porcelain", "-z", "--untracked-files=all")
 	if err != nil {
 		return nil, err
 	}

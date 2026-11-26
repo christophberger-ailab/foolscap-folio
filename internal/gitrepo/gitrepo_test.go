@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestParseBranch(t *testing.T) {
@@ -608,5 +609,40 @@ func TestChangedOutsideARepository(t *testing.T) {
 	}
 	if _, err := Changed(t.TempDir()); err == nil {
 		t.Error("no error outside a repository")
+	}
+}
+
+// Dir is the repository's git directory, absolute, which a project in a
+// subdirectory shares with the rest of its repository.
+func TestDir(t *testing.T) {
+	root, proj := subdirRepo(t)
+	got, err := Dir(proj)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, _ := filepath.EvalSymlinks(filepath.Join(root, ".git"))
+	if real, _ := filepath.EvalSymlinks(got); real != want {
+		t.Errorf("Dir = %q, want %q", got, want)
+	}
+	if _, err := Dir(t.TempDir()); err == nil {
+		t.Error("no error outside a repository")
+	}
+}
+
+// Changed only reads: it does not refresh the index the way a plain `git
+// status` does, so the index's stamp says when someone else changed it.
+func TestChangedLeavesTheIndex(t *testing.T) {
+	dir := testRepo(t)
+	write(t, dir, "index.qmd", "---\ntitle: Edited\n---\n")
+	index := filepath.Join(dir, ".git", "index")
+	old := time.Now().Add(-time.Hour).Truncate(time.Second)
+	if err := os.Chtimes(index, old, old); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Changed(dir); err != nil {
+		t.Fatal(err)
+	}
+	if fi, err := os.Stat(index); err != nil || !fi.ModTime().Equal(old) {
+		t.Errorf("index rewritten by Changed")
 	}
 }
