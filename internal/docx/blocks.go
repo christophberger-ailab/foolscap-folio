@@ -362,12 +362,14 @@ func (w *writer) finishParts(p *pkg) {
 	patchSettings(p, w.opt.TOC, len(w.fnXML) > 0)
 }
 
-// hasFooter finds a default footer in a section's properties.
-var hasFooter = regexp.MustCompile(`<w:footerReference\b[^>]*w:type="default"`)
+// defaultFooter finds the relationship id of a section's default footer.
+var defaultFooter = regexp.MustCompile(`<w:footerReference\b[^>]*w:type="default"[^>]*r:id="([^"]+)"|<w:footerReference\b[^>]*r:id="([^"]+)"[^>]*w:type="default"`)
 
 // footer writes the page footer f into a part of its own and returns the
-// section properties sect with it as their default footer. Its links are
-// text, as in footnotes: the part has no relationships of its own.
+// section properties sect with it as their default footer. A default
+// footer of the template's keeps its content, and f is added below it.
+// Its links are text, as in footnotes: the part has no relationships of
+// its own.
 func (w *writer) footer(p *pkg, f *markdown.Document, sect string) string {
 	const name, id = "word/folio-footer.xml", "rIdQmFooter"
 	style := w.styles.need("paragraph", "Footer", `<w:basedOn w:val="`+w.styles.normal()+`"/>`+
@@ -377,6 +379,12 @@ func (w *writer) footer(p *pkg, f *markdown.Document, sect string) string {
 	w.src = f.Source
 	body := w.capture(func() { w.blocks(f.Root, ctx{style: style, note: true}) })
 	w.src = src
+	if m := defaultFooter.FindStringSubmatch(sect); m != nil {
+		if part := relByID(p, m[1]+m[2]); part != "" && bytes.Contains(p.get(part), []byte("</w:ftr>")) {
+			p.set(part, []byte(insertBefore(string(p.get(part)), "</w:ftr>", body)))
+		}
+		return sect
+	}
 	p.set(name, []byte(xmlDecl+`<w:ftr xmlns:w="`+nsW+`" xmlns:r="`+nsR+`">`+body+`</w:ftr>`))
 	ensureContentType(p, "/"+name, "application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml", true)
 	w.rels = append(w.rels, relationship{id, relBase + "footer", "folio-footer.xml"})

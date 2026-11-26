@@ -47,7 +47,7 @@ type pageData struct {
 	Prev, Next                   *navLink
 	L                            labels
 	Home, Brand, Draft           bool
-	Logo                         Logo
+	Logo, SidebarLogo            Logo // paths below Base
 }
 
 func (b *builder) pageData(p *pageInfo, content template.HTML, toc []tocItem) *pageData {
@@ -55,7 +55,7 @@ func (b *builder) pageData(p *pageInfo, content template.HTML, toc []tocItem) *p
 	d := &pageData{
 		Lang: b.o.Lang, SiteTitle: b.title, Title: p.title + " – " + b.title,
 		Base: strings.Repeat("../", depth), Content: content, TOC: toc, L: b.labels,
-		HomeURL: relURL(p.out, "index.html"), Home: p.home, CSS: b.css, Brand: b.o.BrandCSS != "", Logo: b.logo,
+		HomeURL: relURL(p.out, "index.html"), Home: p.home, CSS: b.css, Brand: b.o.BrandCSS != "", Logo: b.logo.in(strings.Repeat("../", depth)),
 		Draft: b.o.Draft,
 	}
 	if p.home {
@@ -79,6 +79,7 @@ func (b *builder) pageData(p *pageInfo, content template.HTML, toc []tocItem) *p
 			}
 		}
 		d.Sidebar = sd
+		d.SidebarLogo = b.sideLogo.in(d.Base)
 		for i, q := range t.pages {
 			if q != p {
 				continue

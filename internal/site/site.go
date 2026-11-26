@@ -2,6 +2,7 @@ package site
 
 import (
 	"bytes"
+	"cmp"
 	"embed"
 	"fmt"
 	"html"
@@ -33,7 +34,7 @@ type Topic struct {
 type Options struct {
 	Root   string // project root, absolute
 	OutDir string // output directory, absolute
-	Title  string // site title; "" = name of the root folder
+	Title  string // site title; "" = title of the root index page, else name of the root folder
 	Lang   string // html lang attribute
 	// CalloutTitles are the user's own callout titles by language and
 	// type (see markdown.CalloutTitles).
@@ -53,7 +54,9 @@ type Options struct {
 	BrandCSS   string
 	BrandFonts map[string]string
 	// Logo is shown in the navbar before the title and is the site's icon.
-	Logo Logo
+	// SidebarLogo, if set, stands above the sidebar instead, while the
+	// sidebar is beside the page.
+	Logo, SidebarLogo Logo
 	// Footer returns the Markdown footer of a page of a topic, by the
 	// topic's name, "" for the home page, and the page's front matter,
 	// nil for a page without source; "" for none. May be nil.
@@ -71,6 +74,29 @@ type Options struct {
 // dark color scheme, and their alternative text. Without Light there is
 // no logo; without Dark the light one serves both schemes.
 type Logo struct{ Light, Dark, Alt string }
+
+// out is where the logo's files go, OutDir-relative, named by stem.
+func (l Logo) out(stem string) Logo {
+	if l.Light == "" {
+		return Logo{}
+	}
+	o := Logo{Light: "_site/" + stem + strings.ToLower(filepath.Ext(l.Light)), Alt: l.Alt}
+	if l.Dark != "" {
+		o.Dark = "_site/" + stem + "-dark" + strings.ToLower(filepath.Ext(l.Dark))
+	}
+	return o
+}
+
+// in returns the logo with its paths below base.
+func (l Logo) in(base string) Logo {
+	if l.Light != "" {
+		l.Light = base + l.Light
+	}
+	if l.Dark != "" {
+		l.Dark = base + l.Dark
+	}
+	return l
+}
 
 // pageInfo is one page of the site.
 type pageInfo struct {
@@ -95,20 +121,21 @@ type topicInfo struct {
 }
 
 type builder struct {
-	o       Options
-	root    string
-	title   string
-	topics  []*topicInfo
-	pages   map[string]*pageInfo // by source key: node Rel, "" for home
-	homePg  *pageInfo
-	copied  map[string]bool
-	tmpl    *template.Template
-	labels  labels
-	logo    Logo     // OutDir-relative paths of the logo's files
-	css     []string // OutDir-relative paths of the extra stylesheets
-	outAbs  string
-	rootAbs string
-	search  []searchDoc
+	o        Options
+	root     string
+	title    string
+	topics   []*topicInfo
+	pages    map[string]*pageInfo // by source key: node Rel, "" for home
+	homePg   *pageInfo
+	copied   map[string]bool
+	tmpl     *template.Template
+	labels   labels
+	logo     Logo     // OutDir-relative paths of the logo's files
+	sideLogo Logo     // likewise, of the sidebar's logo
+	css      []string // OutDir-relative paths of the extra stylesheets
+	outAbs   string
+	rootAbs  string
+	search   []searchDoc
 }
 
 func (b *builder) logf(format string, args ...any) {
@@ -133,19 +160,11 @@ func Build(o Options) error {
 	b := &builder{o: o, root: root, rootAbs: root, outAbs: out,
 		pages: map[string]*pageInfo{}, copied: map[string]bool{}}
 	b.title = o.Title
-	if b.title == "" {
-		b.title = filepath.Base(root)
-	}
 	if b.o.Lang == "" {
 		b.o.Lang = "en"
 	}
 	b.labels = labelsFor(b.o.Lang)
-	if o.Logo.Light != "" {
-		b.logo = Logo{Light: "_site/logo" + strings.ToLower(filepath.Ext(o.Logo.Light)), Alt: o.Logo.Alt}
-		if o.Logo.Dark != "" {
-			b.logo.Dark = "_site/logo-dark" + strings.ToLower(filepath.Ext(o.Logo.Dark))
-		}
-	}
+	b.logo, b.sideLogo = o.Logo.out("logo"), o.SidebarLogo.out("logo-medium")
 	for i, c := range o.CSS {
 		name := strings.TrimSuffix(filepath.Base(c), filepath.Ext(c))
 		b.css = append(b.css, fmt.Sprintf("_site/css/%d-%s.css", i+1, name))
@@ -196,8 +215,10 @@ func (b *builder) load() error {
 		p := &pageInfo{node: n, out: "index.html", title: n.Title(), srcDir: ".", home: true}
 		b.homePg = p
 		b.pages[""] = p
+		b.title = cmp.Or(b.title, title)
 		break
 	}
+	b.title = cmp.Or(b.title, filepath.Base(b.root))
 	for _, t := range b.o.Topics {
 		dir := filepath.Join(b.root, filepath.FromSlash(t.Folder))
 		tree, err := bookmaker.LoadTree(dir, b.root)
