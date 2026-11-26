@@ -260,10 +260,14 @@ func renderPage(n *Node, targets linkTargets, opts Options, res *Result) (page, 
 	return strings.Join(lines, "\n"), slides
 }
 
-// draftBanner is what a draft shows below a page's title: 🆕 for a new
-// page, and its review in a box.
+// draftBanner is what a draft shows below a page's title: 🔖 for a
+// bookmarked page, which the renderers set in the corner of the page
+// (markdown.BookmarkClass), 🆕 for a new page, and its review in a box.
 func draftBanner(fm FrontMatter) string {
 	var parts []string
+	if fm.IsBookmarked() {
+		parts = append(parts, "::: {."+markdown.BookmarkClass+"}\n🔖\n:::")
+	}
 	if fm.IsNew() {
 		parts = append(parts, "🆕")
 	}

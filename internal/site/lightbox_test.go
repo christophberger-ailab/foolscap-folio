@@ -66,3 +66,26 @@ func TestImageFullSize(t *testing.T) {
 		t.Error("style.css does not style the lightbox")
 	}
 }
+
+// RENDER.DRAFT.7: in a draft site, a bookmarked page shows 🔖 in the top
+// right corner of the page, not in the text below its title.
+func TestDraftBookmarkInTheCorner(t *testing.T) {
+	root, out := project(t)
+	write(t, root, "x/page.qmd", "---\ntitle: X Page\nbookmarked: true\n---\n\n# X Page\n\nSome text.\n")
+	o := opts(root, out)
+	o.Draft = true
+	if err := Build(o); err != nil {
+		t.Fatal(err)
+	}
+	got := browse(t, "file://"+filepath.Join(out, "x", "page.html"), `
+  const r = await page.evaluate(() => {
+    const b = document.querySelector('.folio-bookmark').getBoundingClientRect();
+    const p = document.querySelector('article.page').getBoundingClientRect();
+    const h = document.querySelector('article.page h1').getBoundingClientRect();
+    return {right: Math.abs(p.right - b.right) < 2, top: Math.abs(p.top - b.top) < 2, aside: b.left >= h.left + 50};
+  });
+  console.log(JSON.stringify(r));`)
+	if want := `{"right":true,"top":true,"aside":true}` + "\n"; got != want {
+		t.Errorf("got %s, want %s", got, want)
+	}
+}

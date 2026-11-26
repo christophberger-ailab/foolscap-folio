@@ -297,6 +297,13 @@ function initTree() {
     });
     sortableInstances.push(inst);
   });
+
+  // The Bookmarks pane follows the tree, which is refreshed whenever a
+  // page gains or loses its bookmark; the first bookmark brings the pane.
+  document.body.dispatchEvent(new CustomEvent('folio-tree-changed'));
+  if (tree.querySelector('.marker.flag[title="Bookmarked"]')) {
+    offerPane('bookmarks');
+  }
 }
 
 // initDivider makes a vertical divider draggable: dragging it resizes the
@@ -2210,6 +2217,24 @@ document.body.addEventListener('input', function (evt) {
   }
 });
 
+// The commit message is kept the same way: staging, unstaging, pushing,
+// syncing and refreshing all swap the field away, and a message typed
+// before them is still meant for the commit that follows.
+var gitMessage = '';
+
+// gitMessageAfter is the message the field holds once the request to path
+// has answered: a commit that went through has used it up, anything else
+// leaves it standing, a commit that failed included.
+function gitMessageAfter(message, path, failed) {
+  return path === '/git/commit' && !failed ? '' : message;
+}
+
+document.body.addEventListener('input', function (evt) {
+  if (evt.target.id === 'git-message') {
+    gitMessage = evt.target.value;
+  }
+});
+
 document.body.addEventListener('htmx:afterSwap', function (evt) {
   var target = evt.detail && evt.detail.target;
   if (target && target.id === 'git-body') {
@@ -2218,6 +2243,12 @@ document.body.addEventListener('htmx:afterSwap', function (evt) {
       field.value = gitFilter;
     }
     applyGitFilter();
+    var info = evt.detail.pathInfo;
+    gitMessage = gitMessageAfter(gitMessage, info && info.requestPath, !!target.querySelector(':scope > .error'));
+    var message = document.getElementById('git-message');
+    if (message) {
+      message.value = gitMessage;
+    }
   }
 });
 
@@ -2427,6 +2458,25 @@ document.body.addEventListener('click', function (evt) {
 
   // "Open in editor": htmx puts the file in the editor; the tree marks the
   // page as the one open, the way clicking it there would have.
+  // A bookmark opens its page the way a click on it in the tree does, so
+  // the unsaved-edit confirmation and the tree's selection come with it.
+  // A hidden page, which the tree leaves out, is opened directly.
+  var bookmark = evt.target.closest('.bookmark-open');
+  if (bookmark) {
+    var path = bookmark.dataset.path;
+    var entry = Array.prototype.find.call(document.querySelectorAll('#tree li.page'), function (li) {
+      return li.dataset.path === path;
+    });
+    var title = entry && entry.querySelector(':scope > .row > a.title');
+    if (title) {
+      title.click();
+      revealSelection();
+    } else {
+      htmx.ajax('GET', '/content?path=' + encodeURIComponent(path), { target: '#content' });
+    }
+    return;
+  }
+
   var openInEditor = evt.target.closest('.git-diff-open');
   if (openInEditor) {
     currentPath = openInEditor.dataset.path || null;

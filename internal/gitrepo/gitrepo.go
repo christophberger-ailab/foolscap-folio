@@ -89,6 +89,17 @@ func Root(dir string) (string, error) {
 	return filepath.FromSlash(strings.TrimSpace(out)), nil
 }
 
+// Dir is the git directory of the repository dir is in, absolute: where
+// git keeps the index and HEAD, whose changes say that the status may
+// have changed without a file of the working tree being touched.
+func Dir(dir string) (string, error) {
+	out, err := run(dir, "rev-parse", "--absolute-git-dir")
+	if err != nil {
+		return "", err
+	}
+	return filepath.FromSlash(strings.TrimSpace(out)), nil
+}
+
 // top is Root for the callers that have nowhere to report a failure: a
 // directory that is not in a working tree has no top, and the command run
 // there will say so better than this could.
@@ -118,6 +129,40 @@ func GetStatus(dir string) (Status, error) {
 		return Status{}, err
 	}
 	return parseStatus(out), nil
+}
+
+// Changed lists the files under dir changed since the last commit --
+// staged, not staged, or untracked -- by their slash-separated paths
+// inside dir, sorted and each once. What changed elsewhere in the
+// repository is left out.
+func Changed(dir string) ([]string, error) {
+	root, err := Root(dir)
+	if err != nil {
+		return nil, err
+	}
+	// --no-optional-locks keeps status from refreshing the index, which
+	// would otherwise change on every call and read as a change of its own
+	// to whoever watches it.
+	out, err := run(root, "--no-optional-locks", "status", "--porcelain", "-z", "--untracked-files=all")
+	if err != nil {
+		return nil, err
+	}
+	st := parseStatus(out)
+	// Git reports the top with every symlink resolved, so dir has to be
+	// seen the same way for the paths to be found inside it.
+	if real, err := filepath.EvalSymlinks(dir); err == nil {
+		dir = real
+	}
+	var changed []string
+	for _, f := range slices.Concat(st.Staged, st.Unstaged) {
+		rel, err := filepath.Rel(dir, filepath.Join(root, filepath.FromSlash(f.Path)))
+		if err != nil || !filepath.IsLocal(rel) {
+			continue
+		}
+		changed = append(changed, filepath.ToSlash(rel))
+	}
+	slices.Sort(changed)
+	return slices.Compact(changed), nil
 }
 
 // parseStatus reads the NUL-separated records of `git status --porcelain

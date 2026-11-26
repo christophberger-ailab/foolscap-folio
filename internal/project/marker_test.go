@@ -124,6 +124,7 @@ func TestPageFlags(t *testing.T) {
 	comment := Flag{"\U0001F4AC", "Contains comments"}
 	fresh := Flag{"\U0001F195", "New page"}
 	stale := Flag{"\U0001F5D1\uFE0F", "Deprecated"}
+	bookmark := Flag{"\U0001F516", "Bookmarked"}
 	cases := []struct {
 		name string
 		src  string
@@ -152,6 +153,10 @@ func TestPageFlags(t *testing.T) {
 		{"status not text", "---\nstatus: 3\n---\n", nil},
 		{"status first", "---\nstatus: new\nreview: true\n---\n==TODO==\n", []Flag{fresh, todo, review}},
 		{"unknown key", "---\nlater: true\n---\n", nil},
+		{"bookmarked", "---\nbookmarked: true\n---\n", []Flag{bookmark}},
+		{"bookmarked false", "---\nbookmarked: false\n---\n", nil},
+		{"bookmarked not true", "---\nbookmarked: \"yes\"\n---\n", nil},
+		{"bookmark last", "---\nbookmarked: true\nstatus: new\n---\n<!-- << Hm -->x<!-- >> -->\n", []Flag{fresh, comment, bookmark}},
 		{"text", "# A\n\nSome ==TODO== here.\n", []Flag{todo}},
 		{"text in comment", "# A\n\n<!-- ==TODO== fix -->\n", []Flag{todo}},
 		{"text twice", "==TODO== ==TODO==\n", []Flag{todo}},

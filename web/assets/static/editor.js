@@ -105,7 +105,9 @@ function mountEditor(area) {
   cm.on('change', function () {
     area.value = cm.getValue();
     area.dispatchEvent(new Event('input', { bubbles: true }));
+    showBookmark();
   });
+  showBookmark();
 
   cm.addOverlay(todoOverlay);
   applyVim();
@@ -1378,3 +1380,92 @@ function insertImageLink(path) {
     CodeMirror.Vim.handleKey(cm, 'i', 'mapping');
   }
 }
+
+// Bookmarks
+//
+// A page is bookmarked by `bookmarked: true` in its frontmatter. The button
+// above the editor toggles that line in the editor's text, as a typed edit
+// would, so it is autosaved with the rest and undone with Ctrl-Z; the tree
+// then shows 🔖 beside the page, and the Bookmarks pane lists it.
+
+// frontmatterOf finds the frontmatter at the start of text: the lines
+// between the two `---` (block, which ends in a newline unless it is
+// empty) and where the closing one starts. It returns null for a page
+// without one.
+function frontmatterOf(text) {
+  var m = /^---\n([\s\S]*?\n)?---(?:\n|$)/.exec(text);
+  if (!m) {
+    return null;
+  }
+  return { block: m[1] || '', start: 4, end: 4 + (m[1] || '').length };
+}
+
+// bookmarkedIn tells whether the frontmatter of text says `bookmarked: true`.
+function bookmarkedIn(text) {
+  var fm = frontmatterOf(text);
+  var line = fm && /^bookmarked[ \t]*:.*$/m.exec(fm.block);
+  if (!line) {
+    return false;
+  }
+  var value = line[0].replace(/^bookmarked[ \t]*:/, '').replace(/\s#.*$/, '').trim();
+  return /^(true|True|TRUE)$/.test(value);
+}
+
+// withBookmark is text with its `bookmarked:` set to on: the line is
+// rewritten where it stands, added at the end of the frontmatter, or, for
+// a page without frontmatter, brought with one of its own. A page that
+// says nothing is already not bookmarked, and is left as it is.
+function withBookmark(text, on) {
+  var line = 'bookmarked: ' + on;
+  var fm = frontmatterOf(text);
+  if (!fm) {
+    return on ? '---\n' + line + '\n---\n' + text : text;
+  }
+  var block = fm.block;
+  var at = /^bookmarked[ \t]*:.*$/m;
+  if (at.test(block)) {
+    block = block.replace(at, line);
+  } else if (on) {
+    block += line + '\n';
+  } else {
+    return text;
+  }
+  return text.slice(0, fm.start) + block + text.slice(fm.end);
+}
+
+// replaceText makes the editor's text next with one change, the part that
+// differs, so the cursor and the rest of the page stay where they are and
+// Ctrl-Z takes it back in one step.
+function replaceText(next) {
+  var text = cm.getValue();
+  var head = 0;
+  while (head < text.length && head < next.length && text[head] === next[head]) {
+    head++;
+  }
+  var tail = 0;
+  while (tail < text.length - head && tail < next.length - head &&
+         text[text.length - 1 - tail] === next[next.length - 1 - tail]) {
+    tail++;
+  }
+  cm.replaceRange(next.slice(head, next.length - tail), cm.posFromIndex(head), cm.posFromIndex(text.length - tail));
+}
+
+// showBookmark sets the button above the editor to what the page says.
+function showBookmark() {
+  var button = document.getElementById('bookmark-toggle');
+  if (!button || !cm) {
+    return;
+  }
+  var on = bookmarkedIn(cm.getValue());
+  button.setAttribute('aria-pressed', on ? 'true' : 'false');
+  button.title = on ? 'Remove the bookmark from this page' : 'Bookmark this page';
+}
+
+document.addEventListener('click', function (evt) {
+  if (!evt.target.closest('#bookmark-toggle') || !cm) {
+    return;
+  }
+  var on = !bookmarkedIn(cm.getValue());
+  replaceText(withBookmark(cm.getValue(), on));
+  document.dispatchEvent(new CustomEvent('folio-bookmarked', { detail: { on: on } }));
+});

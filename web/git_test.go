@@ -517,3 +517,16 @@ for (const e of [{key: "Enter"}, {key: "Enter", ctrlKey: true}, {key: "Enter", m
 		t.Errorf("isCommitKey:\n%s\nwant:\n%s", out, want)
 	}
 }
+
+// UI.10-3-2: the commit message outlives every swap of the panel but a
+// commit that went through, which is the one thing that has used it up.
+func TestGitMessageAfter(t *testing.T) {
+	script := jsFunc(t, "assets/static/app.js", "gitMessageAfter") + `
+for (const [path, failed] of [["/git/stage", false], ["/git/unstage", false], ["/git/push", true], ["/git/sync", false], ["/git", false], ["/git/commit", true], ["/git/commit", false]]) {
+  console.log(JSON.stringify(gitMessageAfter("Fix typo", path, failed)));
+}`
+	want := strings.Repeat(`"Fix typo"`+"\n", 6) + `""` + "\n"
+	if out := runNode(t, script); out != want {
+		t.Errorf("gitMessageAfter:\n%s\nwant:\n%s", out, want)
+	}
+}

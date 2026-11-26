@@ -91,6 +91,10 @@ func (c *mdConverter) block(n ast.Node, indent int) ([]Block, error) {
 			b.TOC = true
 			break
 		}
+		if x.Attrs.Has(markdown.BookmarkClass) {
+			b.Bookmark = true
+			break
+		}
 		if x.Attrs.Has(markdown.SectionClass) {
 			bb, err := c.blocks(x, indent)
 			for i := range bb {

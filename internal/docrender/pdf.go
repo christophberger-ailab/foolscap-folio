@@ -294,6 +294,12 @@ func (w *pdfWriter) body(bb []Block) error {
 			}
 			continue
 		}
+		if b.Bookmark {
+			if err := w.bookmark(); err != nil {
+				return err
+			}
+			continue
+		}
 		if b.Callout != nil {
 			if err := w.callout(b); err != nil {
 				return err
@@ -1207,6 +1213,25 @@ func hasNotes(bb []Block) bool {
 		}
 	}
 	return false
+}
+
+// bookmarkSize is the font size of a bookmarked page's 🔖.
+const bookmarkSize = 18.0
+
+// bookmark sets 🔖 in the top margin of the current page, its right edge
+// at the right margin, where it marks the page without taking room from
+// the text.
+func (w *pdfWriter) bookmark() error {
+	if w.dry {
+		return nil
+	}
+	r := Run{Text: "🔖"}
+	width, err := w.measure(r, bookmarkSize)
+	if err != nil {
+		return err
+	}
+	w.p.SetTextColor(noteColor[0], noteColor[1], noteColor[2])
+	return w.draw(r, bookmarkSize, pageW-margin-width, margin-bookmarkSize/2)
 }
 
 // note sets a note in the column right of the text, from y down or below

@@ -95,6 +95,9 @@ func (fm FrontMatter) IsDraft() bool { return fm.Meta["draft"] == true }
 // the editor's tree reads it.
 func (fm FrontMatter) IsNew() bool { return fm.value("new") == true || fm.value("status") == "new" }
 
+// IsBookmarked reports whether the page says `bookmarked: true`.
+func (fm FrontMatter) IsBookmarked() bool { return fm.value("bookmarked") == true }
+
 // Review returns what to review on the page, its whitespace collapsed,
 // and whether it is to be reviewed: `review:` holds a text or is true.
 func (fm FrontMatter) Review() (string, bool) {
