@@ -1630,6 +1630,90 @@ function drawDiagrams(root) {
   });
 }
 
+// Cross-references
+//
+// A link to a fragment, `[](#key)`, is a cross-reference to a heading or
+// a figure. The server resolves the references of the page (POST /xrefs,
+// web/xref.go), and applyXrefs shows them as a render does: a reference
+// without text gets its target's number and name. The page's headings get
+// the identifiers the references point to, so that a click on one scrolls
+// the pane there (see app.js).
+
+// xrefText is what a reference without text shows of its target x: in
+// style "name" or "number" only that, else "1.2, Name"; "??key" for none.
+function xrefText(x, style, key) {
+  if (!x) {
+    return "??" + key;
+  }
+  if (style === "number" && x.number) {
+    return x.number;
+  }
+  if (style === "" && x.number) {
+    return x.number + ", " + x.name;
+  }
+  return x.name || x.number || "??" + key;
+}
+
+// xrefStyle reads the attribute block a reference may have right after
+// it, `{.name}` or `{.number}`, from the start of text: the style it asks
+// for and the block's length, 0 for no block.
+function xrefStyle(text) {
+  var m = /^\{([^{}]*)\}/.exec(text || "");
+  if (!m) {
+    return { style: "", length: 0 };
+  }
+  var classes = m[1].split(/\s+/);
+  var style = "";
+  ["name", "number"].forEach(function (c) {
+    if (classes.indexOf("." + c) >= 0) {
+      style = c;
+    }
+  });
+  return { style: style, length: m[0].length };
+}
+
+// applyXrefs shows the references in root with the targets in data, what
+// /xrefs answered: refs by key, and the page's headings' identifiers in
+// order. It may run again on the same pane, with newer data.
+function applyXrefs(root, data) {
+  var ids = (data && data.headings) || [];
+  var refs = (data && data.refs) || {};
+  var hs = root.querySelectorAll("h1, h2, h3, h4, h5, h6");
+  for (var i = 0; i < hs.length && i < ids.length; i++) {
+    hs[i].setAttribute("data-xref-id", ids[i]);
+  }
+  root.querySelectorAll('a[href^="#"]').forEach(function (a) {
+    var key = a.getAttribute("href").slice(1);
+    try {
+      key = decodeURIComponent(key);
+    } catch (e) {}
+    if (key === "") {
+      return;
+    }
+    if (!a.hasAttribute("data-xref-style")) {
+      // The attribute block is the link's, as in a render: it goes.
+      var next = a.nextSibling;
+      var st = xrefStyle(next && next.nodeType === 3 ? next.data : "");
+      if (st.length > 0) {
+        next.data = next.data.slice(st.length);
+      }
+      a.setAttribute("data-xref-style", st.style);
+      if (a.textContent.trim() === "") {
+        a.setAttribute("data-xref-fill", "");
+      }
+    }
+    var x = refs[key];
+    if (a.hasAttribute("data-xref-fill")) {
+      a.textContent = xrefText(x, a.getAttribute("data-xref-style"), key);
+    }
+    if (x && x.id) {
+      a.setAttribute("data-xref", x.id);
+    } else {
+      a.removeAttribute("data-xref");
+    }
+  });
+}
+
 // renderPreview fills el with the preview of the Quarto Markdown in text.
 // pagePath is the edited page's path relative to the project root: it is
 // what the image paths resolve against, and what says which target group

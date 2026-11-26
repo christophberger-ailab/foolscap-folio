@@ -1024,10 +1024,60 @@ function updatePreview() {
   var editor = document.querySelector('#content textarea.file-content');
   if (preview && editor) {
     var path = document.querySelector('#content input[name="path"]');
-    renderPreview(preview, editor.value, path ? path.value : '', calloutTitles(), pageVariables());
+    var rel = path ? path.value : '';
+    renderPreview(preview, editor.value, rel, calloutTitles(), pageVariables());
+    applyXrefs(preview, xrefs.path === rel ? xrefs.data : null);
+    fetchXrefs(preview, editor.value, rel);
     followEditor(); // the render may have moved the text under the top
   }
 }
+
+// xrefs holds what /xrefs last answered and for which page, which a new
+// render of the page shows until the answer to its own text is in, and the
+// timer that holds back the next ask.
+var xrefs = { data: null, path: '', timer: null };
+
+// fetchXrefs asks the server for the targets of the cross-references in
+// text, the page at path, a moment after the typing stops, and shows them
+// in the preview. A page without a reference asks nothing.
+function fetchXrefs(preview, text, path) {
+  clearTimeout(xrefs.timer);
+  if (path === '' || text.indexOf('](#') < 0) {
+    return;
+  }
+  xrefs.timer = setTimeout(function () {
+    fetch('/xrefs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'path=' + encodeURIComponent(path) + '&text=' + encodeURIComponent(text)
+    }).then(function (resp) {
+      return resp.ok ? resp.json() : null;
+    }).then(function (data) {
+      var shown = document.querySelector('#content input[name="path"]');
+      if (data && shown && shown.value === path) { // the page may have changed meanwhile
+        xrefs.data = data;
+        xrefs.path = path;
+        applyXrefs(preview, data);
+      }
+    }).catch(function () {});
+  }, 400);
+}
+
+// A click on a cross-reference in the preview scrolls the pane to its
+// heading; a link to a fragment never leaves the app or moves its page.
+document.body.addEventListener('click', function (evt) {
+  var a = evt.target.closest && evt.target.closest('#preview a[href^="#"]');
+  if (!a) {
+    return;
+  }
+  evt.preventDefault();
+  var id = a.getAttribute('data-xref');
+  var preview = document.getElementById('preview');
+  var h = id && preview.querySelector('[data-xref-id="' + CSS.escape(id) + '"]');
+  if (h) {
+    h.scrollIntoView({ block: 'start' });
+  }
+});
 
 // schedulePreview coalesces the keystrokes of fast typing into one render.
 function schedulePreview() {

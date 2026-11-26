@@ -105,10 +105,11 @@ constraints:
       1: 'A link whose destination is a fragment, `[text](#key)`, is a reference to the target with that key; with text it links the text'
       1-1: 'A reference without text, `[](#key)`, shows "<number>, <name>", or the name alone when the target has no number; with the class `name` it shows the name, with `number` the number, falling back to the name with a warning'
       1-2: The classes `name` and `number` are taken off the link
-      2: A heading is a target; its key is the identifier it declares, else the slug of its text, a page title's of its text as well; a number before it (DOCUMENT 9-2) is its number, and a section's or chapter's prefix (DOCUMENT 9), without its colon, is its number instead
+      2: A heading is a target; its key is the identifier it declares, else the slug of its text -- lower case, letters beyond ASCII kept, everything before the first letter and every symbol but `_`, `-` and `.` dropped, spaces turned into hyphens, as Pandoc does -- a page title's of its text as well; a number before it (DOCUMENT 9-2) is its number, and a section's or chapter's prefix (DOCUMENT 9), without its colon, is its number instead
       3: 'A figure (DOCUMENT 4-10) and an image with an identifier are targets; the key is the identifier, else the slug of the alt text; the name is the alt text and the number "Figure <n>" (DOCUMENT 9-3). An image without an identifier of its own gets one, unique in the output, made from its key'
       3-1: A figure whose key a heading of the same page has, or an earlier figure of it, is no target, and a warning says so
       4: Keys are unique per page, a duplicate getting -2, -3, … appended; a reference prefers its own page's target, and one that several other pages have links to the first, with a warning
+      2-1: 'A key with letters beyond ASCII may be written in ASCII too: with "ä", "ö", "ü" as "ae", "oe", "ue" and "ß" as "ss", or with the accents dropped ("ü" as "u"); a key as a target has it wins over one that only matches in ASCII'
       4-1: '`#<page>:<key>` names the page: by the `id:` of its front matter or by its path in the project (`guide/install`)'
       4-2: A link from a page to a heading of another page (`/guide/install.md#overview`) links to that page's heading in a document
       5: A website links references across its pages; a document within itself

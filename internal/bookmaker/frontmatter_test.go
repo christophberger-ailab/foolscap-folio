@@ -75,7 +75,7 @@ func TestSplitFrontMatter(t *testing.T) {
 }
 
 func TestParseFrontMatter(t *testing.T) {
-	fm, body, err := parseFrontMatter("---\ntitle: \"Die Wartenwand\"\nsubtitle: \" Für {audience-label} \"\norder: 7\nlisting:\n  type: table\n---\n\ntext\n")
+	fm, body, err := ParseFrontMatter("---\ntitle: \"Die Wartenwand\"\nsubtitle: \" Für {audience-label} \"\norder: 7\nlisting:\n  type: table\n---\n\ntext\n")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +97,7 @@ func TestParseFrontMatter(t *testing.T) {
 }
 
 func TestParseFrontMatterWithoutOrder(t *testing.T) {
-	fm, _, err := parseFrontMatter("---\ntitle: A\n---\n")
+	fm, _, err := ParseFrontMatter("---\ntitle: A\n---\n")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,14 +110,14 @@ func TestParseFrontMatterWithoutOrder(t *testing.T) {
 }
 
 func TestParseFrontMatterInvalidYAML(t *testing.T) {
-	if _, _, err := parseFrontMatter("---\ntitle: [unclosed\n---\nbody"); err == nil {
+	if _, _, err := ParseFrontMatter("---\ntitle: [unclosed\n---\nbody"); err == nil {
 		t.Fatal("expected an error for malformed YAML")
 	}
 }
 
 // A page's front matter is kept whole, as its variables.
 func TestFrontMatterMeta(t *testing.T) {
-	fm, _, err := parseFrontMatter("---\ntitle: A\nversion: 2.0\nmeta: {owner: Acme}\n---\n")
+	fm, _, err := ParseFrontMatter("---\ntitle: A\nversion: 2.0\nmeta: {owner: Acme}\n---\n")
 	if err != nil {
 		t.Fatal(err)
 	}

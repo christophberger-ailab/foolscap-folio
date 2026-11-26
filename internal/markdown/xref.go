@@ -167,16 +167,21 @@ func Targets(d *Document, page, pageID string, warn func(string, ...any)) []Targ
 
 func pageName(p string) string { return fmt.Sprintf("page %q", p) }
 
-// Index finds targets by their key.
-type Index map[string][]Target
+// Index finds targets by their key, or by the key spelled in ASCII (see
+// asciiKeys).
+type Index struct{ keys, ascii map[string][]Target }
 
 // NewIndex indexes targets; those without a key are left out.
 func NewIndex(ts ...[]Target) Index {
-	x := Index{}
+	x := Index{map[string][]Target{}, map[string][]Target{}}
 	for _, l := range ts {
 		for _, t := range l {
-			if t.Key != "" {
-				x[t.Key] = append(x[t.Key], t)
+			if t.Key == "" {
+				continue
+			}
+			x.keys[t.Key] = append(x.keys[t.Key], t)
+			for _, a := range asciiKeys(t.Key) {
+				x.ascii[a] = append(x.ascii[a], t)
 			}
 		}
 	}
@@ -187,16 +192,24 @@ func NewIndex(ts ...[]Target) Index {
 // "page:key", where page is a page's `id:` or its path. An unqualified
 // key prefers a target on page itself. n is the number of targets the
 // reference could mean: 0 for none, more than 1 for an ambiguous one,
-// of which t is the first.
+// of which t is the first. A key as the targets have it wins over one
+// that matches only in ASCII.
 func (x Index) Lookup(ref, page string) (t Target, n int) {
+	if t, n = lookup(x.keys, ref, page); n > 0 {
+		return t, n
+	}
+	return lookup(x.ascii, ref, page)
+}
+
+func lookup(m map[string][]Target, ref, page string) (Target, int) {
 	if q, key, ok := strings.Cut(ref, ":"); ok {
-		for _, c := range x[key] {
+		for _, c := range m[key] {
 			if q != "" && (q == c.PageID || q == c.Page || q+"/index" == c.Page || q == c.Page+"/index") {
 				return c, 1
 			}
 		}
 	}
-	cs := x[ref]
+	cs := m[ref]
 	for _, c := range cs {
 		if c.Page == page {
 			return c, 1
@@ -207,6 +220,41 @@ func (x Index) Lookup(ref, page string) (t Target, n int) {
 	}
 	return cs[0], len(cs)
 }
+
+// asciiKeys are the ASCII spellings of a key with letters beyond ASCII,
+// which a reference may use as well: the German one, "ä", "ö", "ü" and
+// "ß" as "ae", "oe", "ue" and "ss", and the one without accents. None if
+// the key is ASCII.
+func asciiKeys(key string) []string {
+	var out []string
+	for _, a := range []string{unaccent.Replace(german.Replace(key)), unaccent.Replace(key)} {
+		if a != key && !slices.Contains(out, a) {
+			out = append(out, a)
+		}
+	}
+	return out
+}
+
+var german = strings.NewReplacer("ä", "ae", "ö", "oe", "ü", "ue", "Ä", "Ae", "Ö", "Oe", "Ü", "Ue")
+
+// unaccent drops the accents of the Latin letters.
+var unaccent = func() *strings.Replacer {
+	var pairs []string
+	for to, from := range map[string]string{
+		"a": "àáâãäåāăą", "c": "çćĉċč", "d": "ďđð", "e": "èéêëēĕėęě", "g": "ĝğġģ", "h": "ĥħ",
+		"i": "ìíîïĩīĭįı", "j": "ĵ", "k": "ķ", "l": "ĺļľŀł", "n": "ñńņň", "o": "òóôõöøōŏő",
+		"r": "ŕŗř", "s": "śŝşš", "t": "ţťŧ", "u": "ùúûüũūŭůűų", "w": "ŵ", "y": "ýÿŷ", "z": "źżž",
+		"ss": "ß", "ae": "æ", "oe": "œ", "th": "þ",
+	} {
+		for _, r := range from {
+			pairs = append(pairs, string(r), to)
+			if u := strings.ToUpper(string(r)); u != string(r) {
+				pairs = append(pairs, u, strings.ToUpper(to[:1])+to[1:])
+			}
+		}
+	}
+	return strings.NewReplacer(pairs...)
+}()
 
 // Resolver resolves a document's cross-references: the links whose
 // destination is a fragment, `[text](#key)`. A link without text gets the
@@ -274,6 +322,7 @@ func (r Resolver) Resolve(d *Document) {
 		}
 	}
 	var all Index
+	allRead := false
 	for _, x := range refs {
 		l := x.link
 		key := string(l.Destination[1:])
@@ -302,8 +351,8 @@ func (r Resolver) Resolve(d *Document) {
 				l.Destination = []byte("#" + k)
 				continue
 			}
-			if all == nil && r.All != nil {
-				all = r.All()
+			if !allRead && r.All != nil {
+				all, allRead = r.All(), true
 			}
 			if t, n = all.Lookup(key, x.page); n > 0 {
 				warn("%s: %q is not part of this output; it is shown without a link", where, t.Name)
