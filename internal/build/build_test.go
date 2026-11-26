@@ -501,3 +501,32 @@ func TestCheckReferences(t *testing.T) {
 		}
 	}
 }
+
+// ProjectTargets numbers the headings and figures as a format that
+// numbers them does: each topic as its book (issue #161).
+func TestProjectTargetsNumbers(t *testing.T) {
+	root := writeProject(t, map[string]string{
+		"folio.yml":            "formats:\n  handout: {type: docx, numbered_headings: true, numbered_figures: true}\n",
+		"book/index.md":        "# Book\n",
+		"book/part/index.md":   "---\norder: 1\n---\n# Basics\n",
+		"book/part/chapter.md": "---\norder: 1\n---\n# Start\n\n## Install\n\n![Pic](p.png)\n",
+	})
+	cfg, err := config.Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]string{}
+	for _, x := range ProjectTargets(cfg, cfg.Formats[0].Value) {
+		got[x.Page+":"+x.Key] = x.Number
+	}
+	for k, w := range map[string]string{"book/part/chapter:start": "1", "book/part/chapter:install": "1.1", "book/part/chapter:pic": "Figure 1"} {
+		if got[k] != w {
+			t.Errorf("%s: number %q, want %q (all: %v)", k, got[k], w, got)
+		}
+	}
+	for _, x := range ProjectTargets(cfg, config.Format{}) {
+		if x.Number != "" {
+			t.Errorf("unnumbered: %s:%s has %q", x.Page, x.Key, x.Number)
+		}
+	}
+}

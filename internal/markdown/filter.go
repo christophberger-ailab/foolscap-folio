@@ -52,7 +52,29 @@ func filter(d *Document, keep Keep, formats map[string]bool) {
 	for _, n := range drop {
 		if p := n.Parent(); p != nil {
 			p.RemoveChild(p, n)
+			prune(p, d.Source)
 		}
+	}
+}
+
+// prune removes a paragraph that dropped content left empty, and so the
+// list item, the list or the quote that held nothing else, so that a
+// list item that was all one span goes with it.
+func prune(n ast.Node, src []byte) {
+	for n != nil && n.Parent() != nil {
+		switch n.Kind() {
+		case ast.KindParagraph, ast.KindTextBlock, ast.KindListItem, ast.KindList, ast.KindBlockquote:
+		default:
+			return
+		}
+		for c := n.FirstChild(); c != nil; c = c.NextSibling() {
+			if t, ok := c.(*ast.Text); !ok || strings.TrimSpace(string(t.Segment.Value(src))) != "" {
+				return
+			}
+		}
+		p := n.Parent()
+		p.RemoveChild(p, n)
+		n = p
 	}
 }
 

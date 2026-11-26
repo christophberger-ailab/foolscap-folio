@@ -27,7 +27,7 @@ type Document struct {
 func New() goldmark.Markdown {
 	blocks := parser.DefaultBlockParsers()
 	for i, p := range blocks {
-		if isFencedCode(p.Value) {
+		if isVerbatim(p.Value) {
 			blocks[i] = util.Prioritized(codeTracker{p.Value.(parser.BlockParser)}, p.Priority)
 		}
 	}
@@ -57,13 +57,17 @@ func New() goldmark.Markdown {
 	return md
 }
 
-func isFencedCode(p any) bool {
-	return fmt.Sprintf("%T", p) == "*parser.fencedCodeBlockParser"
+// isVerbatim reports whether p parses a block whose lines are its own:
+// fenced code, or HTML such as a comment, read before the divs around it
+// (issue #163).
+func isVerbatim(p any) bool {
+	t := fmt.Sprintf("%T", p)
+	return t == "*parser.fencedCodeBlockParser" || t == "*parser.htmlBlockParser"
 }
 
 // Parse parses Markdown source.
 func Parse(src []byte) *Document {
-	src = unblockComments(src)
+	src = unblockComments(blockSpans(src))
 	root := New().Parser().Parse(text.NewReader(src))
 	d := &Document{Root: root, Source: src}
 	reblock(d)

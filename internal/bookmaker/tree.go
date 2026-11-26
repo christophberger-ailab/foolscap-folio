@@ -270,7 +270,7 @@ func loadPage(file, projectRoot string) (*Page, error) {
 	if err != nil {
 		return nil, err
 	}
-	fm, body, err := parseFrontMatter(normaliseNewlines(string(raw)))
+	fm, body, err := ParseFrontMatter(normaliseNewlines(string(raw)))
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", file, err)
 	}

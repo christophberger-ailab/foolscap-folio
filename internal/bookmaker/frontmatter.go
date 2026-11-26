@@ -40,9 +40,9 @@ func (fm FrontMatter) SortKey() int {
 	return fm.Order
 }
 
-// parseFrontMatter extracts the fields the bookmaker needs from a page's
+// ParseFrontMatter extracts the fields the bookmaker needs from a page's
 // front matter. Files without front matter yield a zero FrontMatter.
-func parseFrontMatter(src string) (FrontMatter, string, error) {
+func ParseFrontMatter(src string) (FrontMatter, string, error) {
 	yamlText, body, found := foliocore.SplitFrontMatter(src)
 	if !found {
 		return FrontMatter{}, body, nil

@@ -114,8 +114,9 @@ func (divParser) Close(node ast.Node, reader text.Reader, pc parser.Context) {
 func (divParser) CanInterruptParagraph() bool { return false }
 func (divParser) CanAcceptIndentedLine() bool { return false }
 
-// codeTracker wraps the fenced code block parser to count open code
-// blocks, so that a `:::` line inside code does not close a div.
+// codeTracker wraps the fenced code and HTML block parsers to count the
+// open blocks of verbatim lines, so that a `:::` line inside code or an
+// HTML comment does not close a div.
 type codeTracker struct{ parser.BlockParser }
 
 func (c codeTracker) Open(parent ast.Node, reader text.Reader, pc parser.Context) (ast.Node, parser.State) {

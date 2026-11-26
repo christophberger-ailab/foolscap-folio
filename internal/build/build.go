@@ -227,8 +227,10 @@ func footerDoc(sel config.Selection, log Logf) *markdown.Document {
 
 // ProjectTargets lists the headings and figures of every topic of the
 // project, all their content kept, for the references a render leaves
-// unlinked. A topic that cannot be read is left out.
-func ProjectTargets(cfg *config.Config) []markdown.Target {
+// unlinked. They are numbered as format f numbers them: each topic as its
+// book, as a website does. A topic that cannot be read is left out.
+func ProjectTargets(cfg *config.Config, f config.Format) []markdown.Target {
+	label := config.Selection{Config: cfg, Format: f}.FigureLabel()
 	var out []markdown.Target
 	for _, e := range cfg.Topics {
 		tree, err := loadTopic(cfg.Root, e.Value)
@@ -245,6 +247,12 @@ func ProjectTargets(cfg *config.Config) []markdown.Target {
 		}
 		doc := markdown.Parse([]byte(text))
 		markdown.AssignIDs(doc)
+		if f.NumberedHeadings {
+			markdown.NumberHeadings(doc, false, false)
+		}
+		if label != "" {
+			markdown.NumberFigures(doc, label)
+		}
 		out = append(out, markdown.Targets(doc, "", "", nil)...)
 	}
 	return out
@@ -285,7 +293,7 @@ func Document(sel config.Selection, log Logf) (*markdown.Document, Book, error) 
 	}
 	markdown.Resolver{
 		Local: markdown.NewIndex(markdown.Targets(doc, "", "", warn(log))),
-		All:   func() markdown.Index { return markdown.NewIndex(ProjectTargets(sel.Config)) },
+		All:   func() markdown.Index { return markdown.NewIndex(ProjectTargets(sel.Config, config.Format{})) },
 		Href:  func(t markdown.Target) string { return "#" + t.ID },
 		Warn:  warn(log),
 	}.Resolve(doc)
@@ -498,7 +506,7 @@ func renderSite(sel config.Selection, dir string, dryRun bool, log Logf) error {
 
 		NumberedHeadings: sel.Format.NumberedHeadings,
 		FigureLabel:      sel.FigureLabel(),
-		AllTargets:       sync.OnceValue(func() markdown.Index { return markdown.NewIndex(ProjectTargets(sel.Config)) }),
+		AllTargets:       sync.OnceValue(func() markdown.Index { return markdown.NewIndex(ProjectTargets(sel.Config, config.Format{})) }),
 	})
 	if err != nil {
 		return err

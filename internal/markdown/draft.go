@@ -124,21 +124,14 @@ func unblockComments(src []byte) []byte {
 		return src
 	}
 	var out bytes.Buffer
-	var fence string
+	var code fenceTracker
 	for off := 0; off < len(src); {
 		end := bytes.IndexByte(src[off:], '\n') + 1
 		if end == 0 {
 			end = len(src) - off
 		}
 		line := src[off : off+end]
-		trimmed := strings.TrimLeft(string(line), " ")
-		if f := codeFence(trimmed); f != "" && (fence == "" || strings.HasPrefix(f, fence) && strings.TrimSpace(trimmed) == f) {
-			if fence == "" {
-				fence = f
-			} else {
-				fence = ""
-			}
-		} else if fence == "" && bytes.Contains(line, []byte("<!--")) {
+		if !code.step(line) && bytes.Contains(line, []byte("<!--")) {
 			// A comment may run on over the next lines before its passage.
 			if m := lineComment.Find(src[off:]); m != nil {
 				if c, ok := commentText(string(m[:len(m)-1])); ok {
@@ -165,6 +158,25 @@ func reblock(d *Document) {
 		}
 		return ast.WalkContinue, nil
 	})
+}
+
+// fenceTracker follows the fenced code blocks of a text, line by line.
+type fenceTracker struct{ fence string }
+
+// step reads the next line and reports whether it is code: in a fenced
+// code block or one of its fences.
+func (t *fenceTracker) step(line []byte) bool {
+	trimmed := strings.TrimLeft(string(line), " ")
+	f := codeFence(trimmed)
+	switch {
+	case f != "" && t.fence == "":
+		t.fence = f
+	case f != "" && strings.HasPrefix(f, t.fence) && strings.TrimSpace(trimmed) == f:
+		t.fence = ""
+	default:
+		return t.fence != ""
+	}
+	return true
 }
 
 // codeFence returns the run of backticks or tildes a line opens with, if

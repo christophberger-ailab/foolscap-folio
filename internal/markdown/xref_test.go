@@ -149,3 +149,28 @@ func TestRefPrefixedTitle(t *testing.T) {
 	h, _ := xref(t, "# Chapter 3: Pages {#bm-x folio-prefix=\"Chapter 3: \"}\n\n[](#pages) [](#pages){.name}\n", false)
 	wantHTML(t, h, `<a href="#bm-x">Chapter 3, Pages</a> <a href="#bm-x">Pages</a>`)
 }
+
+// Issue #162: a heading with letters beyond ASCII keeps them in its key,
+// as Pandoc does, and a reference may spell them in ASCII as well: with
+// the German ä, ö, ü and ß as ae, oe, ue and ss, or without the accent.
+// Symbols are dropped and spaces become hyphens.
+func TestRefASCIIKey(t *testing.T) {
+	md := "# Rechercheoptionen im Burgermenü\n\n## Café Straße\n\n## The (not so far) future\n\n" +
+		"[](#rechercheoptionen-im-burgermenü) [](#rechercheoptionen-im-burgermenue) [](#rechercheoptionen-im-burgermenu) " +
+		"[](#cafe-strasse) [](#the-not-so-far-future)\n"
+	h, w := xref(t, md, false)
+	wantHTML(t, h, strings.Repeat(`<a href="#rechercheoptionen-im-burgermen%C3%BC">Rechercheoptionen im Burgermenü</a> `, 3),
+		`<a href="#caf%C3%A9-stra%C3%9Fe">Café Straße</a>`, `<a href="#the-not-so-far-future">The (not so far) future</a>`)
+	if len(w) > 0 {
+		t.Errorf("warnings: %q", w)
+	}
+}
+
+// A key written as it is wins over one that only matches in ASCII.
+func TestRefExactKeyWins(t *testing.T) {
+	h, w := xref(t, "## Übung\n\n## Uebung\n\n[](#uebung) [](#übung)\n", false)
+	wantHTML(t, h, `<a href="#uebung">Uebung</a> <a href="#%C3%BCbung">Übung</a>`)
+	if len(w) > 0 {
+		t.Errorf("warnings: %q", w)
+	}
+}

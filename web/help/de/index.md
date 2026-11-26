@@ -6,6 +6,7 @@ Alles läuft auf deinem eigenen Rechner. Der Seitenbaum und der Editor arbeiten 
 
 ## Inhalt
 
+- [Schnellstart](quickstart.md): folio installieren, ein Projekt öffnen oder anlegen, und die Markdown-Erweiterungen von folio auf einen Blick.
 - [Über Foolscap Folio](about.md): Das TechDoku-Werkzeug für den Rest von uns.
 - [Projekte öffnen](projects.md): `folio web` starten, ein Projekt öffnen und die Liste der zuletzt geöffneten Projekte nutzen.
 - [Der Seitenbaum](tree.md): Reihenfolge der Website, Drag and Drop, Seiten anlegen und löschen, Entwürfe, Statusmarken, Seiten ausblenden.
