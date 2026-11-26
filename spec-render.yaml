@@ -91,9 +91,30 @@ constraints:
       7-3: Math is not typeset
       8: 'PPTX slide decks are not supported; `::: slide` blocks and `.notes` are dropped'
       9: 'A format with `section_prefix: true` puts "Part <n>: " before each section title, and one with `chapter_prefix: true` puts "Chapter <n>: " before each chapter title; sections and chapters are each numbered continuously through the book'
-      9-2: 'A format with `numbered_headings: true` numbers a document''s headings, as "1.2 Title": the chapters through the book, as `chapter_prefix` counts them, and the headings below each chapter; a book without chapters numbers its sections and the headings of their pages instead. The preliminaries, a book''s sections and their intros (where it has chapters), and headings with the class `unnumbered` (or `{-}`) get no number, and do not count. A title that a prefix numbers already gets no second number. The contents show the numbers. A website ignores the setting'
+      9-2: 'A format with `numbered_headings: true` numbers a document''s headings, as "1.2 Title": the chapters through the book, as `chapter_prefix` counts them, and the headings below each chapter; a book without chapters numbers its sections and the headings of their pages instead. The preliminaries, a book''s sections and their intros (where it has chapters), and headings with the class `unnumbered` (or `{-}`) get no number, and do not count. A title that a prefix numbers already gets no second number. The contents show the numbers. A website numbers each topic''s pages as the topic''s book does'
+      9-3: 'A format with `numbered_figures: true` puts "Figure <n>: " before the caption of each figure (4-10), numbered through the document or through a website''s topic; the word is `figure_prefix` of the `strings` map, shipped with `en` (Figure) and `de` (Abbildung), with the fallbacks of 9-1'
       9-0: 'A section''s title starts a new page, in the DOCX (page break before) and the PDF, and is set a third larger than a chapter''s title: than h1 of `meta: fonts:`, else than the template''s or folio''s Heading 1 in the DOCX and folio''s h1 in the PDF; `meta: fonts: section: h1: size` overrides it'
       9-1: 'The words come from the `strings` map of config.cue, per language (the `lang` of folio.yml), under the keys `section_prefix` and `chapter_prefix`, shipped with `en` (Part, Chapter) and `de` (Teil, Kapitel); a language that is missing falls back to its primary language, then to folio''s built-in strings, then to English, as callout titles do (4-5-1)'
+
+  XREF:
+    description: >
+      Cross-references: links to headings and figures by their key, which
+      a document and a website resolve, filling in a target's number and
+      name where the link has no text.
+    requirements:
+      1: 'A link whose destination is a fragment, `[text](#key)`, is a reference to the target with that key; with text it links the text'
+      1-1: 'A reference without text, `[](#key)`, shows "<number>, <name>", or the name alone when the target has no number; with the class `name` it shows the name, with `number` the number, falling back to the name with a warning'
+      1-2: The classes `name` and `number` are taken off the link
+      2: A heading is a target; its key is the identifier it declares, else the slug of its text, a page title's of its text as well; a number before it (DOCUMENT 9-2) is its number, and a section's or chapter's prefix (DOCUMENT 9), without its colon, is its number instead
+      3: 'A figure (DOCUMENT 4-10) and an image with an identifier are targets; the key is the identifier, else the slug of the alt text; the name is the alt text and the number "Figure <n>" (DOCUMENT 9-3). An image without an identifier of its own gets one, unique in the output, made from its key'
+      3-1: A figure whose key a heading of the same page has, or an earlier figure of it, is no target, and a warning says so
+      4: Keys are unique per page, a duplicate getting -2, -3, … appended; a reference prefers its own page's target, and one that several other pages have links to the first, with a warning
+      4-1: '`#<page>:<key>` names the page: by the `id:` of its front matter or by its path in the project (`guide/install`)'
+      4-2: A link from a page to a heading of another page (`/guide/install.md#overview`) links to that page's heading in a document
+      5: A website links references across its pages; a document within itself
+      6: A reference to a target the output leaves out -- another topic, or content not shown -- shows the target's name (or the link's text) without a link, with a warning
+      6-1: A reference to no target and to no element of the page (a span, a div, an HTML id) keeps its text as a link, or shows "??key" without text, with a warning; one to such an element is a link as before
+      7: In the DOCX a referenced image is a bookmark; in the PDF a figure is an anchor
 
   DRAFT:
     description: >

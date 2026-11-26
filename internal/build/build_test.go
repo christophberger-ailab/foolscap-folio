@@ -473,3 +473,31 @@ func TestDocumentLinksFigures(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+// Checking the references reports those to nothing, the ambiguous ones
+// and those that name a page by its path.
+func TestCheckReferences(t *testing.T) {
+	root := writeProject(t, map[string]string{
+		"folio.yml":      "topics:\n  book: {}\n  other: {}\n",
+		"book/index.md":  "# Book\n\n## Overview\n\n[](#overview) [](#elsewhere) [](#nowhere) [](#other/index:overview) [](#common)\n",
+		"book/a.md":      "# A\n\n## Common\n",
+		"other/index.md": "# Other\n\n## Overview\n\n## Elsewhere\n\n## Common\n",
+	})
+	cfg, err := config.Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, p := range CheckReferences(cfg) {
+		got = append(got, p.File+": "+p.Message)
+	}
+	all := strings.Join(got, "\n")
+	if len(got) != 3 {
+		t.Errorf("got %d problems:\n%s", len(got), all)
+	}
+	for _, w := range []string{`book/index.md: reference "#nowhere"`, `book/index.md: reference "#other/index:overview" names its page by its path`, `"#common" on page "book": 2 headings`} {
+		if !strings.Contains(all, w) {
+			t.Errorf("missing %q in\n%s", w, all)
+		}
+	}
+}

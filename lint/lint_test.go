@@ -3,6 +3,7 @@ package lint
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -103,5 +104,22 @@ func TestRunLintsMarkdownPages(t *testing.T) {
 	writeFile(t, filepath.Join(root, "index.md"), "::: open\nnever closed\n")
 	if err := Run(root, "", ""); err == nil {
 		t.Error("an unbalanced fence in index.md went unreported")
+	}
+}
+
+// A reference to nothing is a finding.
+func TestRunReportsUnknownReferences(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "book"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, filepath.Join(root, "folio.yml"), "topics:\n  book: {}\n")
+	writeFile(t, filepath.Join(root, "book", "index.md"), "# Book\n\n## Here\n\n[](#here)\n")
+	if err := Run(root, "", ""); err != nil {
+		t.Errorf("a good reference was reported: %v", err)
+	}
+	writeFile(t, filepath.Join(root, "book", "index.md"), "# Book\n\n[](#nowhere)\n")
+	if got := referenceFindings(root, []string{"book/index.md"}); len(got) != 1 || !strings.HasPrefix(got[0], "book/index.md:3: references: ") {
+		t.Errorf("findings = %q", got)
 	}
 }

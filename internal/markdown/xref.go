@@ -225,6 +225,9 @@ type Resolver struct {
 	Href func(Target) string
 	// Warn receives the references that cannot be linked. May be nil.
 	Warn func(format string, args ...any)
+	// Unnumbered says that the output numbers nothing, so that a
+	// reference to a number is not warned about.
+	Unnumbered bool
 }
 
 // Resolve resolves the references of d. A fragment that names an element
@@ -286,6 +289,10 @@ func (r Resolver) Resolve(d *Document) {
 		}
 		empty := emptyLink(l, d.Source)
 		where := fmt.Sprintf("reference %q on %s", "#"+key, pageName(x.page))
+		noNumber := warn
+		if r.Unnumbered {
+			noNumber = func(string, ...any) {}
+		}
 		t, n := r.Local.Lookup(key, x.page)
 		if n == 0 {
 			if ids[key] {
@@ -301,7 +308,7 @@ func (r Resolver) Resolve(d *Document) {
 			if t, n = all.Lookup(key, x.page); n > 0 {
 				warn("%s: %q is not part of this output; it is shown without a link", where, t.Name)
 				t.Number = ""
-				unlink(l, refText(t, style, key, warn, where), empty)
+				unlink(l, refText(t, style, key, warn, noNumber, where), empty)
 				continue
 			}
 			warn("%s: no heading or figure has this identifier", where)
@@ -318,7 +325,7 @@ func (r Resolver) Resolve(d *Document) {
 		dropClasses(l, "name", "number")
 		if empty {
 			l.RemoveChildren(l)
-			l.AppendChild(l, ast.NewString([]byte(refText(t, style, key, warn, where))))
+			l.AppendChild(l, ast.NewString([]byte(refText(t, style, key, warn, noNumber, where))))
 		}
 	}
 }
@@ -336,7 +343,8 @@ func rawIDs(ids map[string]bool, segs *text.Segments, src []byte) {
 }
 
 // refText is what a reference without text shows of t.
-func refText(t Target, style, key string, warn func(string, ...any), where string) string {
+// noNumber receives the warning for a number that the target lacks.
+func refText(t Target, style, key string, warn, noNumber func(string, ...any), where string) string {
 	name := t.Name
 	if name == "" {
 		name = t.Number
@@ -345,7 +353,7 @@ func refText(t Target, style, key string, warn func(string, ...any), where strin
 	case style == "number" && t.Number != "":
 		return t.Number
 	case style == "number":
-		warn("%s: the target has no number; its name is shown", where)
+		noNumber("%s: the target has no number; its name is shown", where)
 	case style == "name" || t.Number == "":
 	default:
 		return t.Number + ", " + t.Name
