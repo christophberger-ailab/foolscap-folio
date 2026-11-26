@@ -575,3 +575,38 @@ func TestEnvSetsPWD(t *testing.T) {
 		t.Errorf("PWD in gitEnv(%q) = %q, want exactly PWD=%s", dir, pwd, dir)
 	}
 }
+
+// Changed names every file changed since the last commit -- staged, not
+// staged, or new -- by its path inside the directory asked about, which
+// leaves out what changed elsewhere in the repository.
+func TestChanged(t *testing.T) {
+	root, proj := subdirRepo(t)
+	write(t, proj, "index.qmd", "---\ntitle: Book\n---\n# Edited\n")
+	write(t, proj, "new.qmd", "---\ntitle: New\n---\n")
+	write(t, root, "index.qmd", "---\ntitle: Elsewhere\n---\n")
+	if err := os.MkdirAll(filepath.Join(proj, "ch"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	write(t, proj, "ch/staged.qmd", "---\ntitle: Staged\n---\n")
+	if _, err := Stage(proj, "doc/Training/book/ch/staged.qmd"); err != nil {
+		t.Fatal(err)
+	}
+	got, err := Changed(proj)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"ch/staged.qmd", "index.qmd", "new.qmd"}
+	if !equal(got, want) {
+		t.Errorf("Changed = %v, want %v", got, want)
+	}
+}
+
+// A directory outside any working tree has no changes to report.
+func TestChangedOutsideARepository(t *testing.T) {
+	if !Available() {
+		t.Skip("git is not installed")
+	}
+	if _, err := Changed(t.TempDir()); err == nil {
+		t.Error("no error outside a repository")
+	}
+}

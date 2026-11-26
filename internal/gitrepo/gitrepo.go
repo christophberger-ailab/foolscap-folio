@@ -120,6 +120,37 @@ func GetStatus(dir string) (Status, error) {
 	return parseStatus(out), nil
 }
 
+// Changed lists the files under dir changed since the last commit --
+// staged, not staged, or untracked -- by their slash-separated paths
+// inside dir, sorted and each once. What changed elsewhere in the
+// repository is left out.
+func Changed(dir string) ([]string, error) {
+	root, err := Root(dir)
+	if err != nil {
+		return nil, err
+	}
+	out, err := run(root, "status", "--porcelain", "-z", "--untracked-files=all")
+	if err != nil {
+		return nil, err
+	}
+	st := parseStatus(out)
+	// Git reports the top with every symlink resolved, so dir has to be
+	// seen the same way for the paths to be found inside it.
+	if real, err := filepath.EvalSymlinks(dir); err == nil {
+		dir = real
+	}
+	var changed []string
+	for _, f := range slices.Concat(st.Staged, st.Unstaged) {
+		rel, err := filepath.Rel(dir, filepath.Join(root, filepath.FromSlash(f.Path)))
+		if err != nil || !filepath.IsLocal(rel) {
+			continue
+		}
+		changed = append(changed, filepath.ToSlash(rel))
+	}
+	slices.Sort(changed)
+	return slices.Compact(changed), nil
+}
+
 // parseStatus reads the NUL-separated records of `git status --porcelain
 // -z --branch`. The first record is the branch header; every other one is
 // "XY <path>", followed by a record of its own with the original path when

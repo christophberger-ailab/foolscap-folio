@@ -85,6 +85,8 @@ constraints:
       1-7: 'A page whose frontmatter sets `hide: true` is left out of the tree; a section page takes its whole branch with it, and a folder without a section page goes once all its pages are hidden. The default is `false`'
       1-7-1: A hidden page is still part of the project -- it renders, keeps its place in the order a move renumbers, and is found by the search, which lists it under its path
       1-7-2: Saving a page that is hidden or shown again refreshes the tree at once
+      1-8: A page whose file changed since the last Git commit -- edited, staged or not, or new and not yet committed -- shows an asterisk after its title, with the tooltip "Changed since the last commit"; outside a Git working tree no page is marked
+      1-8-1: The marks follow the working tree without a reload -- a save, a commit, or a change made outside the app -- since the tree's watch refreshes the tree whenever the set of changed pages differs from the one it shows
       2: Dragging a page updates the `order` frontmatter of the affected pages and renames files; the Markdown heading levels of the moved page are left as they are
       2-1: A drag that moves a page to another parent renames its file on disk; if the page open in the editor is the moved one, or sits inside a moved section, the editor is re-pointed at the new path, so autosave keeps writing to the file instead of to a path that no longer exists
       2-2: The re-pointing replaces the editor's path and heading only, never its text, which may hold edits that are not on disk yet; an autosave that the rename had already broken is retried at the new path

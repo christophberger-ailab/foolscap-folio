@@ -1566,6 +1566,12 @@ li.page.bad-fences > .row > .title {
   text-decoration: underline;
 }
 
+/* A page changed since the last commit: an asterisk after its title. */
+.title .modified {
+  color: var(--muted);
+  margin-left: 0.15em;
+}
+
 .delete,
 .add {
   visibility: hidden;

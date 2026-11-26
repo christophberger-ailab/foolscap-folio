@@ -29,6 +29,7 @@ type Page struct {
 	Flags     []Flag // status flags from the frontmatter and the body, see PageFlags
 	Hidden    bool   // the page's frontmatter says `hide: true`
 	Home      bool   // the root index page, the website's home page
+	Modified  bool   // the page's file changed since the last Git commit; set by the web UI
 	// TooDeep, if set, says why the page is marked: its headings, or
 	// those of a page below it, would go beyond h6 in print at their
 	// level of the tree (see markTooDeep).

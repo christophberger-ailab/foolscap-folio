@@ -46,6 +46,12 @@ type server struct {
 	// again (see watch).
 	mediaFP string
 
+	// changedFP is the set of pages changed since the last commit as the
+	// tree last showed it (see changedPages). A commit changes no page on
+	// disk, and the app's own save is no outside change, yet either moves
+	// the tree's modified marks, so /watch compares it on its own.
+	changedFP string
+
 	// configFile is the one file the settings live in; empty keeps them
 	// to this run. cfg holds its content: the projects opened before,
 	// what is selected per project, the preview's stylesheet, and the
@@ -386,6 +392,9 @@ func (s *server) load() (state, error) {
 	tree, err := project.Load(s.root)
 	if tree != nil {
 		flattenTreeSpans(tree.Pages, spanSymbols(s.loadCSS(st.ActiveCSS)))
+		changed := changedPages(s.root)
+		markModified(tree.Pages, changed)
+		s.changedFP = strings.Join(changed, "\x00")
 	}
 	st.Tree = tree
 	return st, err
@@ -691,6 +700,8 @@ func (s *server) renderTree(w http.ResponseWriter, msg string) {
 // first poll after the app starts only takes note of the images as they
 // are: the page load has just fetched them.
 func (s *server) watch(w http.ResponseWriter, r *http.Request) {
+	// Git is asked without the lock held, as the Git pane asks it.
+	changed := strings.Join(changedPages(s.gitRoot()), "\x00")
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.root == "" {
@@ -704,7 +715,7 @@ func (s *server) watch(w http.ResponseWriter, r *http.Request) {
 		}
 		s.mediaFP = media
 	}
-	if tree == s.fp {
+	if tree == s.fp && changed == s.changedFP {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
