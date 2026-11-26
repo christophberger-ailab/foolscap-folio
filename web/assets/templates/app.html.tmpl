@@ -516,6 +516,7 @@
   {{template "render" .}}
   {{template "git" .}}
   {{template "images" .}}
+  {{template "bookmarks" .}}
 </div>{{end}}
 
 {{/* The comments pane lists the comments of the page in the editor, which
@@ -523,6 +524,21 @@
 {{define "comments"}}<section class="side-pane comments-pane" id="comments-pane" data-pane="comments" hidden>
   <div class="comments-list" id="comments-list"></div>
 </section>{{end}}
+
+{{/* The Bookmarks pane lists the bookmarked pages. Its list is fetched
+     when the pane comes into view, and again whenever the tree is
+     refreshed, which is what a page gaining or losing its bookmark does;
+     app.js raises folio-tree-changed then. dock.js keeps the pane closed
+     until the first bookmark turns up. */}}
+{{define "bookmarks"}}{{if .Root}}<section class="side-pane bookmarks-pane" id="bookmarks-pane" data-pane="bookmarks" hidden>
+  <div class="bookmarks-body" id="bookmarks-body" hx-get="/bookmarks" hx-swap="innerHTML"
+       hx-trigger="folio-shown from:#bookmarks-pane, folio-tree-changed from:body"></div>
+</section>{{end}}{{end}}
+
+{{define "bookmarks-list"}}{{if .}}<ul class="bookmarks-list list">{{range .}}<li>
+  <button type="button" class="bookmark-open" data-path="{{.Path}}" title="Open {{.Path}}">
+    <span class="bookmark-title">{{.Title}}</span> <span class="path">{{.Path}}</span></button>
+</li>{{end}}</ul>{{else}}<p class="empty">No page is bookmarked. The 🔖 above the editor bookmarks the page open there.</p>{{end}}{{end}}
 
 {{/* The images pane lists the images under assets/images, which app.js
      fetches from /images and lays out in the view and order picked. It
@@ -602,6 +618,10 @@
 
 {{define "content"}}<div class="content-header">
   <h2 class="content-title" id="content-title">{{template "content-heading" .}}</h2>
+  {{/* Toggles `bookmarked:` in the editor's text; editor.js keeps its
+       state in step with the text (see showBookmark). */ -}}
+  <button type="button" class="bookmark-toggle" id="bookmark-toggle" aria-pressed="false"
+          title="Bookmark this page" aria-label="Bookmark">🔖</button>
   <span class="save-status" id="save-status"></span>
   {{/* Shown only when a save was refused because the file changed on disk
        underneath. Refusing is what keeps somebody else's work; this is what

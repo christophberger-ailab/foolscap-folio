@@ -37,9 +37,28 @@ var PANES = {
   render: { label: 'Render', id: 'render-pane', scroll: '.render-body', empty: 'Open a project to render it.' },
   git: { label: 'Git', id: 'git-pane', scroll: '#git-body', empty: 'Open a project to see its changes.' },
   images: { label: 'Images', id: 'images-pane', scroll: '#images-list', empty: 'Open a project to see its images.' },
-  help: { label: 'Help', id: 'help-pane', scroll: '#help', empty: '' }
+  help: { label: 'Help', id: 'help-pane', scroll: '#help', empty: '' },
+  bookmarks: { label: 'Bookmarks', id: 'bookmarks-pane', scroll: '#bookmarks-body', empty: 'Open a project to see its bookmarks.' }
 };
 var PANE_NAMES = Object.keys(PANES);
+
+// LATE_PANES stay out of the dock until they have something to show: the
+// Bookmarks pane joins it with the first bookmark (see offerPane). Once it
+// has, it is a pane like any other, which the Panes menu closes and opens.
+var LATE_PANES = ['bookmarks'];
+
+// paneOffered tells whether a fresh dock holds the pane: every pane but a
+// late one that has not yet been offered.
+function paneOffered(name) {
+  if (LATE_PANES.indexOf(name) < 0) {
+    return true;
+  }
+  try {
+    return localStorage.getItem('paneOffered.' + name) !== null;
+  } catch (e) {
+    return false;
+  }
+}
 
 // PAGE_PANES come with the page; the others with the project.
 var PAGE_PANES = ['preview', 'copyedit'];
@@ -54,7 +73,7 @@ function newGroup(tabs, active) {
 }
 
 function defaultLayout() {
-  return newGroup(PANE_NAMES.slice(), 'preview');
+  return newGroup(PANE_NAMES.filter(paneOffered), 'preview');
 }
 
 // migrateLayout builds the dock from what the side-by-side panes before it
@@ -80,7 +99,7 @@ function migrateLayout() {
     return null;
   }
   var last = groups[groups.length - 1];
-  PANE_NAMES.forEach(function (name) {
+  PANE_NAMES.filter(paneOffered).forEach(function (name) {
     if (!open[name]) {
       last.tabs.push(name);
     }
@@ -270,6 +289,33 @@ function openPane(name) {
   g.active = name;
   lastGroup = g.group;
   setPanesHidden(false); // a pane opened is meant to be seen
+  commit();
+}
+
+// offerPane brings a late pane into the dock the first time it has
+// something to show, as a tab of the group last used that does not push
+// the active one aside; after that the user's layout decides.
+function offerPane(name) {
+  if (paneOffered(name)) {
+    return;
+  }
+  try {
+    localStorage.setItem('paneOffered.' + name, '1');
+  } catch (e) {
+    // Storage off: the pane is offered again next time.
+  }
+  if (paneOpen(name)) {
+    return;
+  }
+  var g = findGroup(lastGroup);
+  if (!g) {
+    eachGroup(function (first) { g = g || first; });
+  }
+  if (g) {
+    g.tabs.push(name);
+  } else {
+    dock = newGroup([name]);
+  }
   commit();
 }
 

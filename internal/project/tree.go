@@ -54,13 +54,17 @@ type Flag struct {
 }
 
 // The status flags a page can carry, which the tree shows in this order:
-// its `status:`, a `==TODO==` in it, a `review:` and a comment.
+// its `status:`, a `==TODO==` in it, a `review:`, a comment, and a
+// bookmark.
 var (
 	newFlag     = Flag{"\U0001F195", "New page"}          // 🆕
 	oldFlag     = Flag{"\U0001F5D1\uFE0F", "Deprecated"}  // 🗑️
 	todoFlag    = Flag{"\U0001F6A7", "Contains todos"}    // 🚧
 	reviewFlag  = Flag{"\U0001F440", "Needs review"}      // 👀
 	commentFlag = Flag{"\U0001F4AC", "Contains comments"} // 💬
+
+	// BookmarkFlag marks a page whose frontmatter says `bookmarked: true`.
+	BookmarkFlag = Flag{"\U0001F516", "Bookmarked"} // 🔖
 )
 
 // statusFlags maps the values of `status:` to their flags; deprecated,
@@ -99,6 +103,9 @@ func pageFlagsOf(src []byte, fm FrontMatter) []Flag {
 	}
 	if hasComment(src) {
 		flags = append(flags, commentFlag)
+	}
+	if v, _ := fm.Value("bookmarked"); v == true {
+		flags = append(flags, BookmarkFlag)
 	}
 	return flags
 }

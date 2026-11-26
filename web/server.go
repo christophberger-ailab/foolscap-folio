@@ -176,6 +176,7 @@ func newServer(configFile string) (*server, error) {
 	s.mux.HandleFunc("GET /complete", s.complete)
 	s.mux.HandleFunc("GET /media/{path...}", s.media)
 	s.mux.HandleFunc("GET /images", s.images)
+	s.mux.HandleFunc("GET /bookmarks", s.bookmarksHandler)
 	s.mux.HandleFunc("POST /save", s.save)
 	s.mux.HandleFunc("POST /diagram", s.diagram)
 	s.mux.HandleFunc("POST /render", s.startRender)
