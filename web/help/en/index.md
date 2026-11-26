@@ -6,6 +6,7 @@ Everything runs on your own machine. The page tree and the editor work on the `.
 
 ## Contents
 
+- [Quickstart](quickstart.md): install folio, open or create a project, and folio's Markdown extensions at a glance.
 - [About Foolscap Folio](about.md): The technical documentation tool for the rest of us.
 - [Opening projects](projects.md): start `folio web`, open a project with the folder dialog, and use the recent projects list.
 - [The page tree](tree.md): website order, drag and drop, creating and deleting pages, drafts, status marks, hiding pages.

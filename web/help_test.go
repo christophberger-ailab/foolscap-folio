@@ -177,3 +177,27 @@ func TestHelpTitle(t *testing.T) {
 		t.Errorf("helpTitle = %q", got)
 	}
 }
+
+// Issue #165: the help opens its topics with a quickstart: concise
+// how-tos for installing, opening and creating a project, and folio's
+// Markdown extensions.
+func TestHelpHasAQuickstart(t *testing.T) {
+	for _, lang := range helpLanguages() {
+		topics, err := helpTopics(lang.Code)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(topics) < 2 || topics[1].Name != "quickstart.md" {
+			t.Errorf("%s: the quickstart is not the first topic: %+v", lang.Code, topics)
+		}
+		page, err := helpPage(lang.Code, "quickstart.md")
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, want := range []string{"folio init", "folio web", "::: ", "]{.", "callout-", "[](#", "{width=", "\n: "} {
+			if !strings.Contains(string(page), want) {
+				t.Errorf("%s: the quickstart does not show %q", lang.Code, want)
+			}
+		}
+	}
+}
