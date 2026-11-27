@@ -166,6 +166,7 @@ func newServer(configFile string) (*server, error) {
 	s.mux.HandleFunc("GET /help", s.helpTopicsHandler)
 	s.mux.HandleFunc("GET /help/{lang}/{name}", s.helpPageHandler)
 	s.mux.HandleFunc("POST /open", s.open)
+	s.mux.HandleFunc("POST /init", s.initHandler)
 	s.mux.HandleFunc("GET /browse", s.browse)
 	s.mux.HandleFunc("GET /clone", s.cloneForm)
 	s.mux.HandleFunc("POST /clone", s.cloneHandler)
@@ -236,6 +237,8 @@ type state struct {
 	// User is the name new comments and replies are signed with (see
 	// user.go); the editor reads it off the page.
 	User string
+	// Init offers to start a project in an open folder without folio.yml.
+	Init *initView
 }
 
 // openView is the top bar's part about the open folio: its title, shown
@@ -398,6 +401,7 @@ func (s *server) load() (state, error) {
 	}
 	st.Render = s.renderView()
 	st.Page = s.lastPage()
+	st.Init = s.initOffer()
 	tree, err := project.Load(s.root)
 	if tree != nil {
 		flattenTreeSpans(tree.Pages, spanSymbols(s.loadCSS(st.ActiveCSS)))

@@ -36,6 +36,7 @@ Die obere Leiste zeigt den Titel des offenen Projekts, dann `Open`, dann `↻ Re
 - Tippe oder füge einen Pfad in das Feld oben ein und drücke `Enter`, um dorthin zu wechseln.
 - Die Liste Recent links enthält die zehn zuletzt geöffneten Projekte, das neueste zuerst. Ein Klick öffnet eines. Ein Projekt, das du über die Kommandozeile gestartet hast, gilt als geöffnet und erscheint beim nächsten Mal in der Liste.
 - `Esc` oder `Cancel` schließt den Dialog.
+- Ein Ordner ohne `folio.yml` öffnet sich mit einem Angebot im Editorbereich: `Start a new project here` schreibt eine `folio.yml`, eine `_brand.yml` und, in einem leeren Ordner, eine Startseite, wie `folio init`; in einem leeren Ordner schreibt `Create a demo project here` das Demoprojekt, wie `folio init --demo`. Beides öffnet das neue Projekt.
 - `↻ Reload` liest die offene Seite und den Baum neu von der Platte.
 
 Beim Öffnen eines Projekts wird alles aktualisiert, was dazugehört: der Seitenbaum, die Bereiche, darunter Render und Git, und die Schaltfläche Editor.

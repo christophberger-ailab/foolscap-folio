@@ -101,7 +101,7 @@ Global flags apply to every command:
 | command                                    | what it does                                                                                        |
 | ------------------------------------------ | --------------------------------------------------------------------------------------------------- |
 | `folio render [<topic>…]`                  | render the project's topic × format × audience matrix                                               |
-| `folio init`                               | write a starter `folio.yml` and `_brand.yml` into a Markdown tree, or a sample project into an empty folder |
+| `folio init`                               | write a starter `folio.yml` and `_brand.yml` into a Markdown tree, or start a new project (`--demo`: the demo project) in an empty folder |
 | `folio migrate`                            | write `folio.yml` from the project's old `_quarto*.yml` files                                       |
 | `folio lint [<topic>]`                     | check the `.qmd` sources (currently: unclosed `:::` fences)                                         |
 | `folio web [<path>]`                       | serve the local sorting, editing and rendering UI                                                   |
@@ -563,11 +563,14 @@ The PDF has its own layout; it does not reproduce the Word template. Library res
 folio init --dry-run     # print the folio.yml that would be written
 folio init               # write it
 folio init --force       # overwrite an existing folio.yml
+folio init --demo        # in an empty folder: write the demo project
 ```
 
 `folio init` writes a starter `folio.yml` into a tree of `.md` or `.qmd` pages that has none yet. It takes the title from the root `index.qmd` or `index.md` (its `title:`, else its first heading), else from the first heading of `README.md`, else from the folder's name; lists every content folder as a topic; adds the `web` format; and spells out where `folio web` and `folio preview` listen. Commented examples show a document format, audiences and `lang`. It refuses to overwrite an existing `folio.yml` (or `qm.yml`) without `--force`, refuses a tree without content folders, sends a tree that still has `_quarto*.yml` files to `folio migrate`, and checks that the result loads.
 
-Beside the `folio.yml` it writes a sample `_brand.yml` -- colors, type sizes and cover sizes, with fonts and a logo as commented examples -- unless the project has a brand file already, which it never overwrites. If you have a global `_brand.yml` beside folio's settings file, the new one starts with a prominent warning that it overrides the global one for this project. In an empty folder (dot files such as `.git` aside), `folio init` first writes a sample project to start from: a home page, a `handbook` topic with its preliminaries, two sections and their chapters, and a logo in a light and a dark variant that the sample brand names. Each page explains what its place in the tree makes it, so `folio preview` shows the structure right away.
+Beside the `folio.yml` it writes a sample `_brand.yml` -- colors, type sizes and cover sizes, with fonts and a logo as commented examples -- unless the project has a brand file already, which it never overwrites. If you have a global `_brand.yml` beside folio's settings file, the new one starts with a prominent warning that it overrides the global one for this project. In an empty folder (dot files such as `.git` aside), `folio init` starts a new project: a home page `index.md` beside `folio.yml` and `_brand.yml`. Its `folio.yml` lists no topics yet, so every folder of pages you add becomes one. `folio init --demo` writes a demo project there instead: a home page; a `handbook` topic with its preliminaries, two sections and their chapters, whose pages explain what their place in the tree makes them; a `showcase` topic with sections, chapters and a subchapter that briefly show each Markdown extension (conditional content, callouts, variables, cross-references, definition lists, a diagram, image sizes); and a logo in a light and a dark variant that the sample brand names. Its `folio.yml` sets up a website, a DOCX and PDF handout and two audiences, so `folio render` shows the whole matrix. `--demo` in a folder that is not empty is an error.
+
+`folio web` offers the same: open a folder without `folio.yml` from the Open dialog, and the editor area offers **Start a new project here** (`folio init`) and, in an empty folder, **Create a demo project here** (`folio init --demo`). Either opens the project it wrote.
 
 ### Migrating an existing project
 

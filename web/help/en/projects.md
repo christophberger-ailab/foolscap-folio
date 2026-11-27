@@ -36,6 +36,7 @@ The top bar shows the open project's title, then `Open`, then `↻ Reload`.
 - Type or paste a path into the field at the top and press `Enter` to go there.
 - The Recent list on the left holds the ten projects you opened most recently, newest first. One click opens one. A project you started from the command line counts as opened, so it appears in the list next time.
 - `Esc` or `Cancel` closes the dialog.
+- A folder without `folio.yml` opens with an offer in the editor area: `Start a new project here` writes a `folio.yml`, a `_brand.yml` and, in an empty folder, a home page, as `folio init` does; in an empty folder, `Create a demo project here` writes the demo project, as `folio init --demo` does. Either opens the new project.
 - `↻ Reload` reads the open page and the tree from disk again.
 
 Opening a project updates everything that belongs to it: the page tree, the panes, among them the Render and Git panes, and the Editor button.

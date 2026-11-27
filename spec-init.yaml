@@ -4,7 +4,7 @@ feature:
 
 components:
   COMMAND:
-    description: folio init [--force] [--dry-run]
+    description: folio init [--force] [--dry-run] [--demo]
     requirements:
       1: Object name is "init"
       2: No subcommand
@@ -12,6 +12,7 @@ components:
       3-1: Flag --project sets the path to the document tree. Defaults to the current directory
       3-2: Flag --dry-run prints the folio.yml that would be written instead of writing it. Defaults to false
       3-3: Flag --force overwrites an existing folio.yml. Defaults to false
+      3-4: Flag --demo writes the demo project into an empty folder (see PROCESS 7-1). Defaults to false
 
 constraints:
   STANDARD: See the constraints in spec.yaml.
@@ -29,7 +30,8 @@ constraints:
       5: The `web` and `preview` sections state the default listen addresses
       6: Comments explain the file and show examples of a document format, audiences and `lang`
       6-1: The comments show an example of a page `footer`
-      7: In a folder that holds nothing but dot files (such as `.git`), init first writes a sample project embedded in the binary -- a home page, one topic with its preliminaries, sections and chapters, and a logo with a light and a dark variant -- whose pages explain what their place in the tree means; the title is still the folder's name. With --dry-run nothing is written and the sample's folio.yml is printed
+      7: In a folder that holds nothing but dot files (such as `.git`), init starts a new project -- a home page `index.md` whose title is the project's, beside folio.yml and the brand -- and the folio.yml lists no topics but shows the list as a comment, so every content folder added later is a topic. With --dry-run nothing is written and the folio.yml is printed
+      7-1: With --demo, init first writes the demo project embedded in the binary instead -- a home page; a topic `handbook` with its preliminaries, sections and chapters, whose pages explain what their place in the tree means; a topic `showcase` with sections, chapters and a subchapter that briefly show each Markdown extension (conditional blocks and spans, `.content-visible` and `.content-hidden`, callouts, variables, cross-references, definition lists, the pagebreak shortcode, comments, a mermaid diagram, figures and image sizes, the `status`, `review` and `id` front matter keys); and a logo with a light and a dark variant. Its folio.yml has a website that shows `explanation` blocks, a DOCX and PDF handout, the audiences `everyone` and `experts`, and a `product` variable, and every render of it is free of warnings; the title is still the folder's name. --demo in a folder that is not empty is an error, and nothing is written
       8: A project without `_brand.yml` (or `_brand.yaml`) gets a sample one -- palette, colors, type and cover sizes, with commented font examples -- that is checked to load before it is written; the sample project's names its logo, any other project's shows the logo as a commented example. An existing brand file is never overwritten, not even with --force, and --dry-run writes none
       8-1: If the user's global `_brand.yml` (beside config.cue) exists, the sample brand starts with a prominent comment warning that it overrides that file, naming it
       9: The command prints each file it wrote
