@@ -8,15 +8,15 @@ Alles läuft auf deinem eigenen Rechner. Der Seitenbaum und der Editor arbeiten 
 
 - [Schnellstart](quickstart.md): folio installieren, ein Projekt öffnen oder anlegen, und die Markdown-Erweiterungen von folio auf einen Blick.
 - [Über Foolscap Folio](about.md): Das TechDoku-Werkzeug für den Rest von uns.
-- [Projekte öffnen](projects.md): `folio web` starten, ein Projekt öffnen und die Liste der zuletzt geöffneten Projekte nutzen.
+- [Projekte öffnen](projects.md): `folio web` starten, ein Projekt öffnen die Liste der zuletzt geöffneten Projekte nutzen, aus einem Repository klonen und folio aktualisieren.
 - [Der Seitenbaum](tree.md): Reihenfolge der Website, Drag and Drop, Seiten anlegen und löschen, Entwürfe, Statusmarken, Seiten ausblenden.
-- [Eine Seite bearbeiten](editor.md): Autosave, Konflikte, Vim-Modus und Link-Vervollständigung.
-- [Die Bereiche neben dem Editor](panes.md): Tabs für Vorschau, Copyedit, Kommentare, Render, Git und Hilfe, nebeneinander oder übereinander angeordnet.
+- [Eine Seite bearbeiten](editor.md): Autosave, Konflikte, Lesezeichen, Rechtschreibprüfung, Vim-Modus, Kommentare und Link-Vervollständigung.
+- [Die Bereiche neben dem Editor](panes.md): Tabs für Vorschau, Copyedit, Kommentare, Render, Git, Bilder, Lesezeichen und Hilfe, nebeneinander oder übereinander angeordnet.
 - [Die Markdown-Vorschau](preview.md): was die Vorschau zeigt, Bilder, Zielgruppen und eigenes CSS.
 - [Lektorat mit einem LLM](copyedit.md): Editing tasks, API-Verbindungen und der Umgang mit Vorschlägen.
 - [Suchen](search.md): Seiten anhand der Wörter darin finden.
 - [Rendern](render.md): Themen, Zielgruppen und Formate wählen und ein Rendering starten.
-- [Der Git-Bereich](git.md): stagen, committen, pushen und Diffs lesen.
+- [Der Git-Bereich](git.md): stagen, committen, pushen, synchronisieren und Diffs lesen.
 - [Dateien in anderen Editoren öffnen](external-editor.md): das Projekt oder ein Bild an ein anderes Programm übergeben.
 - [Konfigurationsseiten und Einstellungsdatei](settings.md): wo deine Einstellungen liegen und wie du sie bearbeitest.
 - [Die folio-Kommandozeile im Überblick](commands.md): die übrigen Befehle von `folio`.

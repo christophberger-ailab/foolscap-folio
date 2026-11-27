@@ -38,7 +38,7 @@ On the origin of the paper format, Wikipedia [writes](https://en.wikipedia.org/w
 
 ## Install
 
-On Windows, the easiest way is the setup program: download `folio_<version>_windows_setup.exe` from the latest [release](../../releases/latest), double-click it and follow the steps. It needs no administrator rights, puts `folio` on your `PATH`, and adds **Foolscap Folio** to the Start menu, which starts `folio web`. 
+On Windows, the easiest way is the setup program: download `folio_<version>_windows_setup.exe` from the latest [release](../../releases/latest), double-click it and follow the steps. It needs no administrator rights, puts `folio` on your `PATH`, and adds **Foolscap Folio** to the Start menu, which starts `folio web --browser`: the app opens in your browser, and the console window beside it, minimized to the taskbar, stops folio web when you close it. 
 
 Or, in a terminal, with winget, which comes with Windows 10 and 11:
 
@@ -139,6 +139,7 @@ folio web                    # serve the project at --project on localhost:8199,
                           # or the next free port up if that one is taken
 folio web ../handbook        # serve that project instead
 folio web --addr :9000       # listen elsewhere
+folio web --browser          # and open it in the default browser
 ```
 
 A project can name its own address in its `folio.yml` (`web: {baseurl: localhost, port: 8200}`, see [`folio.yml`](#folioyml)); `--addr` still wins over it.

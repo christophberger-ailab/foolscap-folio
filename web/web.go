@@ -7,6 +7,7 @@
 //	qm web                 -> serve the project at --project on the default port
 //	qm web <path>          -> serve the project at <path>
 //	qm web --addr :9000    -> listen elsewhere (wins over web: in folio.yml)
+//	qm web --browser       -> open the app in the default browser once it listens
 //
 // The package is the quarto-sorter tool
 // (https://github.com/christophberger-ailab/quarto-sorter) merged into qm;
@@ -21,7 +22,9 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"syscall"
 
@@ -60,6 +63,7 @@ const maxPortTries = 100
 var (
 	projectPath *string
 	addr        *string
+	browser     *bool
 	// version is the running release, which the Update button compares
 	// new releases against.
 	version string
@@ -74,6 +78,9 @@ func Register(projectFlag *string, release string) {
 	addr = flag.String("addr", "",
 		"Address to listen on, as host:port; without it, the baseurl and the first free port from port up in the project's folio.yml, under web: for folio web (localhost, 8199) and preview: for folio preview (localhost, 8198)")
 
+	browser = flag.Bool("browser", false,
+		"Open the web UI in the default browser once it listens")
+
 	start.Add(&start.Command{
 		Name:  "web",
 		Short: "Serve the web UI for sorting, editing, and rendering pages",
@@ -81,7 +88,7 @@ func Register(projectFlag *string, release string) {
 			"reorders pages by drag and drop, edits their content, and " +
 			"renders the project's book folders. Usage: folio web [<path>]. " +
 			"Without a path, the tree at --project is opened.",
-		Flags: []string{"addr"},
+		Flags: []string{"addr", "browser"},
 		Cmd:   cmd,
 	})
 }
@@ -100,15 +107,16 @@ func cmd(c *start.Command) error {
 	if err != nil {
 		return fmt.Errorf("cannot resolve project path: %w", err)
 	}
-	return Serve(*addr, docPath)
+	return Serve(*addr, docPath, *browser)
 }
 
 // Serve runs the web UI with the project at root open. It listens on
 // flagAddr if that is not empty, or else at the web address in the project's
 // folio.yml, and
-// then, when that port is in use, on the next free one up. It blocks until
+// then, when that port is in use, on the next free one up. With browser, it
+// opens the app in the default browser once it listens. It blocks until
 // the server stops.
-func Serve(flagAddr string, root string) error {
+func Serve(flagAddr string, root string, browser bool) error {
 	restartAddr, restartRoot := takeRestartEnv()
 	open := startRoot(root, restartRoot)
 	if open == "" && root != "" {
@@ -139,6 +147,10 @@ func Serve(flagAddr string, root string) error {
 	}
 	served := servedAddr(listenAddr, ln.Addr())
 	fmt.Fprintf(os.Stderr, "folio web running on http://%s\n", served)
+	// A restart after an update reloads the page that is already open.
+	if browser && restartAddr == "" {
+		openBrowser("http://" + served)
+	}
 
 	srv.restart = make(chan struct{}, 1)
 	errc := make(chan error, 1)
@@ -164,6 +176,35 @@ func startRoot(root, restarted string) string {
 		return ""
 	}
 	return root
+}
+
+// openBrowser shows url in the default browser. It does not wait for the
+// browser, and a failure only costs the user a click on the printed link.
+func openBrowser(url string) {
+	args := browserCommand(runtime.GOOS, runtime.GOOS == "linux" && inWSL(), url)
+	cmd := exec.Command(args[0], args[1:]...) // #nosec G204 -- a fixed program; url is our own address
+	if err := cmd.Start(); err != nil {
+		fmt.Fprintf(os.Stderr, "folio web: cannot open the browser: %v\n", err)
+		return
+	}
+	go cmd.Wait() //nolint:errcheck // reaps the opener; its exit status says nothing
+}
+
+// browserCommand is the command line that opens url with the system's
+// handler for web links. On Windows that is rundll32's URL handler, which,
+// unlike cmd's start, takes the URL as one argument; WSL runs it too, as
+// there is rarely a Linux desktop to ask.
+func browserCommand(goos string, wsl bool, url string) []string {
+	switch {
+	case goos == "windows":
+		return []string{"rundll32", "url.dll,FileProtocolHandler", url}
+	case wsl:
+		return []string{"rundll32.exe", "url.dll,FileProtocolHandler", url}
+	case goos == "darwin":
+		return []string{"open", url}
+	default:
+		return []string{"xdg-open", url}
+	}
 }
 
 // restart hands the address and the open project to the updated binary

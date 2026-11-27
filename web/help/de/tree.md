@@ -26,34 +26,37 @@ Eine Seite mit `draft: true` im Frontmatter wird ausgegraut. Sie gehört zum Pro
 
 Eine Seite kann nach ihrem Titel Statusmarken tragen:
 
-- 🚧 zu erledigen: `todo: true` unter `folio:` im Frontmatter, oder der Text `==TODO==` irgendwo in der Seite, auch in einem HTML-Kommentar.
-- 👀 zu prüfen: `review:` unter `folio:` im Frontmatter, mit dem, was geprüft werden soll. Der Tooltip der Markierung lautet „Review: “ und dann dieser Text. `review: true` markiert die Seite, ohne zu sagen, was zu prüfen ist.
+- 🆕 neu: `status: new` im Frontmatter. Neue Seiten beginnen damit.
+- 🗑️ veraltet: `status: deprecated`, `obsolete` oder `old`.
+- 🚧 zu erledigen: der Text `==TODO==` irgendwo in der Seite, auch in einem HTML-Kommentar.
+- 👀 zu prüfen: `review:` im Frontmatter, mit dem, was geprüft werden soll. Der Tooltip der Markierung lautet „Review: “ und dann dieser Text. `review: true` markiert die Seite, ohne zu sagen, was zu prüfen ist.
 - 💬 kommentiert: die Seite enthält mindestens einen Kommentar (siehe die Hilfe zum Editor). Eine Kommentarmarke in Code zählt nicht.
+- 🔖 mit Lesezeichen: `bookmarked: true`, das der Button 🔖 des Editors setzt (siehe [Eine Seite bearbeiten](editor.md)).
 
 ```yaml
 ---
 title: Meine Seite
-folio:
-  todo: true
-  review: die Zahlen in Abschnitt 2
+status: new
+review: die Zahlen in Abschnitt 2
 ---
 ```
 
 Jede Marke erscheint einmal pro Seite, egal wie viele `==TODO==` die Seite enthält.
 
+In einem Git-Arbeitsbaum zeigt eine Seite, die seit dem letzten Commit geändert wurde, einen Stern (`*`) nach ihrem Titel.
+
 ## Seiten ausblenden
 
-Eine Seite mit `hide: true` unter `folio:` im Frontmatter erscheint nicht im Baum. Standard ist `false`. Eine ausgeblendete Abschnittsseite blendet ihren ganzen Zweig aus. Das Ausblenden betrifft nur den Baum: Die Seite wird weiterhin gerendert, und die [Suche](search.md) findet sie, sodass du sie dort öffnen und die Einstellung wieder entfernen kannst.
+Eine Seite mit `hide: true` im Frontmatter erscheint nicht im Baum. Standard ist `false`. Eine ausgeblendete Abschnittsseite blendet ihren ganzen Zweig aus. Das Ausblenden betrifft nur den Baum: Die Seite wird weiterhin gerendert, und die [Suche](search.md) findet sie, sodass du sie dort öffnen und die Einstellung wieder entfernen kannst.
 
 ```yaml
 ---
 title: Meine Seite
-folio:
-  hide: true
+hide: true
 ---
 ```
 
-Seiten aus früheren Versionen schreiben `qm:` statt `folio:`. Sie werden weiterhin gelesen; hat eine Seite beides, gilt `folio:`.
+Seiten aus früheren Versionen führen diese Schlüssel unter `folio:` oder `qm:`. Sie werden weiterhin gelesen; ein Schlüssel auf oberster Ebene gewinnt.
 
 ## Umordnen und Verschieben
 
@@ -67,7 +70,7 @@ Ziehe eine Seite am Griff `⠿`.
 
 - Tippe oben den Namen der Seite und drücke dann `＋ Page`.
 - Die Seite wird als `name/index.md` gespeichert. Der Ordnername ist der Name in Kleinbuchstaben, mit Bindestrichen statt Leerzeichen: Aus „Kartenansicht neu“ wird `kartenansicht-neu/index.md`.
-- Eine neue Seite hat kein `title` im Frontmatter, nur ihr `order`. Sie beginnt mit einer Überschrift der Ebene 1 in einem `::: explanation`-Block, unabhängig von ihrer Stelle im Baum. Die Überschrift ist der Name so, wie du ihn getippt hast (`# Kartenansicht neu`), und sie ist der Titel der Seite.
+- Eine neue Seite hat kein `title` im Frontmatter, nur ihr `order` und `status: new`. Sie beginnt mit einer Überschrift der Ebene 1 in einem `::: explanation`-Block, unabhängig von ihrer Stelle im Baum. Die Überschrift ist der Name so, wie du ihn getippt hast (`# Kartenansicht neu`), und sie ist der Titel der Seite.
 - Die Schaltfläche `＋` in einer Zeile fügt unter dieser Seite eine Unterseite hinzu. Du wirst nach dem Namen gefragt.
 
 ## Seiten löschen

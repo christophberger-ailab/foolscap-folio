@@ -1,6 +1,6 @@
 # Die Bereiche neben dem Editor
 
-Neben dem Editor steht ein Dock mit sieben Bereichen, jeder hinter einem Tab:
+Neben dem Editor steht ein Dock mit Bereichen, jeder hinter einem Tab:
 
 - `Preview` zeigt die [Markdown-Vorschau](preview.md).
 - `Copyedit` zeigt das [Lektorat-Werkzeug](copyedit.md).
@@ -8,6 +8,7 @@ Neben dem Editor steht ein Dock mit sieben Bereichen, jeder hinter einem Tab:
 - `Render` [rendert das Projekt](render.md).
 - `Git` zeigt [die Änderungen seit dem letzten Commit](git.md).
 - `Images` listet die Bilder des Projekts (siehe unten).
+- `Bookmarks` listet die Seiten mit Lesezeichen (siehe unten). Er kommt mit dem ersten Lesezeichen ins Dock.
 - `Help` zeigt diese Hilfe.
 
 ## Tabs und Gruppen
@@ -47,6 +48,10 @@ Der Bildbereich listet die Bilder im Ordner `assets/images` des Projekts und sei
 Ein Klick auf das `+` oben rechts an einem Bild fügt an der Cursorposition im Editor einen Link darauf ein, etwa `![](/assets/images/diagramm.png)`. Der Cursor steht danach zwischen den eckigen Klammern, sodass du gleich die Bildbeschreibung tippen kannst. `Strg-Z` nimmt den Link zurück.
 
 Die Liste folgt dem Ordner: ein Bild, das du hinzufügst, änderst oder löschst, erscheint dort entsprechend. Dateien und Ordner, deren Name mit `.` oder `_` beginnt, fehlen. Hast du folio schon vor diesem Bereich benutzt, öffne ihn über das Menü `Panes ▾`.
+
+## Der Lesezeichenbereich
+
+Der Lesezeichenbereich listet jede Seite, die mit dem Button 🔖 des Editors ein Lesezeichen bekam, mit Titel und Pfad. Ein Klick öffnet sie.
 
 ## Der Hilfebereich
 

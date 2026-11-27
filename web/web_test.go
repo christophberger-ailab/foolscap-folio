@@ -4,6 +4,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"testing"
 )
@@ -83,6 +84,28 @@ func TestStartRoot(t *testing.T) {
 	} {
 		if got := startRoot(c.root, c.restarted); got != c.want {
 			t.Errorf("%s: startRoot(%q, %q) = %q, want %q", c.name, c.root, c.restarted, got, c.want)
+		}
+	}
+}
+
+// --browser opens the app with the system's own handler for web links:
+// rundll32's URL handler on Windows, and so under WSL, where there is
+// rarely a Linux desktop to ask; open on macOS; xdg-open elsewhere.
+func TestBrowserCommand(t *testing.T) {
+	const url = "http://localhost:8199"
+	for _, tc := range []struct {
+		goos string
+		wsl  bool
+		want []string
+	}{
+		{"windows", false, []string{"rundll32", "url.dll,FileProtocolHandler", url}},
+		{"darwin", false, []string{"open", url}},
+		{"linux", false, []string{"xdg-open", url}},
+		{"linux", true, []string{"rundll32.exe", "url.dll,FileProtocolHandler", url}},
+		{"freebsd", false, []string{"xdg-open", url}},
+	} {
+		if got := browserCommand(tc.goos, tc.wsl, url); !slices.Equal(got, tc.want) {
+			t.Errorf("browserCommand(%q, %v) = %q, want %q", tc.goos, tc.wsl, got, tc.want)
 		}
 	}
 }

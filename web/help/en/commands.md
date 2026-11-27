@@ -16,10 +16,12 @@ folio <object> <subcommand> [flags] [args]
 
 | command | what it does |
 | --- | --- |
-| `folio render [<topic>…]` | render the project's topic × format × audience matrix |
+| `folio render [<topic>…]` | render the project's topic × format × audience matrix (`--draft` renders a draft for review) |
+| `folio init` | write a starter `folio.yml` and `_brand.yml` into a Markdown tree, or a sample project into an empty folder |
 | `folio migrate` | write `folio.yml` from the project's old `_quarto*.yml` files (`--dry-run` prints it, `--force` overwrites) |
-| `folio lint [<topic>]` | check the `.md` and `.qmd` sources (currently: unclosed `:::` fences) |
-| `folio web [<path>]` | serve the local sorting, editing and rendering UI |
+| `folio lint [<topic>]` | check the `.md` and `.qmd` sources: unclosed `:::` fences and cross-references that cannot be linked |
+| `folio web [<path>]` | serve the local sorting, editing and rendering UI (`--browser` opens it in the browser) |
+| `folio preview [<path>]` | serve the website and update it live as pages change (`--draft` as with `folio render`) |
 | `folio upgrade` | install the newest release of folio (alias `folio update`; `--check` only reports, `--yes` does not ask) |
 
 Every command takes `--help`, which lists its flags and arguments.

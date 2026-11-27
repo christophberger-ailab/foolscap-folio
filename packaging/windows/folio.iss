@@ -70,13 +70,13 @@ Source: "..\..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 Type: files; Name: "{app}\folio.exe.old"
 
 [Icons]
-; folio web in a console window, which shows the address to open in the
-; browser; closing the window stops it. It starts in Documents, and the Open
-; button picks a project from there.
-Name: "{autoprograms}\{#AppName}"; Filename: "{app}\folio.exe"; Parameters: "web"; WorkingDir: "{userdocs}"; IconFilename: "{app}\folio.ico"; Comment: "Start the Foolscap Folio web UI"
+; folio web opens the app in the default browser. Its console window, which
+; shows the log, starts minimized; closing it stops folio web. It starts in
+; Documents, and the Open button picks a project from there.
+Name: "{autoprograms}\{#AppName}"; Filename: "{app}\folio.exe"; Parameters: "web --browser"; WorkingDir: "{userdocs}"; IconFilename: "{app}\folio.ico"; Comment: "Start the Foolscap Folio web UI"; Flags: runminimized
 
 [Run]
-Filename: "{app}\folio.exe"; Parameters: "web"; WorkingDir: "{userdocs}"; Description: "Start {#AppName}"; Flags: postinstall nowait skipifsilent
+Filename: "{app}\folio.exe"; Parameters: "web --browser"; WorkingDir: "{userdocs}"; Description: "Start {#AppName}"; Flags: postinstall nowait skipifsilent runminimized
 
 [Code]
 // folio is a command-line program, so its folder goes on the user's PATH

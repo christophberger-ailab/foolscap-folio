@@ -8,11 +8,14 @@ A project is a document tree of Markdown pages, optionally with a `folio.yml`. `
 folio web                    # serve the project given by --project (default: the current directory)
 folio web ../handbook        # serve that project instead
 folio web --addr :9000       # listen elsewhere
+folio web --browser          # and open the app in your browser
 ```
 
 - A path after `web` names the project to open. It takes precedence over `--project`.
 - Without a path, the project is the one given by `--project` (or `-p`), or the current directory.
 - The command keeps running until you interrupt it, and prints the address it serves on.
+- `--browser` opens that address in your default browser. The Windows Start menu entry starts `folio web --browser`, with its console window minimized; closing that window stops `folio web`.
+- A folder without a `folio.yml`, such as the one the Start menu starts in, opens no project. Pick one with `Open`.
 
 ## The address and port
 
@@ -50,6 +53,8 @@ You can start from a Git repository instead of a folder on disk.
 
 If the repository has a `folio.yml` at its top, it opens right away. If not, the dialog shows the cloned folder so you can pick the subfolder that holds the book.
 
+For a private repository on another host, such as Azure DevOps or GitLab, paste a personal access token into `Access token`. folio sends it to that host only and keeps it for push and sync.
+
 From then on it is an ordinary project in a folder of its own: commit, push, and sync in the [Git pane](git.md), or in a terminal.
 
 ### Signing in to GitHub
@@ -61,5 +66,9 @@ A public repository clones without signing in. For a private one, and to push yo
 3. The form says whom you are signed in as.
 
 folio keeps the sign-in for the next start, in a file next to the [settings file](settings.md) that only you can read, and sends it to github.com only. `Sign out` forgets it. To withdraw folio's access on GitHub's side too, revoke it under Settings → Applications on github.com.
+
+## Updating folio
+
+`folio web` looks for a new release once a day. When it finds one, an `Update` button appears at the right end of the top bar. It updates folio, restarts `folio web` at the same address with the same project open, and reloads the page. `What's new` then shows the release notes.
 
 Back to [Contents](index.md).

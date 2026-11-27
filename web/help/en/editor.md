@@ -37,6 +37,14 @@ If the file was changed outside the browser in a way the tree cannot account for
 
 `↻ Reload` in the top bar, right of `Open`, reloads the page from disk. Images in the preview are fetched again too.
 
+## Bookmarks
+
+The 🔖 button above the editor bookmarks the open page: it writes `bookmarked: true` into the page's frontmatter. The [tree](tree.md) shows 🔖 beside the page, and the [Bookmarks pane](panes.md) lists it. Press the button again to remove the bookmark. A draft render shows 🔖 on the page too.
+
+## Spellcheck
+
+The `✓ Spellcheck` button below the editor switches the browser's spellchecker on and off. It checks against the project's `lang`, where the browser has that dictionary. Your choice is remembered.
+
 ## Vim mode
 
 The `⌨ Vim Mode` button below the editor switches Vim keybindings on and off. It is off by default and your choice is remembered. In Vim mode, `:w` saves the page immediately instead of waiting for autosave.

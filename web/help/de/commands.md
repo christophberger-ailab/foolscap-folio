@@ -16,10 +16,12 @@ folio <object> <subcommand> [flags] [args]
 
 | Befehl                                     | Was er tut                                                                                                                |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| `folio render [<topic>…]`                  | rendert die Matrix aus Thema × Format × Zielgruppe des Projekts                                                           |
+| `folio render [<topic>…]`                  | rendert die Matrix aus Thema × Format × Zielgruppe des Projekts (`--draft` rendert einen Entwurf zur Prüfung) |
+| `folio init` | schreibt eine `folio.yml` und `_brand.yml` für einen Markdown-Baum, oder ein Beispielprojekt in einen leeren Ordner |
 | `folio migrate`                            | schreibt `folio.yml` aus den alten `_quarto*.yml`-Dateien des Projekts (`--dry-run` gibt sie aus, `--force` überschreibt) |
-| `folio lint [<topic>]`                     | prüft die `.md`- und `.qmd`-Quellen (derzeit: nicht geschlossene `:::`-Fences)                                                       |
-| `folio web [<path>]`                       | startet die lokale Oberfläche zum Sortieren, Bearbeiten und Rendern                                                       |
+| `folio lint [<topic>]`                     | prüft die `.md`- und `.qmd`-Quellen: nicht geschlossene `:::`-Fences und Querverweise ohne Ziel |
+| `folio web [<path>]`                       | startet die lokale Oberfläche zum Sortieren, Bearbeiten und Rendern (`--browser` öffnet sie im Browser) |
+| `folio preview [<path>]` | stellt die Website bereit und aktualisiert sie, sobald sich Seiten ändern (`--draft` wie bei `folio render`) |
 | `folio upgrade` | installiert die neueste Version von folio (Alias `folio update`; `--check` meldet nur, `--yes` fragt nicht) |
 
 Jeder Befehl kennt `--help`, das seine Flags und Argumente auflistet.

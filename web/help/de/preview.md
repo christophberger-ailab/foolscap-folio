@@ -8,6 +8,8 @@ Die Vorschau ist eine Näherung. Sie wird im Browser aus deinem Markdown gezeich
 
 - Ein Block ```` ```{mermaid} ```` wird als sein Diagramm gezeichnet, wie ein Rendern es zeichnet; ein einfacher Block ```` ```mermaid ```` bleibt Code.
 - Quarto-Fenced-Divs (`::: name`) und Bracketed Spans (`[text]{.name}`) bekommen ihre Klasse, sodass dein eigenes CSS sie gestalten kann.
+- `{{name}}` und `{{< var name >}}` zeigen ihre Werte aus der `folio.yml` (für das Thema der Seite) und der `_variables.yml`, wie ein Rendering sie auflöst.
+- Ein Querverweis wie `[](#install)` zeigt Nummer und Namen seines Ziels, wie ein Rendering (siehe den [Schnellstart](quickstart.md)).
 - Der Attributblock einer Überschrift, etwa `{.unnumbered}`, wird weggelassen, weil er das Rendering steuert und nicht zum Inhalt der Überschrift gehört. Überschriften in Codeblöcken bleiben unberührt.
 - Eine Seite, die für eine Zielgruppe geschrieben ist, wird innerhalb des Divs dieser Gruppe angezeigt. Das gilt, wenn der Dateiname oder ein Ordner darüber auf `_FW` oder `_POL` endet (der tiefste Name gewinnt). Das Stylesheet färbt und markiert dann die ganze Seite, wie es bei einem `::: fw`- oder `::: pol`-Block geschieht. Das Frontmatter bleibt außerhalb des Divs.
 

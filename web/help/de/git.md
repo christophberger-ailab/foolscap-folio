@@ -23,7 +23,10 @@ Der Bereich umfasst den ganzen Arbeitsbaum. Liegt dein Projekt in einem Unterord
 
 - Tippe eine Nachricht in `Commit message` und drücke `Commit` oder `Strg+Enter` (`Cmd+Enter` auf dem Mac). Das Feld nimmt mehrere Zeilen auf: einen Betreff, eine Leerzeile und einen Text. Committen ist nur möglich, solange etwas gestaged ist, und eine Nachricht ist Pflicht.
 - `Push` schiebt den Branch zu seinem Remote. Ein Branch ohne Upstream wird mit gesetztem Upstream gepusht.
-- `↻ Refresh` liest den Arbeitsbaum erneut.
+- `⇅ Sync` holt vom Remote, spult über dessen neue Commits vor und pusht die eigenen des Branches. Es mergt und rebaset nie: Ein auseinandergelaufener Branch wird gemeldet und dem Terminal überlassen. Eine nicht committete Änderung überschreibt es nie.
+- `↻ Refresh` liest den Arbeitsbaum erneut. Es fragt das Remote nicht ab.
+
+Die Commit-Nachricht bleibt beim Stagen, Pushen und allem anderen in ihrem Feld, bis ein Commit gelingt.
 
 Hast du dich beim [Öffnen eines Projekts aus einem Repository](projects.md) bei GitHub angemeldet, nutzen Push und Sync diese Anmeldung für github.com. Sonst verwendet git die Zugangsdaten, die du dafür eingerichtet hast.
 
