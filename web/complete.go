@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"slices"
 	"strings"
 
@@ -51,13 +52,14 @@ func (s *server) complete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ig := config.ReadIgnore(s.root)
+	rel := path.Clean(filepath.ToSlash(dir))
 	var entries []completeEntry
 	for _, it := range items {
 		name := it.Name()
-		// The same rule the search index and the page tree use: a
-		// directory or file whose name starts with "_" or "." is a draft
-		// or hidden, and does not belong in a link.
-		if strings.HasPrefix(name, "_") || strings.HasPrefix(name, ".") {
+		// The same rule the search index and the page tree use: what the
+		// project's ignore patterns leave out does not belong in a link.
+		if ig.Match(path.Join(rel, name), it.IsDir()) {
 			continue
 		}
 		if it.IsDir() {

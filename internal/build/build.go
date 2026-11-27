@@ -233,7 +233,7 @@ func ProjectTargets(cfg *config.Config, f config.Format) []markdown.Target {
 	label := config.Selection{Config: cfg, Format: f}.FigureLabel()
 	var out []markdown.Target
 	for _, e := range cfg.Topics {
-		tree, err := loadTopic(cfg.Root, e.Value)
+		tree, err := loadTopic(cfg, e.Value)
 		if err != nil {
 			continue
 		}
@@ -335,7 +335,7 @@ func dropTitle(doc *markdown.Document, id string) {
 func Flatten(sel config.Selection, log Logf) (string, Book, error) {
 	log = log.or()
 	root := sel.Config.Root
-	tree, err := loadTopic(root, sel.Topic)
+	tree, err := loadTopic(sel.Config, sel.Topic)
 	if err == nil {
 		tree.Drop(sel.Excludes)
 		if !sel.Draft {
@@ -434,12 +434,12 @@ func Expander(sel config.Selection, log Logf) *shortcode.Expander {
 		warn(log))
 }
 
-func loadTopic(root string, t config.Topic) (*bookmaker.Node, error) {
-	dir := filepath.Join(root, filepath.FromSlash(t.Folder))
+func loadTopic(cfg *config.Config, t config.Topic) (*bookmaker.Node, error) {
+	dir := filepath.Join(cfg.Root, filepath.FromSlash(t.Folder))
 	if fi, err := os.Stat(dir); err != nil || !fi.IsDir() {
 		return nil, fmt.Errorf("topic %s: folder %s does not exist", t.Name, t.Folder)
 	}
-	tree, err := bookmaker.LoadTree(dir, root)
+	tree, err := bookmaker.LoadTree(dir, cfg.Root, cfg.Skip)
 	if err != nil {
 		return nil, err
 	}
@@ -456,6 +456,7 @@ func Site(sel config.Selection, dir string, log Logf) error {
 }
 
 func renderSite(sel config.Selection, dir string, dryRun bool, log Logf) error {
+	section, chapter := sel.Prefixes()
 	css, err := sel.Stylesheets()
 	if err != nil {
 		return err
@@ -498,6 +499,7 @@ func renderSite(sel config.Selection, dir string, dryRun bool, log Logf) error {
 		Topics:        topics,
 		Keep:          sel.Keep,
 		Skip:          sel.Excludes,
+		Ignore:        sel.Config.Skip,
 		Formats:       sel.Types(),
 		CSS:           css,
 		Expand:        exp.Expand,
@@ -506,6 +508,8 @@ func renderSite(sel config.Selection, dir string, dryRun bool, log Logf) error {
 
 		NumberedHeadings: sel.Format.NumberedHeadings,
 		FigureLabel:      sel.FigureLabel(),
+		SectionPrefix:    section,
+		ChapterPrefix:    chapter,
 		AllTargets:       sync.OnceValue(func() markdown.Index { return markdown.NewIndex(ProjectTargets(sel.Config, config.Format{})) }),
 	})
 	if err != nil {
@@ -563,7 +567,7 @@ func CheckReferences(cfg *config.Config) []RefProblem {
 	var pages []page
 	var all []markdown.Target
 	for _, e := range cfg.Topics {
-		tree, err := loadTopic(cfg.Root, e.Value)
+		tree, err := loadTopic(cfg, e.Value)
 		if err != nil {
 			continue
 		}

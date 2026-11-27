@@ -133,11 +133,13 @@ func TestSearchIgnoresShortAndEmptyQueries(t *testing.T) {
 	}
 }
 
-// The search reaches exactly the pages the tree shows: files and folders
-// starting with "_" are drafts and includes, and a hit the user cannot open
-// from the tree is a dead end.
+// The search reaches exactly the pages the tree shows: here the files and
+// folders folio.yml's ignore patterns name, drafts and includes (issue
+// #181), are left out, and a hit the user cannot open from the tree is a
+// dead end.
 func TestSearchSkipsWhatTheTreeSkips(t *testing.T) {
 	srv, root := testServer(t)
+	writeConfig(t, root, testConfig+"ignore: [\"_*\", \".*\"]\n")
 	files := map[string]string{
 		"_include.qmd":        "zebracrossing\n",
 		"_drafts/notyet.qmd":  "zebracrossing\n",

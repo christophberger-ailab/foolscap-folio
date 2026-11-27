@@ -401,6 +401,88 @@ func TestDocumentNumbersHeadings(t *testing.T) {
 	}
 }
 
+// Issue #179: a website format with section_prefix and chapter_prefix
+// puts them before its sections' and chapters' titles, in the project's
+// language, as a document does.
+func TestSitePrefixesSectionsAndChapters(t *testing.T) {
+	root := writeProject(t, map[string]string{
+		"folio.yml":            "lang: de\nformats:\n  web: {type: html, section_prefix: true, chapter_prefix: true}\n",
+		"book/index.md":        "# Book\n",
+		"book/part/index.md":   "---\norder: 1\n---\n# Basics\n",
+		"book/part/chapter.md": "---\norder: 1\n---\n# Start\n",
+	})
+	cfg, err := config.Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sels, err := cfg.Expand(config.Request{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := t.TempDir()
+	if err := Site(sels[0], out, nil); err != nil {
+		t.Fatal(err)
+	}
+	for page, want := range map[string]string{"book/part/index.html": ">Teil 1: Basics</h1>", "book/part/chapter.html": ">Kapitel 1: Start</h1>"} {
+		b, err := os.ReadFile(filepath.Join(out, page))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(string(b), want) {
+			t.Errorf("%s: missing %q:\n%s", page, want, b)
+		}
+	}
+}
+
+// Issue #181: a render leaves out the paths folio.yml's ignore patterns
+// name, the document and the website alike; without them it leaves out
+// nothing, "_" pages included.
+func TestRenderIgnores(t *testing.T) {
+	for yml, want := range map[string][]bool{
+		"formats:\n  web: {type: html}\n  doc: {type: pdf}\n":                        {true, true},
+		"ignore: [\"**/OLD/\"]\nformats:\n  web: {type: html}\n  doc: {type: pdf}\n": {true, false},
+	} {
+		root := writeProject(t, map[string]string{
+			"folio.yml":            yml,
+			"book/index.md":        "# Book\n",
+			"book/_under.md":       "# Under\n",
+			"book/part/OLD/old.md": "# Old\n",
+		})
+		cfg, err := config.Load(root)
+		if err != nil {
+			t.Fatal(err)
+		}
+		sels, err := cfg.Expand(config.Request{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, sel := range sels {
+			var has func(name, text string) bool
+			if sel.Format.IsWeb() {
+				out := t.TempDir()
+				if err := Site(sel, out, nil); err != nil {
+					t.Fatal(err)
+				}
+				has = func(name, _ string) bool {
+					_, err := os.Stat(filepath.Join(out, "book", filepath.FromSlash(name)+".html"))
+					return err == nil
+				}
+			} else {
+				text, _, err := Flatten(sel, nil)
+				if err != nil {
+					t.Fatal(err)
+				}
+				has = func(_, title string) bool { return strings.Contains(text, "# "+title) }
+			}
+			for i, page := range [][2]string{{"_under", "Under"}, {"part/OLD/old", "Old"}} {
+				if got := has(page[0], page[1]); got != want[i] {
+					t.Errorf("%s, %s: has %s = %v, want %v", yml, sel.Format.Name, page[0], got, want[i])
+				}
+			}
+		}
+	}
+}
+
 // A document resolves its cross-references: across its pages, to a page's
 // heading by the page's id, to numbered figures, and to the headings of
 // another topic as plain text, with warnings (issue: cross-references).

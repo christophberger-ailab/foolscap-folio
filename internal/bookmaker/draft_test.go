@@ -21,7 +21,7 @@ func draftBook(t *testing.T) string {
 // A draft shows a page's review and its being new below its title.
 func TestDraftBanner(t *testing.T) {
 	dir := draftBook(t)
-	tree, err := LoadTree(filepath.Join(dir, "book"), dir)
+	tree, err := LoadTree(filepath.Join(dir, "book"), dir, quarto)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +49,7 @@ func TestDraftBanner(t *testing.T) {
 // with all below it.
 func TestDropDrafts(t *testing.T) {
 	dir := draftBook(t)
-	tree, err := LoadTree(filepath.Join(dir, "book"), dir)
+	tree, err := LoadTree(filepath.Join(dir, "book"), dir, quarto)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +76,7 @@ func TestDraftBookmark(t *testing.T) {
 	writeFile(t, filepath.Join(dir, "book", "index.md"), "---\ntitle: Book\n---\nIntro\n")
 	writeFile(t, filepath.Join(dir, "book", "a.md"), "---\ntitle: Alpha\norder: 1\nbookmarked: true\nstatus: new\n---\nAlpha text\n")
 	writeFile(t, filepath.Join(dir, "book", "b.md"), "---\ntitle: Beta\norder: 2\nbookmarked: false\n---\nBeta text\n")
-	tree, err := LoadTree(filepath.Join(dir, "book"), dir)
+	tree, err := LoadTree(filepath.Join(dir, "book"), dir, quarto)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -2,6 +2,7 @@ package markdown
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/yuin/goldmark/ast"
@@ -82,6 +83,22 @@ func HeadingNumber(h *ast.Heading) string {
 		return v.(string)
 	}
 	return ""
+}
+
+// HeadingPrefix is the prefix before a section's or chapter's title,
+// "Chapter 3: ", "" for none.
+func HeadingPrefix(h *ast.Heading) string {
+	p, _ := AttrsOf(h).Get(PrefixAttr)
+	return p
+}
+
+// SetHeadingPrefix puts prefix, as "Chapter 3: ", before a heading's text,
+// as the flattener puts it before a chapter's title.
+func SetHeadingPrefix(h *ast.Heading, prefix string) {
+	h.InsertBefore(h, h.FirstChild(), ast.NewString([]byte(prefix)))
+	a := AttrsOf(h)
+	a.KV = append(slices.Clone(a.KV), [2]string{PrefixAttr, prefix})
+	setAttrs(h, a)
 }
 
 // HeadingName is a heading's text without its number and prefix.

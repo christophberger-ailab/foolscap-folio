@@ -65,7 +65,7 @@ func TestWritesLoadableConfig(t *testing.T) {
 	if c.Web != config.DefaultWeb || c.Preview != config.DefaultPreview {
 		t.Errorf("web %+v preview %+v", c.Web, c.Preview)
 	}
-	for _, want := range []string{"port: 8199", "port: 8198", "baseurl: localhost", "# handout:"} {
+	for _, want := range []string{"port: 8199", "port: 8198", "baseurl: localhost", "# handout:", `ignore: ["_*", ".*"]`} {
 		if !strings.Contains(res.YAML, want) {
 			t.Errorf("folio.yml lacks %q:\n%s", want, res.YAML)
 		}

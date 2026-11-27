@@ -130,17 +130,33 @@ func TestLoadTitleFallback(t *testing.T) {
 	}
 }
 
-// The tree leaves out "_" and "." directories at any depth, and the
-// project's top-level assets directory; an assets directory further down
-// is an ordinary folder.
-func TestLoadSkipsUnderscoreHiddenAndAssetsDirs(t *testing.T) {
+// The tree leaves out what folio.yml's ignore patterns name, here "_" and
+// "." directories at any depth (issue #181), and the project's top-level
+// assets directory; an assets directory further down is an ordinary
+// folder. Without the setting, only the output and .git are left out.
+func TestLoadSkipsIgnoredAndAssetsDirs(t *testing.T) {
 	root := t.TempDir()
-	for _, d := range []string{"_book", ".folio", "assets", "real/_entwurf", "real/.hidden"} {
+	for _, d := range []string{"_book", ".folio", "assets", "real/_entwurf", "real/.hidden", "_output/web", ".git"} {
 		os.MkdirAll(filepath.Join(root, d), 0o755)
 		os.WriteFile(filepath.Join(root, d, "x.qmd"), []byte("x\n"), 0o644)
 	}
 	os.WriteFile(filepath.Join(root, "real.qmd"), []byte("x\n"), 0o644)
 	tree, err := Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range []string{".folio/x.qmd", "_book/x.qmd", "real/_entwurf/x.qmd"} {
+		if tree.Find(p) == nil {
+			t.Errorf("without a setting, %s is missing", p)
+		}
+	}
+	for _, p := range []string{"_output/web/x.qmd", ".git/x.qmd"} {
+		if tree.Find(p) != nil {
+			t.Errorf("%s is in the tree", p)
+		}
+	}
+	os.WriteFile(filepath.Join(root, "folio.yml"), []byte("ignore: [\"_*/\", \".*/\"]\n"), 0o644)
+	tree, err = Load(root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -192,6 +208,7 @@ func TestLoadMarkdownPages(t *testing.T) {
 		"plain-name.md": "body\n",
 		"_hidden.md":    "body\n",
 		"notes.txt":     "no\n",
+		"folio.yml":     "ignore: [_hidden.md]\n",
 	}
 	for rel, body := range files {
 		p := filepath.Join(root, filepath.FromSlash(rel))

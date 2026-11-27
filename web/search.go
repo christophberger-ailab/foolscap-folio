@@ -151,25 +151,22 @@ func indexPages(root string) wordIndex {
 	if root == "" {
 		return terms
 	}
+	ig := config.ReadIgnore(root)
 	filepath.WalkDir(root, func(p string, d iofs.DirEntry, err error) error {
 		if err != nil {
 			return nil
 		}
-		name := d.Name()
 		if d.IsDir() {
-			if project.SkipWalkedDir(root, p) {
+			if project.SkipWalkedDir(root, p, ig) {
 				return filepath.SkipDir
 			}
 			return nil
 		}
-		if !config.IsContentFile(name) || strings.HasPrefix(name, "_") {
+		rel, err := filepath.Rel(root, p)
+		if err != nil || !project.IsPage(filepath.ToSlash(rel), ig) {
 			return nil
 		}
 		src, err := os.ReadFile(p)
-		if err != nil {
-			return nil
-		}
-		rel, err := filepath.Rel(root, p)
 		if err != nil {
 			return nil
 		}

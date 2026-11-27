@@ -501,18 +501,21 @@ func fingerprint(root string) string {
 func fingerprints(root string) (tree, media string) {
 	h := fnv.New64a()
 	m := fnv.New64a()
+	ig := config.ReadIgnore(root)
 	filepath.WalkDir(root, func(p string, d iofs.DirEntry, err error) error {
 		if err != nil {
 			return nil // unreadable entries just drop out of the hash
 		}
 		name := d.Name()
+		rel, _ := filepath.Rel(root, p)
+		rel = filepath.ToSlash(rel)
 		if d.IsDir() {
-			if p != root && (strings.HasPrefix(name, "_") || strings.HasPrefix(name, ".")) {
+			if p != root && ig.Match(rel, true) {
 				return filepath.SkipDir
 			}
 			return nil
 		}
-		page := config.IsContentFile(name) && !strings.HasPrefix(name, "_")
+		page := project.IsPage(rel, ig)
 		cfg := filepath.Dir(p) == root && config.IsFileName(name)
 		img := mediaExts[strings.ToLower(filepath.Ext(name))]
 		if !page && !cfg && !img {

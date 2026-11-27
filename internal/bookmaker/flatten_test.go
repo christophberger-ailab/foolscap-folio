@@ -114,7 +114,7 @@ func TestFlattenBookTitleIsUnnumberedWhenGenerated(t *testing.T) {
 	writeFile(t, dir+"/_quarto.yml", "project:\n  type: website\n")
 	writeFile(t, dir+"/book/index.qmd", "---\ntitle: Das Buch\n---\n\n## Ein Abschnitt\n")
 
-	root, err := LoadTree(dir+"/book", dir)
+	root, err := LoadTree(dir+"/book", dir, quarto)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -230,7 +230,7 @@ func TestFlattenWithoutSlideBlocks(t *testing.T) {
 	writeFile(t, dir+"/_quarto.yml", "project:\n  type: website\n")
 	writeFile(t, dir+"/book/index.qmd", "---\ntitle: B\n---\n\n::: explanation\n# B\n:::\n")
 
-	root, err := LoadTree(dir+"/book", dir)
+	root, err := LoadTree(dir+"/book", dir, quarto)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -356,7 +356,7 @@ func TestFlattenMocksHeadingsBeyondSix(t *testing.T) {
 	writeFile(t, dir+"/book/s/c/d1/d2/index.md", "# D2\n")
 	writeFile(t, deep+"/index.md", "# D3\n\n#### Four\n\n##### Five\n\n###### Six\n")
 
-	root, err := LoadTree(dir+"/book", dir)
+	root, err := LoadTree(dir+"/book", dir, quarto)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -451,7 +451,7 @@ func TestFlattenRepairsUnbalancedPage(t *testing.T) {
 	writeFile(t, dir+"/book/kaputt/index.qmd", "---\norder: 1\n---\n\n::: explanation\n## Kaputt\n\n```sql\nSELECT 1\n")
 	writeFile(t, dir+"/book/danach/index.qmd", "---\norder: 2\n---\n\n::: explanation\n## Danach\n:::\n")
 
-	root, err := LoadTree(dir+"/book", dir)
+	root, err := LoadTree(dir+"/book", dir, quarto)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -478,7 +478,7 @@ func TestFlattenDirectoryWithoutIndex(t *testing.T) {
 	writeFile(t, dir+"/book/index.qmd", "---\ntitle: B\n---\n\n# B\n")
 	writeFile(t, dir+"/book/ohne-index/seite.qmd", "---\norder: 1\n---\n\n## Seite\n")
 
-	root, err := LoadTree(dir+"/book", dir)
+	root, err := LoadTree(dir+"/book", dir, quarto)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -508,7 +508,7 @@ func TestFlattenPageWithoutHeadingOrTitle(t *testing.T) {
 	// what to call it, so the folder name does.
 	writeFile(t, dir+"/book/nur-folien/index.qmd", "---\norder: 1\n---\n\n::: slide\n- x\n:::\n")
 
-	root, err := LoadTree(dir+"/book", dir)
+	root, err := LoadTree(dir+"/book", dir, quarto)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -589,7 +589,7 @@ func TestFlattenTitleWithIncludedHeading(t *testing.T) {
 	writeFile(t, dir+"/assets/plain.md", "Just text.\n\n```\n# code\n```\n")
 	writeFile(t, dir+"/assets/loop.md", "{{< include /assets/loop.md >}}\n")
 
-	root, err := LoadTree(dir+"/book", dir)
+	root, err := LoadTree(dir+"/book", dir, quarto)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -613,7 +613,7 @@ func TestFlattenRelativeInclude(t *testing.T) {
 	writeFile(t, dir+"/book/absolut/index.qmd", "---\norder: 1\n---\n\n# Absolut\n\n{{< include /assets/templates/kolophon.md >}}\n")
 	writeFile(t, dir+"/book/relativ/index.qmd", "---\norder: 2\n---\n\n# Relativ\n\n{{< include ../kolophon.md >}}\n")
 
-	root, err := LoadTree(dir+"/book", dir)
+	root, err := LoadTree(dir+"/book", dir, quarto)
 	if err != nil {
 		t.Fatal(err)
 	}

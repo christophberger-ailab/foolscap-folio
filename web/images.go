@@ -7,6 +7,8 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+
+	"github.com/christophberger-ailab/foolscap-folio/internal/config"
 )
 
 // imagesDir is where the Images pane looks for images, relative to the
@@ -28,19 +30,22 @@ type imageEntry struct {
 // not a regular file, a symlink above all.
 func (s *server) images(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
+	root := s.root
 	dir, err := s.resolvePath(imagesDir)
 	s.mu.Unlock()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	ig := config.ReadIgnore(root)
 	list := []imageEntry{}
 	filepath.WalkDir(dir, func(p string, d iofs.DirEntry, err error) error {
 		if err != nil {
 			return nil // a missing folder lists nothing; unreadable entries drop out
 		}
 		name := d.Name()
-		hidden := p != dir && (strings.HasPrefix(name, "_") || strings.HasPrefix(name, "."))
+		fromRoot, _ := filepath.Rel(root, p)
+		hidden := p != dir && ig.Match(filepath.ToSlash(fromRoot), d.IsDir())
 		if d.IsDir() {
 			if hidden {
 				return filepath.SkipDir

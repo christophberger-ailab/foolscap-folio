@@ -14,6 +14,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"text/template"
 	"unicode"
@@ -144,7 +145,11 @@ func Run(root string, opts Options) (*Result, error) {
 		}
 		src = dir
 	}
-	topics, err := config.ContentFolders(src)
+	ig, err := config.NewIgnore(config.DefaultIgnore, "_output")
+	if err != nil {
+		return nil, err
+	}
+	topics, err := config.ContentFolders(src, ig)
 	if err != nil {
 		return nil, err
 	}
@@ -294,7 +299,11 @@ title: %s
 # lang: en
 # output: _output
 # footer: "{title} · {date}"
-`, quote(title))
+
+# The paths renders, previews and folio web leave out, as in a .gitignore.
+# Without this list, folio leaves out nothing but its output and .git.
+ignore: [%s]
+`, quote(title), quoteList(config.DefaultIgnore))
 	if demo {
 		b.WriteString(`
 # The website shows the "explanation" blocks, the handout does not.
@@ -346,6 +355,15 @@ preview:
   port: %d
 `, config.DefaultWeb.BaseURL, config.DefaultWeb.Port, config.DefaultPreview.BaseURL, config.DefaultPreview.Port)
 	return b.String()
+}
+
+// quoteList renders l as the items of a YAML flow sequence, each quoted.
+func quoteList(l []string) string {
+	q := make([]string, len(l))
+	for i, s := range l {
+		q[i] = strconv.Quote(s)
+	}
+	return strings.Join(q, ", ")
 }
 
 // quote renders s as a YAML scalar, quoted only where it needs to be.

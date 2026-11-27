@@ -360,6 +360,13 @@ func (m *migrator) build(root string) (*yaml.Node, error) {
 	if output != "_output" {
 		add(doc, "output", str(output))
 	}
+	// Quarto leaves out what starts with "_" or ".", and the project is
+	// laid out for that; folio leaves out only what folio.yml says.
+	ign := flow(config.DefaultIgnore)
+	for _, n := range ign.Content {
+		n.Style = yaml.DoubleQuotedStyle
+	}
+	add(doc, "ignore", ign)
 
 	// formats
 	nAud := len(ps.audiences)
