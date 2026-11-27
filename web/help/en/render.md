@@ -23,6 +23,8 @@ If `folio.yml` cannot be read, the pane shows the error instead of the matrix. F
 1. Check what you want.
 2. Press `Render` at the bottom of the pane.
 
+Check `Draft` before pressing `Render` for a draft for the reviewers: it keeps the pages marked `draft: true` and shows the TODO markers, the comments with their replies, the review notes, and 🆕 and 🔖 on the pages. It is the same as `folio render --draft`.
+
 The render runs in the background. The pane shows the log and updates it every second while it runs. At the end it says `Done` or `Render failed`.
 
 - Only one render runs at a time.
@@ -32,6 +34,6 @@ The render runs in the background. The pane shows the log and updates it every s
 
 - Where the output goes is decided by `folio.yml`: by default below `_output`, in a folder per format. See the project README for how a project is set up.
 - Content can be marked for a format or an audience; a render keeps only what the selection shows.
-- Pages marked as drafts are not part of what a render publishes (see [the page tree](tree.md)).
+- Pages marked as drafts are not part of what a render publishes, unless `Draft` is checked (see [the page tree](tree.md)).
 
 Back to [Contents](index.md).

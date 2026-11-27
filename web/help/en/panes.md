@@ -1,6 +1,6 @@
 # The panes beside the editor
 
-Beside the editor stands a dock with seven panes, each behind a tab:
+Beside the editor stands a dock of panes, each behind a tab:
 
 - `Preview` shows the [Markdown preview](preview.md).
 - `Copyedit` shows the [copyediting tool](copyedit.md).
@@ -8,6 +8,7 @@ Beside the editor stands a dock with seven panes, each behind a tab:
 - `Render` [renders the project](render.md).
 - `Git` shows [the changes since the last commit](git.md).
 - `Images` lists the project's images (see below).
+- `Bookmarks` lists the bookmarked pages (see below). It joins the dock with the first bookmark.
 - `Help` shows this help.
 
 ## Tabs and groups
@@ -52,6 +53,10 @@ The images pane lists the images in the project's `assets/images` folder and its
 Click the `+` at an image's top right corner to insert a link to it at the cursor in the editor, such as `![](/assets/images/diagram.png)`. The cursor lands between the brackets, so you can type the image's description right away. `Ctrl-Z` takes the link back.
 
 The list follows the folder: an image you add, change, or delete shows up there. Files and folders whose names start with `.` or `_` are left out. If you used folio before this pane existed, open it from the `Panes ▾` menu.
+
+## The bookmarks pane
+
+The bookmarks pane lists every page bookmarked with the editor's 🔖 button, with its title and path. Click one to open it.
 
 ## The help pane
 

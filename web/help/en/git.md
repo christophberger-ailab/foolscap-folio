@@ -23,7 +23,10 @@ The pane covers the whole working tree. If your project is a subfolder of a larg
 
 - Type a message in `Commit message` and press `Commit`, or `Ctrl+Enter` (`Cmd+Enter` on a Mac). The field takes several lines: a subject, a blank line, and a body. Committing is offered only while something is staged, and a message is required.
 - `Push` pushes the branch to its remote. A branch with no upstream yet is pushed with the upstream set.
-- `↻ Refresh` reads the working tree again.
+- `⇅ Sync` fetches from the remote, fast-forwards over its new commits, and pushes the branch's own. It never merges or rebases: a branch that has diverged is reported and left for a terminal. It never overwrites an uncommitted edit.
+- `↻ Refresh` reads the working tree again. It does not contact the remote.
+
+The commit message stays in its field through staging, pushing and the rest until a commit goes through.
 
 If you signed in to GitHub when [opening a project from a repository](projects.md), push and sync use that sign-in for github.com. Otherwise git uses the credentials you set up for it.
 

@@ -201,3 +201,36 @@ func TestHelpHasAQuickstart(t *testing.T) {
 		}
 	}
 }
+
+// Each feature is explained where a user looks for it, in every language.
+func TestHelpCoversTheFeatures(t *testing.T) {
+	want := map[string][]string{
+		"projects.md": {"--browser", "Update", "token"},
+		"tree.md":     {"🔖", "🆕", "🗑️", "*", "status: new", "bookmarked: true"},
+		"panes.md":    {"Bookmarks"},
+		"editor.md":   {"🔖", "Spellcheck"},
+		"preview.md":  {"[](#", "{{"},
+		"render.md":   {"Draft"},
+		"git.md":      {"Sync"},
+		"commands.md": {"folio init", "folio preview", "--draft", "--browser"},
+	}
+	for _, lang := range helpLanguages() {
+		for name, terms := range want {
+			page, err := helpPage(lang.Code, name)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, term := range terms {
+				if !strings.Contains(string(page), term) {
+					t.Errorf("%s/%s does not mention %q", lang.Code, name, term)
+				}
+			}
+		}
+	}
+	// A 🚧 comes from a ==TODO== in the page; no front matter key sets it.
+	for _, lang := range helpLanguages() {
+		if page, _ := helpPage(lang.Code, "tree.md"); strings.Contains(string(page), "todo: true") {
+			t.Errorf("%s/tree.md names todo: true, which marks nothing", lang.Code)
+		}
+	}
+}

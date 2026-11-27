@@ -26,34 +26,37 @@ A page with `draft: true` in its frontmatter is greyed out. It is part of the pr
 
 A page can carry status marks after its title:
 
-- 🚧 to do: `todo: true` under `folio:` in the frontmatter, or the text `==TODO==` anywhere in the page, even inside an HTML comment.
-- 👀 to review: `review:` under `folio:` in the frontmatter, set to what should be reviewed. The mark's tooltip reads "Review: " followed by that text. `review: true` marks the page without saying what to review.
+- 🆕 new: `status: new` in the frontmatter. New pages start with it.
+- 🗑️ deprecated: `status: deprecated`, `obsolete`, or `old`.
+- 🚧 to do: the text `==TODO==` anywhere in the page, even inside an HTML comment.
+- 👀 to review: `review:` in the frontmatter, set to what should be reviewed. The mark's tooltip reads "Review: " followed by that text. `review: true` marks the page without saying what to review.
 - 💬 commented: the page holds at least one comment (see the editor's help). A comment marker inside code does not count.
+- 🔖 bookmarked: `bookmarked: true`, which the editor's 🔖 button sets (see [Editing a page](editor.md)).
 
 ```yaml
 ---
 title: My page
-folio:
-  todo: true
-  review: the figures in section 2
+status: new
+review: the figures in section 2
 ---
 ```
 
 Each mark is shown once per page, however many `==TODO==` the page holds.
 
+In a Git working tree, a page changed since the last commit shows an asterisk (`*`) after its title.
+
 ## Hiding pages
 
-A page with `hide: true` under `folio:` in its frontmatter is left out of the tree. The default is `false`. A hidden section page hides its whole branch. Hiding only affects the tree: the page is still rendered, and the [search](search.md) still finds it, so you can open it there and remove the setting again.
+A page with `hide: true` in its frontmatter is left out of the tree. The default is `false`. A hidden section page hides its whole branch. Hiding only affects the tree: the page is still rendered, and the [search](search.md) still finds it, so you can open it there and remove the setting again.
 
 ```yaml
 ---
 title: My page
-folio:
-  hide: true
+hide: true
 ---
 ```
 
-Pages written for earlier versions say `qm:` instead of `folio:`. They are still read; when a page has both, `folio:` wins.
+Pages written for earlier versions keep these keys under `folio:` or `qm:`. They are still read; a key at the top wins.
 
 ## Reordering and moving
 
@@ -67,7 +70,7 @@ Drag a page by its `⠿` handle.
 
 - Type the page's name at the top, then press `＋ Page`.
 - The page is saved as `name/index.md`. Its folder name is the name in lower case, with dashes for spaces: "Map view" becomes `map-view/index.md`.
-- A new page has no `title` in its frontmatter, only its `order`. It starts with a level-1 heading inside an `::: explanation` div, whatever its place in the tree. The heading is the name as you typed it (`# Map view`), and it is the page's title.
+- A new page has no `title` in its frontmatter, only its `order` and `status: new`. It starts with a level-1 heading inside an `::: explanation` div, whatever its place in the tree. The heading is the name as you typed it (`# Map view`), and it is the page's title.
 - The `＋` button on a row adds a child page under that page. You are asked for the name.
 
 ## Deleting pages

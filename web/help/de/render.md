@@ -23,6 +23,8 @@ Lässt sich die `folio.yml` nicht lesen, zeigt der Bereich statt der Matrix den 
 1. Hake an, was du willst.
 2. Drücke unten im Bereich auf `Render`.
 
+Setze vor `Render` das Häkchen bei `Draft` für einen Entwurf für die Prüfenden: Er behält die mit `draft: true` markierten Seiten und zeigt die TODO-Marker, die Kommentare mit ihren Antworten, die Prüfhinweise sowie 🆕 und 🔖 auf den Seiten. Das entspricht `folio render --draft`.
+
 Das Rendering läuft im Hintergrund. Der Bereich zeigt das Log und aktualisiert es jede Sekunde, solange es läuft. Am Ende steht dort `Done` oder `Render failed`.
 
 - Es läuft immer nur ein Rendering gleichzeitig.
@@ -32,6 +34,6 @@ Das Rendering läuft im Hintergrund. Der Bereich zeigt das Log und aktualisiert 
 
 - Wohin die Ausgabe geht, bestimmt die `folio.yml`: standardmäßig unter `_output`, in einem Ordner pro Format. Wie ein Projekt eingerichtet wird, steht in der README des Projekts.
 - Inhalte lassen sich für ein Format oder eine Zielgruppe markieren; ein Rendering behält nur, was die Auswahl zeigt.
-- Als Entwurf markierte Seiten gehören nicht zu dem, was ein Rendering veröffentlicht (siehe [der Seitenbaum](tree.md)).
+- Als Entwurf markierte Seiten gehören nicht zu dem, was ein Rendering veröffentlicht, außer bei `Draft` (siehe [der Seitenbaum](tree.md)).
 
 Zurück zum [Inhalt](index.md).

@@ -8,6 +8,8 @@ The preview is an approximation. It is drawn in the browser from your Markdown a
 
 - A ```` ```{mermaid} ```` block is drawn as its diagram, as a render draws it; a plain ```` ```mermaid ```` block stays code.
 - Quarto fenced divs (`::: name`) and bracketed spans (`[text]{.name}`) get their class, so your custom CSS can style them.
+- `{{name}}` and `{{< var name >}}` show their values, from `folio.yml` (for the page's topic) and `_variables.yml`, as a render resolves them.
+- A cross-reference such as `[](#install)` shows the target's number and name, as a render does (see the [Quickstart](quickstart.md)).
 - A heading's attribute block, such as `{.unnumbered}`, is dropped, because it directs the render and is not part of what the heading says. Headings inside code blocks are left alone.
 - A page written for one target group is previewed inside that group's div. This applies when the file name, or a folder above it, ends in `_FW` or `_POL` (the deepest name wins). The stylesheet then tints and marks the whole page, as it does a `::: fw` or `::: pol` block. The frontmatter stays outside the div.
 

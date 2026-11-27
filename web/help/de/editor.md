@@ -37,6 +37,14 @@ Wurde die Datei außerhalb des Browsers so geändert, dass der Baum es nicht ber
 
 `↻ Reload` in der oberen Leiste, rechts von `Open`, lädt die Seite neu von der Platte. Auch Bilder in der Vorschau werden neu geholt.
 
+## Lesezeichen
+
+Der Button 🔖 über dem Editor setzt ein Lesezeichen auf die offene Seite: Er schreibt `bookmarked: true` in ihr Frontmatter. Der [Seitenbaum](tree.md) zeigt 🔖 neben der Seite, und der [Lesezeichenbereich](panes.md) listet sie. Ein weiterer Klick entfernt das Lesezeichen. Ein Entwurfs-Rendering zeigt 🔖 auch auf der Seite.
+
+## Rechtschreibprüfung
+
+Der Button `✓ Spellcheck` unter dem Editor schaltet die Rechtschreibprüfung des Browsers ein und aus. Sie prüft gegen die `lang` des Projekts, wo der Browser dieses Wörterbuch hat. Deine Wahl wird gespeichert.
+
 ## Vim-Modus
 
 Die Schaltfläche `⌨ Vim Mode` unter dem Editor schaltet die Vim-Tastenbelegung ein und aus. Sie ist standardmäßig aus, und deine Wahl wird gemerkt. Im Vim-Modus speichert `:w` die Seite sofort, statt auf das Autosave zu warten.

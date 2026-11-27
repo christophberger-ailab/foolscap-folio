@@ -8,11 +8,14 @@ Ein Projekt ist ein Dokumentbaum aus Markdown-Seiten, optional mit einer `folio.
 folio web                    # serve the project given by --project (default: the current directory)
 folio web ../handbook        # serve that project instead
 folio web --addr :9000       # listen elsewhere
+folio web --browser          # and open the app in your browser
 ```
 
 - Ein Pfad nach `web` benennt das zu öffnende Projekt. Er hat Vorrang vor `--project`.
 - Ohne Pfad ist das Projekt das, das `--project` (oder `-p`) angibt, sonst das aktuelle Verzeichnis.
 - Der Befehl läuft, bis du ihn unterbrichst, und gibt die Adresse aus, unter der er erreichbar ist.
+- `--browser` öffnet diese Adresse in deinem Standardbrowser. Der Eintrag im Windows-Startmenü startet `folio web --browser` mit minimiertem Konsolenfenster; wer das Fenster schließt, beendet `folio web`.
+- Ein Ordner ohne `folio.yml`, etwa der, in dem das Startmenü startet, öffnet kein Projekt. Wähle eines mit `Open`.
 
 ## Adresse und Port
 
@@ -50,6 +53,8 @@ Du kannst auch mit einem Git-Repository beginnen statt mit einem Ordner auf der 
 
 Hat das Repository oben eine `folio.yml`, wird es sofort geöffnet. Sonst zeigt der Dialog den geklonten Ordner, damit du den Unterordner mit dem Buch auswählen kannst.
 
+Für ein privates Repository bei einem anderen Anbieter, etwa Azure DevOps oder GitLab, füge ein persönliches Zugriffstoken unter `Access token` ein. folio schickt es nur an diesen Host und behält es für Push und Sync.
+
 Danach ist es ein gewöhnliches Projekt in einem eigenen Ordner: Committen, Pushen und Synchronisieren gehen im [Git-Bereich](git.md) oder im Terminal.
 
 ### Bei GitHub anmelden
@@ -61,5 +66,9 @@ Ein öffentliches Repository lässt sich ohne Anmeldung klonen. Für ein private
 3. Das Formular zeigt, als wer du angemeldet bist.
 
 folio merkt sich die Anmeldung für den nächsten Start, in einer Datei neben der [Einstellungsdatei](settings.md), die nur du lesen kannst, und schickt sie nur an github.com. `Sign out` vergisst sie. Um folio den Zugriff auch bei GitHub zu entziehen, widerrufe ihn auf github.com unter Settings → Applications.
+
+## folio aktualisieren
+
+`folio web` sucht einmal am Tag nach einer neuen Version. Findet es eine, erscheint rechts in der oberen Leiste ein Button `Update`. Er aktualisiert folio, startet `folio web` mit derselben Adresse und demselben Projekt neu und lädt die Seite neu. `What's new` zeigt danach die Versionshinweise.
 
 Zurück zum [Inhalt](index.md).
