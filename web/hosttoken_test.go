@@ -30,7 +30,7 @@ func tokenServer(t *testing.T) (*server, string) {
 // failClone makes the clone fail with git's words out.
 func failClone(t *testing.T, out string) {
 	prev := cloneRepo
-	cloneRepo = func(string, string, string) (string, error) { return out, errors.New(out) }
+	cloneRepo = func(string, string, string, string) (string, error) { return out, errors.New(out) }
 	t.Cleanup(func() { cloneRepo = prev })
 }
 

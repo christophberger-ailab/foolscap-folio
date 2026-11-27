@@ -56,7 +56,7 @@ Der Klon landet in folios eigenem Datenordner, du musst also keinen auswählen; 
 
 Hat der Ordner des Buchs eine `folio.yml`, wird er sofort geöffnet. Sonst zeigt der Dialog ihn, damit du den Unterordner mit dem Buch auswählen kannst.
 
-Erreicht git den Host nicht, der Browser aber schon, verlangt das Netz meist einen Proxy, von dem git nichts weiß. Das Formular sagt das und nennt unter Windows den Proxy, den Windows verwendet, und den Befehl, der ihn git mitteilt.
+Erreicht git den Host nicht, der Browser aber schon, verlangt das Netz meist einen Proxy, von dem git nichts weiß. Unter Windows klont folio dann noch einmal über den Proxy, den Windows verwendet, und der Klon behält ihn für Pull und Push. Klappt auch das nicht, oder auf anderen Systemen, sagt das Formular, was zu prüfen ist, und nennt den Befehl, der git einen Proxy mitteilt.
 
 Für ein privates Repository bei einem anderen Anbieter, etwa Azure DevOps oder GitLab, füge ein persönliches Zugriffstoken unter `Access token` ein. folio schickt es nur an diesen Host und behält es für Push und Sync.
 

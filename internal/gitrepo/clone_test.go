@@ -70,7 +70,7 @@ func TestClone(t *testing.T) {
 	git(t, seed, "clone", "--bare", seed, bare)
 
 	dest := filepath.Join(t.TempDir(), "book")
-	if _, err := Clone(bare, dest, ""); err != nil {
+	if _, err := Clone(bare, dest, "", ""); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(filepath.Join(dest, "index.qmd")); err != nil {
@@ -86,7 +86,7 @@ func TestClone(t *testing.T) {
 
 	// A folder that is already there is not cloned into: git would
 	// refuse a non-empty one anyway, and an empty one may be the user's.
-	if _, err := Clone(bare, dest, ""); err == nil {
+	if _, err := Clone(bare, dest, "", ""); err == nil {
 		t.Error("cloned into an existing folder")
 	}
 	if got, err := OriginURL(dest); err != nil || got != bare {
@@ -102,7 +102,7 @@ func TestCloneBranch(t *testing.T) {
 	git(t, seed, "clone", "--bare", seed, bare)
 
 	dest := filepath.Join(t.TempDir(), "book")
-	if out, err := Clone(bare, dest, "draft"); err != nil {
+	if out, err := Clone(bare, dest, "draft", ""); err != nil {
 		t.Fatal(err, out)
 	}
 	st, err := GetStatus(dest)
@@ -112,7 +112,7 @@ func TestCloneBranch(t *testing.T) {
 	if st.Branch != "draft" || st.Upstream != "origin/draft" {
 		t.Errorf("branch %q tracking %q, want draft tracking origin/draft", st.Branch, st.Upstream)
 	}
-	if _, err := Clone(bare, filepath.Join(t.TempDir(), "x"), "nope"); err == nil {
+	if _, err := Clone(bare, filepath.Join(t.TempDir(), "x"), "nope", ""); err == nil {
 		t.Error("cloned a branch that is not there")
 	}
 }
@@ -266,5 +266,44 @@ func TestTokenStaysOffTheCommandLine(t *testing.T) {
 	}
 	if !strings.HasPrefix(strings.TrimSpace(out), "Authorization: Basic ") {
 		t.Errorf("git does not see the header: %q", out)
+	}
+}
+
+// A clone through a proxy keeps it in the clone's own configuration, so
+// that pull and push go through it too.
+func TestCloneThroughProxy(t *testing.T) {
+	seed := testRepo(t)
+	dest := filepath.Join(t.TempDir(), "book")
+	if out, err := Clone(seed, dest, "", "http://proxy.corp:8080"); err != nil {
+		t.Fatal(err, out)
+	}
+	if got, err := run(dest, "config", "--local", "--get", "http.proxy"); strings.TrimSpace(got) != "http://proxy.corp:8080" {
+		t.Errorf("http.proxy = %q, %v; want http://proxy.corp:8080", got, err)
+	}
+	if _, err := Clone(seed, filepath.Join(t.TempDir(), "x"), "", "http://proxy corp"); err == nil {
+		t.Error("cloned through a proxy with a space in it")
+	}
+}
+
+// ProxyConfigured tells whether git has a proxy for https of its own: in
+// its configuration or in the environment.
+func TestProxyConfigured(t *testing.T) {
+	for _, v := range []string{"https_proxy", "HTTPS_PROXY", "all_proxy", "ALL_PROXY"} {
+		t.Setenv(v, "")
+	}
+	global := filepath.Join(t.TempDir(), "gitconfig")
+	t.Setenv("GIT_CONFIG_GLOBAL", global)
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	if ProxyConfigured() {
+		t.Error("a proxy is configured, with none set")
+	}
+	t.Setenv("HTTPS_PROXY", "http://p:1")
+	if !ProxyConfigured() {
+		t.Error("HTTPS_PROXY not seen")
+	}
+	t.Setenv("HTTPS_PROXY", "")
+	os.WriteFile(global, []byte("[http]\n\tproxy = http://p:1\n"), 0o644)
+	if !ProxyConfigured() {
+		t.Error("http.proxy not seen")
 	}
 }

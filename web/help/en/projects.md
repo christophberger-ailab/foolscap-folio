@@ -56,7 +56,7 @@ The clone goes into folio's own data folder, so you need not choose one; open `W
 
 If the book's folder has a `folio.yml`, it opens right away. If not, the dialog shows it so you can pick the subfolder that holds the book.
 
-If git cannot reach the host while your browser can, the network most likely wants a proxy that git is not told about. The form says so, and on Windows names the proxy Windows uses and the command that tells git about it.
+If git cannot reach the host while your browser can, the network most likely wants a proxy that git is not told about. On Windows, folio then clones once more through the proxy Windows uses, and the clone keeps it for pull and push. If that fails too, or on other systems, the form says what to check and the command that tells git about a proxy.
 
 For a private repository on another host, such as Azure DevOps or GitLab, paste a personal access token into `Access token`. folio sends it to that host only and keeps it for push and sync.
 

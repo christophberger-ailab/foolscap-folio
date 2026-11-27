@@ -136,13 +136,20 @@ func (s *server) cloneHandler(w http.ResponseWriter, r *http.Request) {
 		if token != "" {
 			prev = s.setHostToken(origin, token)
 		}
-		out, err := cloneRepo(v.URL, dest, v.Branch)
+		out, err := cloneRepo(v.URL, dest, v.Branch, "")
+		// Git does not use the proxy a browser does on Windows; a clone
+		// that could not get through goes again through that one.
+		proxy := systemProxy()
+		retry := err != nil && proxy != "" && origin != "" && gitrepo.NetworkFailed(out) && !gitrepo.ProxyConfigured()
+		if retry {
+			out, err = cloneRepo(v.URL, dest, v.Branch, "http://"+proxy)
+		}
 		if err != nil {
 			if token != "" {
 				s.setHostToken(origin, prev)
 			}
 			v.Output = strings.TrimSpace(out)
-			if hint := cmp.Or(signInHint(out, origin, token != ""), networkHint(out, origin)); hint != "" {
+			if hint := cmp.Or(signInHint(out, origin, token != ""), networkHint(out, origin, retry)); hint != "" {
 				err = errors.New(hint)
 			}
 			fail(err)
@@ -197,13 +204,18 @@ func clonedFrom(dir, url string) bool {
 // networkHint is what a clone that could not reach its remote, or lost it
 // on the way, tells the user; "" for any other failure. The usual cause is
 // one a browser does not suffer from: a company network's proxy, which the
-// browser is set up for and git is not.
-func networkHint(out, origin string) string {
+// browser is set up for and git is not. viaProxy says the clone went
+// through the system's proxy as well.
+func networkHint(out, origin string, viaProxy bool) string {
 	if !gitrepo.NetworkFailed(out) {
 		return ""
 	}
 	host := cmp.Or(strings.TrimSuffix(strings.TrimPrefix(origin, "https://"), "/"), "the repository's host")
-	hint := "git could not reach " + host + ", or lost the connection on the way. Where a browser gets through, the network most likely wants a proxy that git is not told about, or a VPN that is not on."
+	hint := "git could not reach " + host + ", or lost the connection on the way."
+	if viaProxy {
+		return hint + " It went directly and also through the proxy " + systemProxy() + " this computer sends web traffic through. If a browser gets through, check whether a VPN must be on, or ask the network's administrators which proxy git should use, and set it with `git config --global http.proxy http://<proxy>:<port>`."
+	}
+	hint += " Where a browser gets through, the network most likely wants a proxy that git is not told about, or a VPN that is not on."
 	if p := systemProxy(); p != "" {
 		return hint + " This computer sends web traffic through the proxy " + p + ". To have git use it too, run `git config --global http.proxy http://" + p + "` in a terminal and clone again."
 	}
