@@ -194,17 +194,72 @@ func TestWritesBrand(t *testing.T) {
 	}
 }
 
-// In an empty folder -- dot files aside -- init writes a sample project:
-// a home page, a topic with sections and chapters, a logo and its brand.
-// It renders.
-func TestSampleProject(t *testing.T) {
-	root := t.TempDir()
+// In an empty folder -- dot files aside -- init starts a new project:
+// folio.yml, a home page and the brand, and no topic yet. A content folder
+// added later is a topic without a change to folio.yml.
+func TestNewProject(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "my-handbook")
 	write(t, root, ".git/HEAD", "ref: refs/heads/main\n")
 	res, err := Run(root, Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, f := range []string{"index.md", "handbook/index.md", "handbook/writing/index.md", "assets/logo.svg", build.BrandFile} {
+	if !res.Written || !slices.Equal(res.Files, []string{"index.md", build.BrandFile}) {
+		t.Errorf("written %v, files %q", res.Written, res.Files)
+	}
+	c, err := config.Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Title != "My Handbook" || len(c.Topics) != 0 {
+		t.Errorf("title %q, topics %+v", c.Title, c.Topics)
+	}
+	home, _ := os.ReadFile(filepath.Join(root, "index.md"))
+	if !strings.Contains(string(home), "title: My Handbook") || !strings.Contains(string(home), "# My Handbook") {
+		t.Errorf("index.md:\n%s", home)
+	}
+	if b, _ := os.ReadFile(filepath.Join(root, build.BrandFile)); strings.Contains(string(b), "\nlogo:") {
+		t.Errorf("brand names a logo the project does not have:\n%s", b)
+	}
+	write(t, root, "guide/index.md", "---\ntitle: Guide\n---\n\n# Guide\n")
+	if c, err := config.Load(root); err != nil || len(c.Topics) != 1 || c.Topics[0].Name != "guide" {
+		t.Errorf("added folder is no topic: %v %+v", err, c)
+	}
+
+	empty := t.TempDir()
+	res, err = Run(empty, Options{DryRun: true})
+	if err != nil || !strings.Contains(res.YAML, "title:") || res.Written {
+		t.Fatalf("dry run: %v\n%s", err, res.YAML)
+	}
+	if entries, _ := os.ReadDir(empty); len(entries) != 0 {
+		t.Errorf("dry run wrote %d entries", len(entries))
+	}
+}
+
+// --demo starts from a demo project in an empty folder only.
+func TestDemoNeedsAnEmptyFolder(t *testing.T) {
+	root := tree(t)
+	if _, err := Run(root, Options{Demo: true}); err == nil || !strings.Contains(err.Error(), "empty") {
+		t.Errorf("err = %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(root, config.FileName)); !os.IsNotExist(err) {
+		t.Errorf("folio.yml written: %v", err)
+	}
+}
+
+// With --demo, an empty folder gets the demo project: a home page, two
+// topics with sections, chapters and subchapters, a logo and its brand,
+// and the formats and audiences that the pages' conditional content uses.
+// Every part of the matrix renders without a warning.
+func TestDemoProject(t *testing.T) {
+	root := t.TempDir()
+	write(t, root, ".git/HEAD", "ref: refs/heads/main\n")
+	res, err := Run(root, Options{Demo: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range []string{"index.md", "handbook/index.md", "handbook/writing/index.md",
+		"showcase/index.md", "showcase/text/diagrams/sizes.md", "assets/logo.svg", build.BrandFile} {
 		if !slices.Contains(res.Files, f) {
 			t.Errorf("%s not reported among %q", f, res.Files)
 		}
@@ -222,8 +277,15 @@ func TestSampleProject(t *testing.T) {
 	if c.Title != filepath.Base(root) { // TempDir's numbered folder
 		t.Errorf("title %q, want the folder's name", c.Title)
 	}
-	if len(c.Topics) != 1 || c.Topics[0].Name != "handbook" {
-		t.Errorf("topics %+v", c.Topics)
+	var topics []string
+	for _, tp := range c.Topics {
+		topics = append(topics, tp.Name)
+	}
+	if strings.Join(topics, ",") != "handbook,showcase" {
+		t.Errorf("topics %v", topics)
+	}
+	if len(c.Formats) < 2 || len(c.Audiences) < 2 {
+		t.Errorf("formats %+v audiences %+v", c.Formats, c.Audiences)
 	}
 	sels, err := c.Expand(config.Request{})
 	if err != nil {
@@ -234,18 +296,18 @@ func TestSampleProject(t *testing.T) {
 		t.Fatalf("%v\n%s", err, strings.Join(log, "\n"))
 	}
 	for _, l := range log {
-		if strings.Contains(l, "warning") || strings.Contains(l, "note:") {
+		if strings.Contains(strings.ToLower(l), "warning") || strings.Contains(l, "note:") {
 			t.Errorf("render: %s", l)
 		}
 	}
-	page, err := os.ReadFile(filepath.Join(root, "_output", "web", "handbook", "writing", "index.html"))
+	page, err := os.ReadFile(filepath.Join(root, "_output", "web-everyone", "handbook", "writing", "index.html"))
 	if err != nil || !strings.Contains(string(page), "site-logo") {
 		t.Errorf("section page without the logo: %v", err)
 	}
 
-	// A dry run in an empty folder shows the sample's folio.yml and writes nothing.
+	// A dry run shows the demo's folio.yml and writes nothing.
 	empty := t.TempDir()
-	res, err = Run(empty, Options{DryRun: true})
+	res, err = Run(empty, Options{Demo: true, DryRun: true})
 	if err != nil || !strings.Contains(res.YAML, "handbook:") {
 		t.Fatalf("dry run: %v\n%s", err, res.YAML)
 	}

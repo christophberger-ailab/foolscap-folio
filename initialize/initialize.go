@@ -32,24 +32,26 @@ import (
 func Register(projectFlag *string, userBrand func() string) {
 	force := boolFlag("force", "Overwrite an existing folio.yml")
 	dryRun := boolFlag("dry-run", "Print the folio.yml instead of writing it")
+	demo := boolFlag("demo", "In an empty folder, write a demo project of folio's features")
 	start.Add(&start.Command{
 		Name:  "init",
-		Short: "Write a starter folio.yml and _brand.yml, or a sample project",
+		Short: "Write a starter folio.yml and _brand.yml, or start a new project",
 		Long: "Write a folio.yml for a tree of .md or .qmd pages that has none yet: " +
 			"the title (from the root index page, README.md or the folder name), " +
 			"every content folder as a topic, a website format, and the web and " +
-			"preview addresses, and a sample _brand.yml unless there is one. In an " +
-			"empty folder it first writes a sample project to start from. Use " +
-			"--dry-run to print the folio.yml instead, --force to overwrite an " +
-			"existing folio.yml. A project with old _quarto*.yml files needs " +
-			"`folio migrate` instead.",
-		Flags: []string{"force", "dry-run"},
+			"preview addresses, and a sample _brand.yml unless there is one. An " +
+			"empty folder gets a home page beside them, the start of a new project; " +
+			"with --demo it gets a demo project instead, with two topics that show " +
+			"folio's Markdown extensions. Use --dry-run to print the folio.yml " +
+			"instead, --force to overwrite an existing folio.yml. A project with " +
+			"old _quarto*.yml files needs `folio migrate` instead.",
+		Flags: []string{"force", "dry-run", "demo"},
 		Cmd: func(*start.Command) error {
 			root, err := filepath.Abs(*projectFlag)
 			if err != nil {
 				return fmt.Errorf("cannot resolve project path: %w", err)
 			}
-			res, err := Run(root, Options{Force: force(), DryRun: dryRun(), UserBrand: userBrand()})
+			res, err := Run(root, Options{Force: force(), DryRun: dryRun(), Demo: demo(), UserBrand: userBrand()})
 			if err != nil {
 				return err
 			}
@@ -80,6 +82,7 @@ func boolFlag(name, usage string) func() bool {
 type Options struct {
 	Force  bool // overwrite an existing folio.yml
 	DryRun bool // do not write the file
+	Demo   bool // start an empty folder from the demo project
 	// UserBrand is the user's global brand file, which a project's own
 	// overrides; "" for none.
 	UserBrand string
@@ -118,6 +121,9 @@ func Run(root string, opts Options) (*Result, error) {
 	if err != nil {
 		return nil, err
 	}
+	if opts.Demo && !empty {
+		return nil, fmt.Errorf("%s is not empty: --demo writes its project into an empty folder only (dot files aside)", root)
+	}
 	dir := root
 	if opts.DryRun {
 		if dir, err = os.MkdirTemp("", "folio-init-"); err != nil {
@@ -128,7 +134,12 @@ func Run(root string, opts Options) (*Result, error) {
 	res, title := &Result{}, Title(root) // before the sample has a home page
 	src := root
 	if empty {
-		if res.Files, err = writeSample(dir); err != nil {
+		if opts.Demo {
+			res.Files, err = writeSample(dir)
+		} else {
+			res.Files, err = writeHome(dir, title)
+		}
+		if err != nil {
 			return nil, err
 		}
 		src = dir
@@ -137,10 +148,10 @@ func Run(root string, opts Options) (*Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(topics) == 0 {
+	if len(topics) == 0 && !empty {
 		return nil, fmt.Errorf("%s has no content folders (folders below it holding .md or .qmd pages)", root)
 	}
-	res.YAML = render(title, topics)
+	res.YAML = render(title, topics, opts.Demo)
 	if err := os.WriteFile(filepath.Join(dir, config.FileName), []byte(res.YAML), 0o644); err != nil {
 		return nil, err
 	}
@@ -150,7 +161,7 @@ func Run(root string, opts Options) (*Result, error) {
 	if opts.DryRun {
 		return &Result{YAML: res.YAML}, nil
 	}
-	wrote, err := writeBrand(root, empty, opts.UserBrand)
+	wrote, err := writeBrand(root, opts.Demo, opts.UserBrand)
 	if err != nil {
 		return nil, err
 	}
@@ -173,6 +184,14 @@ func isEmpty(dir string) (bool, error) {
 		}
 	}
 	return true, nil
+}
+
+// writeHome writes the home page of a new project into dir and returns it.
+func writeHome(dir, title string) ([]string, error) {
+	page := fmt.Sprintf("---\ntitle: %s\n---\n\n# %s\n\n"+
+		"This is the home page of the project. Every folder of pages next to it becomes a topic: "+
+		"a book of its own and an entry in the website's menu.\n", quote(title), title)
+	return []string{"index.md"}, os.WriteFile(filepath.Join(dir, "index.md"), []byte(page), 0o644)
 }
 
 // writeSample copies the sample project into dir and returns its files.
@@ -261,7 +280,11 @@ func Title(root string) string {
 	return strings.Join(words, " ")
 }
 
-func render(title string, topics []string) string {
+// render writes the folio.yml. The demo's shows a document format, two
+// audiences and a variable in use, where any other's has them as comments.
+// Without topics, the list is a comment, so that every content folder
+// added later is a topic.
+func render(title string, topics []string, demo bool) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, `# folio.yml, written by `+"`folio init`"+`. Every key is optional. Apart from the
 # title, what follows is what folio uses when the file does not say: delete
@@ -271,7 +294,25 @@ title: %s
 # lang: en
 # output: _output
 # footer: "{title} · {date}"
+`, quote(title))
+	if demo {
+		b.WriteString(`
+# The website shows the "explanation" blocks, the handout does not.
+formats:
+  web: {type: html, show: [explanation], numbered_figures: true}
+  handout: {type: [docx, pdf], toc: true, numbered_headings: true, numbered_figures: true}
 
+# A block or span with the class "experts" is for the experts alone.
+audiences:
+  everyone: {}
+  experts: {}
+
+# {{product}} in a page shows this value.
+vars:
+  product: Foolscap Folio
+`)
+	} else {
+		b.WriteString(`
 formats:
   web: {type: html}
   # handout: {type: [docx, pdf], toc: true, template: assets/Template.docx}
@@ -279,12 +320,18 @@ formats:
 # audiences:
 #   std: {}
 #   pol: {show: [pol], vars: {suffix: _POL}}
-
+`)
+	}
+	b.WriteString(`
 # One topic per content folder; each renders into its own document. While
 # this list is here, a folder added later is a topic only once listed; without
 # it, folio takes every content folder.
-topics:
-`, quote(title))
+`)
+	if len(topics) == 0 {
+		b.WriteString("# topics:\n#   guide: {}\n")
+	} else {
+		b.WriteString("topics:\n")
+	}
 	for _, t := range topics {
 		fmt.Fprintf(&b, "  %s: {}\n", quote(t))
 	}

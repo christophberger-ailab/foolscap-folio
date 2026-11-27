@@ -28,7 +28,11 @@ folio init
 folio web
 ```
 
-In an empty folder, `folio init` writes a sample project to start from: a home page, a `handbook` topic with sections and chapters, a `folio.yml` and a `_brand.yml`. In a folder of Markdown pages, it writes only `folio.yml` and `_brand.yml`, with every content folder as a topic. Each page starts with front matter:
+In an empty folder, `folio init` starts a new project: a home page, a `folio.yml` and a `_brand.yml`. Every folder of pages you add becomes a topic. `folio init --demo` writes a demo project instead: a `handbook` topic that explains the tree, and a `showcase` topic with an example of each Markdown extension. In a folder of Markdown pages, `folio init` writes only `folio.yml` and `_brand.yml`, with every content folder as a topic.
+
+In `folio web`, open a folder without `folio.yml`: the editor area offers `Start a new project here` and, in an empty folder, `Create a demo project here`.
+
+Each page starts with front matter:
 
 ```markdown
 ---

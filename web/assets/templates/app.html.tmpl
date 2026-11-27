@@ -161,14 +161,24 @@
   <label>Access token <span class="hint">(optional)</span>
     <input type="password" name="token" autocomplete="off" spellcheck="false" placeholder="for a private repository on Azure DevOps, GitLab, …">
   </label>
-  <label>Clone into the folder
-    <input type="text" name="dir" value="{{.Dir}}" autocomplete="off" spellcheck="false" required>
+  <label>Branch <span class="hint">(optional)</span>
+    <input type="text" name="branch" value="{{.Branch}}" autocomplete="off" spellcheck="false" placeholder="the repository's default branch">
   </label>
+  <label>Folder of the book in the repository <span class="hint">(optional)</span>
+    <input type="text" name="path" value="{{.Path}}" autocomplete="off" spellcheck="false" placeholder="such as docs; the top of the repository if left empty">
+  </label>
+  <details class="clone-dir">
+    <summary>Where the clone goes</summary>
+    <label>Clone into the folder
+      <input type="text" name="dir" value="{{.Dir}}" autocomplete="off" spellcheck="false" placeholder="folio's own data folder">
+    </label>
+  </details>
+  <input type="hidden" name="back" value="{{.Back}}">
   <div class="github-status" id="github-status">{{template "github-status" .GitHub}}</div>
   {{if .Error}}<p class="browse-error">{{.Error}}</p>{{end}}
   {{if .Output}}<pre class="git-output">{{.Output}}</pre>{{end}}
   <div class="browse-actions">
-    <button type="button" class="clone-back" data-path="{{.Dir}}">Back</button>
+    <button type="button" class="clone-back" data-path="{{.Back}}">Back</button>
     <span class="browse-status" id="browse-status" role="status"></span>
     <button type="button" class="browse-cancel">Cancel</button>
     <button type="submit" class="primary" id="clone-submit">Clone and open</button>
@@ -493,7 +503,7 @@
   </div>
 </section>
 <div id="divider" role="separator" aria-orientation="vertical" title="Drag to resize"></div>
-<section id="content-pane"><div id="content">{{if .Page}}{{template "content" .Page}}{{else}}{{template "no-page" "Select a page to view its content."}}{{end}}</div>
+<section id="content-pane"><div id="content">{{if .Page}}{{template "content" .Page}}{{else if .Init}}{{template "init" .Init}}{{else}}{{template "no-page" "Select a page to view its content."}}{{end}}</div>
 {{template "dock" .}}</section>
 {{else}}
 <section id="tree-pane"><p class="empty">Open a project to get started.</p></section>
@@ -564,6 +574,22 @@
 
 {{/* The editor's place while no page is open. The panes stand beside it
      in the dock as they stand beside the editor. */}}
+{{/* The offer of an open folder without folio.yml: start a project in
+     it, as `folio init` does, or, in an empty folder, the demo project,
+     as `folio init --demo` does. Either answers with the project. */}}
+{{define "init"}}<div class="content-header">
+  <h2 class="content-title" id="content-title"></h2>
+</div>
+<div class="editor-split" id="editor-split">
+  <form class="edit-form editor-placeholder init-offer" hx-post="/init" hx-target="#main" hx-swap="innerHTML">
+    <p class="empty">This folder has no folio.yml, so it is no project yet.</p>
+    {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+    <p><button type="submit" class="primary">Start a new project here</button>
+    {{if .Demo}}<button type="submit" name="demo" value="1">Create a demo project here</button>{{end}}</p>
+    <p class="hint">{{if .Demo}}A new project starts with a folio.yml, a _brand.yml and a home page; the demo project adds two topics that show folio's features.{{else}}This writes a folio.yml with every folder of pages as a topic, and a _brand.yml unless there is one.{{end}}</p>
+  </form>
+</div>{{end}}
+
 {{define "no-page"}}<div class="content-header">
   <h2 class="content-title" id="content-title"></h2>
 </div>

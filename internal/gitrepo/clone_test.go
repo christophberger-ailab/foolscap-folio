@@ -70,7 +70,7 @@ func TestClone(t *testing.T) {
 	git(t, seed, "clone", "--bare", seed, bare)
 
 	dest := filepath.Join(t.TempDir(), "book")
-	if _, err := Clone(bare, dest); err != nil {
+	if _, err := Clone(bare, dest, ""); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(filepath.Join(dest, "index.qmd")); err != nil {
@@ -86,8 +86,61 @@ func TestClone(t *testing.T) {
 
 	// A folder that is already there is not cloned into: git would
 	// refuse a non-empty one anyway, and an empty one may be the user's.
-	if _, err := Clone(bare, dest); err == nil {
+	if _, err := Clone(bare, dest, ""); err == nil {
 		t.Error("cloned into an existing folder")
+	}
+	if got, err := OriginURL(dest); err != nil || got != bare {
+		t.Errorf("OriginURL = %q, %v; want %q", got, err, bare)
+	}
+}
+
+// A branch named is the one checked out, tracking its remote branch.
+func TestCloneBranch(t *testing.T) {
+	seed := testRepo(t)
+	git(t, seed, "branch", "draft")
+	bare := filepath.Join(t.TempDir(), "book.git")
+	git(t, seed, "clone", "--bare", seed, bare)
+
+	dest := filepath.Join(t.TempDir(), "book")
+	if out, err := Clone(bare, dest, "draft"); err != nil {
+		t.Fatal(err, out)
+	}
+	st, err := GetStatus(dest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.Branch != "draft" || st.Upstream != "origin/draft" {
+		t.Errorf("branch %q tracking %q, want draft tracking origin/draft", st.Branch, st.Upstream)
+	}
+	if _, err := Clone(bare, filepath.Join(t.TempDir(), "x"), "nope"); err == nil {
+		t.Error("cloned a branch that is not there")
+	}
+}
+
+func TestValidBranch(t *testing.T) {
+	for b, ok := range map[string]bool{
+		"":             true,
+		"main":         true,
+		"feature/docs": true,
+		"v1.2":         true,
+		"-x":           false,
+		"a b":          false,
+		"a\nb":         false,
+		"a..b":         false,
+		"a~1":          false,
+		"refs^":        false,
+		"x:y":          false,
+		"a?":           false,
+		"a[":           false,
+		"a\\b":         false,
+		"/a":           false,
+		"a.lock":       false,
+		"a/":           false,
+		"@{-1}":        false,
+	} {
+		if err := ValidBranch(b); (err == nil) != ok {
+			t.Errorf("ValidBranch(%q) = %v, want ok=%v", b, err, ok)
+		}
 	}
 }
 
@@ -159,6 +212,24 @@ func TestOrigin(t *testing.T) {
 	} {
 		if got := Origin(url); got != want {
 			t.Errorf("Origin(%q) = %q, want %q", url, got, want)
+		}
+	}
+}
+
+// What git says when it could not reach a remote, or lost it on the way,
+// is told apart from a remote that answered.
+func TestNetworkFailed(t *testing.T) {
+	for out, want := range map[string]bool{
+		"fatal: unable to access 'https://dev.azure.com/o/_git/r/': Recv failure: Connection was reset":                   true,
+		"fatal: unable to access 'https://x/r/': Recv failure: Connection reset by peer":                                  true,
+		"fatal: unable to access 'https://x/r/': Failed to connect to x port 443 after 21 ms: Couldn't connect to server": true,
+		"fatal: unable to access 'https://x/r/': Could not resolve host: x":                                               true,
+		"fatal: unable to access 'https://x/r/': Connection timed out after 300000 milliseconds":                          true,
+		"fatal: unable to access 'https://x/r/': The requested URL returned error: 401":                                   false,
+		"fatal: repository 'https://x/r/' not found":                                                                      false,
+	} {
+		if got := NetworkFailed(out); got != want {
+			t.Errorf("NetworkFailed(%q) = %v, want %v", out, got, want)
 		}
 	}
 }

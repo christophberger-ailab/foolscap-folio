@@ -75,10 +75,35 @@ func RepoName(url string) string {
 	return name
 }
 
+// ValidBranch reports why b is not a branch name git would take, by the
+// rules of git check-ref-format --branch; "" names the default branch. A
+// name starting with a dash is refused as well, though it is passed as
+// the value of --branch, where git would not read it as an option.
+func ValidBranch(b string) error {
+	if b == "" {
+		return nil
+	}
+	bad := strings.HasPrefix(b, "-") || strings.HasPrefix(b, "/") || strings.HasSuffix(b, "/") ||
+		strings.HasSuffix(b, ".") || strings.HasSuffix(b, ".lock") || b == "@" ||
+		strings.Contains(b, "..") || strings.Contains(b, "//") || strings.Contains(b, "@{") ||
+		strings.Contains(b, "/.") || strings.HasPrefix(b, ".") ||
+		strings.IndexFunc(b, func(r rune) bool {
+			return r <= ' ' || r == 0x7f || strings.ContainsRune(`~^:?*[\`, r)
+		}) >= 0
+	if bad {
+		return fmt.Errorf("%q is not a branch name", b)
+	}
+	return nil
+}
+
 // Clone makes a working tree of the repository at url in dest, which must
-// not exist yet. The remote is called origin and the default branch is
-// checked out tracking it, so push and sync work on it at once.
-func Clone(url, dest string) (string, error) {
+// not exist yet. The remote is called origin and the branch named, or the
+// default branch for "", is checked out tracking it, so push and sync work
+// on it at once.
+func Clone(url, dest, branch string) (string, error) {
+	if err := ValidBranch(branch); err != nil {
+		return "", err
+	}
 	if _, err := os.Stat(dest); err == nil {
 		return "", fmt.Errorf("%s is already there; choose another folder", dest)
 	}
@@ -86,9 +111,19 @@ func Clone(url, dest string) (string, error) {
 	if err := os.MkdirAll(parent, 0o755); err != nil {
 		return "", err
 	}
+	args := []string{"clone"}
+	if branch != "" {
+		args = append(args, "--branch", branch)
+	}
 	// The "--" keeps a URL from being read as an option, which ValidRemote
 	// checks too; this is the second lock.
-	return runFor(CloneTimeout, parent, 0, "clone", "--", url, dest)
+	return runFor(CloneTimeout, parent, 0, append(args, "--", url, dest)...)
+}
+
+// OriginURL is the URL of the remote origin of the repository at dir.
+func OriginURL(dir string) (string, error) {
+	out, err := run(dir, "remote", "get-url", "origin")
+	return strings.TrimSpace(out), err
 }
 
 // GitHubOrigin is where the GitHub sign-in's token goes.
@@ -143,6 +178,23 @@ func AuthFailed(out string) bool {
 		"could not read username", "could not read password", "terminal prompts disabled",
 		"authentication failed", "unable to update url base from redirection",
 		"returned error: 401", "returned error: 403",
+	} {
+		if strings.Contains(out, s) {
+			return true
+		}
+	}
+	return false
+}
+
+// NetworkFailed reports whether git's output says it could not reach the
+// remote, or lost the connection before the remote answered: a name that
+// did not resolve, a connection refused, reset or timed out.
+func NetworkFailed(out string) bool {
+	out = strings.ToLower(out)
+	for _, s := range []string{
+		"could not resolve host", "failed to connect", "couldn't connect",
+		"connection was reset", "connection reset", "recv failure", "send failure",
+		"timed out", "connection refused", "proxy connect aborted",
 	} {
 		if strings.Contains(out, s) {
 			return true

@@ -28,7 +28,11 @@ folio init
 folio web
 ```
 
-In einem leeren Ordner schreibt `folio init` ein Beispielprojekt als Ausgangspunkt: eine Startseite, ein Thema `handbook` mit Abschnitten und Kapiteln, eine `folio.yml` und eine `_brand.yml`. In einem Ordner mit Markdown-Seiten schreibt es nur `folio.yml` und `_brand.yml`, mit jedem Inhaltsordner als Thema. Jede Seite beginnt mit Front Matter:
+In einem leeren Ordner beginnt `folio init` ein neues Projekt: eine Startseite, eine `folio.yml` und eine `_brand.yml`. Jeder Ordner mit Seiten, den du hinzufügst, wird ein Thema. `folio init --demo` schreibt stattdessen ein Demoprojekt: ein Thema `handbook`, das den Baum erklärt, und ein Thema `showcase` mit einem Beispiel für jede Markdown-Erweiterung. In einem Ordner mit Markdown-Seiten schreibt `folio init` nur `folio.yml` und `_brand.yml`, mit jedem Inhaltsordner als Thema.
+
+Öffnest du in `folio web` einen Ordner ohne `folio.yml`, bietet der Editorbereich `Start a new project here` an und, in einem leeren Ordner, `Create a demo project here`.
+
+Jede Seite beginnt mit Front Matter:
 
 ```markdown
 ---
