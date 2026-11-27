@@ -1635,9 +1635,10 @@ function drawDiagrams(root) {
 // A link to a fragment, `[](#key)`, is a cross-reference to a heading or
 // a figure. The server resolves the references of the page (POST /xrefs,
 // web/xref.go), and applyXrefs shows them as a render does: a reference
-// without text gets its target's number and name. The page's headings get
-// the identifiers the references point to, so that a click on one scrolls
-// the pane there (see app.js).
+// without text gets its target's number and name. The page's headings
+// and figures get their numbers, when a format numbers them, and the keys
+// the references name them by, so that a click on a reference scrolls
+// the pane there or opens the page it is on (see app.js).
 
 // xrefText is what a reference without text shows of its target x: in
 // style "name" or "number" only that, else "1.2, Name"; "??key" for none.
@@ -1673,15 +1674,19 @@ function xrefStyle(text) {
 }
 
 // applyXrefs shows the references in root with the targets in data, what
-// /xrefs answered: refs by key, and the page's headings' identifiers in
-// order. It may run again on the same pane, with newer data.
+// /xrefs answered: refs by key, and the page's headings and figures in
+// order, each with its key and number. It may run again on the same pane,
+// with newer data.
 function applyXrefs(root, data) {
-  var ids = (data && data.headings) || [];
+  var heads = (data && data.headings) || [];
+  var figs = (data && data.figures) || [];
   var refs = (data && data.refs) || {};
-  var hs = root.querySelectorAll("h1, h2, h3, h4, h5, h6");
-  for (var i = 0; i < hs.length && i < ids.length; i++) {
-    hs[i].setAttribute("data-xref-id", ids[i]);
-  }
+  root.querySelectorAll("h1, h2, h3, h4, h5, h6").forEach(function (h, i) {
+    markTarget(h, h, heads[i], " ");
+  });
+  root.querySelectorAll("figure > figcaption").forEach(function (c, i) {
+    markTarget(c.parentNode, c, figs[i], ": ");
+  });
   root.querySelectorAll('a[href^="#"]').forEach(function (a) {
     var key = a.getAttribute("href").slice(1);
     try {
@@ -1706,12 +1711,36 @@ function applyXrefs(root, data) {
     if (a.hasAttribute("data-xref-fill")) {
       a.textContent = xrefText(x, a.getAttribute("data-xref-style"), key);
     }
-    if (x && x.id) {
-      a.setAttribute("data-xref", x.id);
-    } else {
-      a.removeAttribute("data-xref");
-    }
+    setOrDrop(a, "data-xref-key", x && x.key);
+    setOrDrop(a, "data-xref-path", x && x.path);
   });
+}
+
+// markTarget gives el, a heading or a figure, the key of m and puts its
+// number before the text of label, followed by sep: "1.2 " before a
+// heading, "Figure 3: " before a caption. A number from an earlier run
+// goes first.
+function markTarget(el, label, m, sep) {
+  var old = label.querySelector(":scope > .xref-number");
+  if (old) {
+    old.remove();
+  }
+  setOrDrop(el, "data-xref-key", m && m.key);
+  if (m && m.number) {
+    var span = document.createElement("span");
+    span.className = "xref-number";
+    span.textContent = m.number + sep;
+    label.insertBefore(span, label.firstChild);
+  }
+}
+
+// setOrDrop sets el's attribute name to value, or removes it for none.
+function setOrDrop(el, name, value) {
+  if (value) {
+    el.setAttribute(name, value);
+  } else {
+    el.removeAttribute(name);
+  }
 }
 
 // renderPreview fills el with the preview of the Quarto Markdown in text.

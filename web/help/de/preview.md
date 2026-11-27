@@ -9,7 +9,8 @@ Die Vorschau ist eine Näherung. Sie wird im Browser aus deinem Markdown gezeich
 - Ein Block ```` ```{mermaid} ```` wird als sein Diagramm gezeichnet, wie ein Rendern es zeichnet; ein einfacher Block ```` ```mermaid ```` bleibt Code.
 - Quarto-Fenced-Divs (`::: name`) und Bracketed Spans (`[text]{.name}`) bekommen ihre Klasse, sodass dein eigenes CSS sie gestalten kann.
 - `{{name}}` und `{{< var name >}}` zeigen ihre Werte aus der `folio.yml` (für das Thema der Seite) und der `_variables.yml`, wie ein Rendering sie auflöst.
-- Ein Querverweis wie `[](#install)` zeigt Nummer und Namen seines Ziels, wie ein Rendering (siehe den [Schnellstart](quickstart.md)).
+- Ein Querverweis wie `[](#install)` zeigt Nummer und Namen seines Ziels, wie ein Rendering (siehe den [Schnellstart](quickstart.md)). Ein Klick darauf führt zum Ziel: Die Vorschau scrollt dorthin oder öffnet die Seite, auf der es steht.
+- Wenn ein Format in der `folio.yml` `numbered_headings` oder `numbered_figures` setzt, zeigen Überschriften und Bildunterschriften ihre Nummern, wie die Website. Eine Überschrift oder Abbildung, die noch nicht gespeichert ist, bekommt ihre Nummer, sobald die Seite gespeichert ist.
 - Der Attributblock einer Überschrift, etwa `{.unnumbered}`, wird weggelassen, weil er das Rendering steuert und nicht zum Inhalt der Überschrift gehört. Überschriften in Codeblöcken bleiben unberührt.
 - Eine Seite, die für eine Zielgruppe geschrieben ist, wird innerhalb des Divs dieser Gruppe angezeigt. Das gilt, wenn der Dateiname oder ein Ordner darüber auf `_FW` oder `_POL` endet (der tiefste Name gewinnt). Das Stylesheet färbt und markiert dann die ganze Seite, wie es bei einem `::: fw`- oder `::: pol`-Block geschieht. Das Frontmatter bleibt außerhalb des Divs.
 
@@ -37,6 +38,10 @@ Eine im [Editor](editor.md) kommentierte Stelle wird hervorgehoben, auch wenn si
 ## Scrollen
 
 Editor und Vorschau scrollen gemeinsam: Bewegst du eines von beiden, springt das andere zur selben Stelle der Seite. Die Vorschau bleibt auch beim Tippen beim Editor.
+
+## Zurück und Vorwärts
+
+Unter der Vorschau gehen `←` und `→` zurück und vorwärts durch die Seiten, die du geöffnet, und die Querverweise, denen du gefolgt bist, wie in einem Browser. Zurück führt an die Stelle der Seite, an der du sie verlassen hast. Der Tooltip jeder Schaltfläche nennt die Seite, zu der sie führt.
 
 ## Previous und Next
 

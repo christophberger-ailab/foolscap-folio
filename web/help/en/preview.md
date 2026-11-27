@@ -9,7 +9,8 @@ The preview is an approximation. It is drawn in the browser from your Markdown a
 - A ```` ```{mermaid} ```` block is drawn as its diagram, as a render draws it; a plain ```` ```mermaid ```` block stays code.
 - Quarto fenced divs (`::: name`) and bracketed spans (`[text]{.name}`) get their class, so your custom CSS can style them.
 - `{{name}}` and `{{< var name >}}` show their values, from `folio.yml` (for the page's topic) and `_variables.yml`, as a render resolves them.
-- A cross-reference such as `[](#install)` shows the target's number and name, as a render does (see the [Quickstart](quickstart.md)).
+- A cross-reference such as `[](#install)` shows the target's number and name, as a render does (see the [Quickstart](quickstart.md)). Click it to go to the target: the preview scrolls to it, or opens the page it is on.
+- When a format in `folio.yml` sets `numbered_headings` or `numbered_figures`, headings and figure captions show their numbers, as the website does. A heading or figure you have not saved yet gets its number once the page is saved.
 - A heading's attribute block, such as `{.unnumbered}`, is dropped, because it directs the render and is not part of what the heading says. Headings inside code blocks are left alone.
 - A page written for one target group is previewed inside that group's div. This applies when the file name, or a folder above it, ends in `_FW` or `_POL` (the deepest name wins). The stylesheet then tints and marks the whole page, as it does a `::: fw` or `::: pol` block. The frontmatter stays outside the div.
 
@@ -37,6 +38,10 @@ A passage commented in the [editor](editor.md) is highlighted, also when it runs
 ## Scrolling
 
 The editor and the preview scroll together: moving either one brings the other to the same part of the page. The preview also stays with the editor while you type.
+
+## Back and Forward
+
+Below the preview, `←` and `→` go back and forward through the pages you opened and the cross-references you followed, as a browser does. Going back returns to the place in the page where you left it. Each button's tooltip names the page it goes to.
 
 ## Previous and Next
 
