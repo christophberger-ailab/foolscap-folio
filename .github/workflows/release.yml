@@ -160,11 +160,14 @@ jobs:
     if: needs.version.outputs.version != ''
     runs-on: ubuntu-latest
     # id-token lets cosign get a short-lived signing certificate from
-    # Sigstore for this workflow run; no key is stored anywhere. Job-level
-    # permissions replace the top-level ones, so contents: write is repeated.
+    # Sigstore for this workflow run; no key is stored anywhere. The
+    # attestation step uses the same token, and attestations: write to store
+    # its result with GitHub. Job-level permissions replace the top-level
+    # ones, so contents: write is repeated.
     permissions:
       contents: write
       id-token: write
+      attestations: write
     env:
       VERSION: ${{ needs.version.outputs.version }}
     steps:
@@ -215,3 +218,73 @@ jobs:
           # pull request to microsoft/winget-pkgs. While it is unset the
           # manifest is built but not submitted.
           WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+
+      # SLSA build provenance, stored with GitHub's attestation API, so that
+      # `gh attestation verify <file> --repo christophberger-ailab/foolscap-folio`
+      # checks a download without cosign or SHA256SUMS.txt. The subjects are
+      # every file SHA256SUMS.txt lists (archives, packages, SBOMs, the
+      # Windows setup program), the list itself, and the bare binaries: the
+      # Homebrew cask, the Scoop manifest, winget and folio upgrade all
+      # install the binary from the archive byte for byte, so an installed
+      # folio verifies too. Signed through Sigstore with this run's OIDC
+      # token, like the cosign signature above.
+      - name: Collect attestation subjects
+        run: |
+          set -euo pipefail
+          subjects="$RUNNER_TEMP/attestation-subjects.txt"
+          cp dist/SHA256SUMS.txt "$subjects"
+          (cd dist && sha256sum SHA256SUMS.txt folio_*/folio folio_*/folio.exe) >> "$subjects"
+          echo "ATTESTATION_SUBJECTS=$subjects" >> "$GITHUB_ENV"
+
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-checksums: ${{ env.ATTESTATION_SUBJECTS }}
+
+  # An SBOM attestation per platform: the platform's CycloneDX SBOM, signed
+  # as describing its archive and the binary in it, so that
+  # `gh attestation verify --predicate-type https://cyclonedx.org/bom` hands
+  # back the SBOM that belongs to a given download or installed binary. The
+  # files come from the release just published; SHA256SUMS.txt is checked
+  # first, so the SBOM attested is the one the signed list names.
+  attest-sbom:
+    name: Attest SBOM (${{ matrix.os }}/${{ matrix.arch }})
+    needs: [version, release]
+    if: needs.version.outputs.version != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [linux, darwin, windows]
+        arch: [amd64, arm64]
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+      OS: ${{ matrix.os }}
+      ARCH: ${{ matrix.arch }}
+    steps:
+      - name: Download archive and SBOM
+        run: |
+          set -euo pipefail
+          base="folio_${VERSION}_${OS}_${ARCH}"
+          if [ "$OS" = windows ]; then archive=$base.zip; bin=folio.exe; else archive=$base.tar.gz; bin=folio; fi
+          gh release download "$VERSION" --repo "$GITHUB_REPOSITORY" \
+            --pattern "$archive" --pattern "$base.cdx.json" --pattern SHA256SUMS.txt
+          grep -E "  ($archive|$base\.cdx\.json)\$" SHA256SUMS.txt | sha256sum --check --strict
+          mkdir bin
+          if [ "$OS" = windows ]; then unzip -q "$archive" "$bin" -d bin; else tar -xzf "$archive" -C bin "$bin"; fi
+          {
+            echo "ARCHIVE=$archive"
+            echo "BINARY=bin/$bin"
+            echo "SBOM=$base.cdx.json"
+          } >> "$GITHUB_ENV"
+
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: |
+            ${{ env.ARCHIVE }}
+            ${{ env.BINARY }}
+          sbom-path: ${{ env.SBOM }}
