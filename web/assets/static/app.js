@@ -1029,6 +1029,7 @@ function updatePreview() {
     applyXrefs(preview, xrefs.path === rel ? xrefs.data : null);
     fetchXrefs(preview, editor.value, rel);
     followEditor(); // the render may have moved the text under the top
+    restorePlace(preview, rel, false);
   }
 }
 
@@ -1038,11 +1039,12 @@ function updatePreview() {
 var xrefs = { data: null, path: '', timer: null };
 
 // fetchXrefs asks the server for the targets of the cross-references in
-// text, the page at path, a moment after the typing stops, and shows them
-// in the preview. A page without a reference asks nothing.
+// text, the page at path, and for the numbers of its headings and
+// figures, a moment after the typing stops, and shows them in the
+// preview.
 function fetchXrefs(preview, text, path) {
   clearTimeout(xrefs.timer);
-  if (path === '' || text.indexOf('](#') < 0) {
+  if (path === '') {
     return;
   }
   xrefs.timer = setTimeout(function () {
@@ -1058,26 +1060,185 @@ function fetchXrefs(preview, text, path) {
         xrefs.data = data;
         xrefs.path = path;
         applyXrefs(preview, data);
+        restorePlace(preview, path, true); // a reference's target has its key now
       }
     }).catch(function () {});
   }, 400);
 }
 
-// A click on a cross-reference in the preview scrolls the pane to its
-// heading; a link to a fragment never leaves the app or moves its page.
+// A click on a cross-reference in the preview goes to its target: a
+// heading or figure of the page, which the pane scrolls to, or one on
+// another page, which opens in the editor and is scrolled to there. A
+// link to a fragment never leaves the app.
 document.body.addEventListener('click', function (evt) {
   var a = evt.target.closest && evt.target.closest('#preview a[href^="#"]');
   if (!a) {
     return;
   }
   evt.preventDefault();
-  var id = a.getAttribute('data-xref');
-  var preview = document.getElementById('preview');
-  var h = id && preview.querySelector('[data-xref-id="' + CSS.escape(id) + '"]');
-  if (h) {
-    h.scrollIntoView({ block: 'start' });
+  var key = a.getAttribute('data-xref-key');
+  if (key) {
+    goTo({ path: a.getAttribute('data-xref-path') || shownPath(), key: key, scroll: null });
   }
 });
+
+// Page history
+//
+// The preview remembers where the user went -- the pages opened, however
+// they were opened, and the targets of the references followed -- and
+// the buttons ← and → below it go back and forward through them, as a
+// browser does. An entry is a page's path and the place in its preview:
+// the scroll position the user left it at, else the key of the target a
+// reference went to. The history is the open project's and is forgotten
+// when another project opens.
+var pageHistory = { entries: [], at: -1, going: null };
+
+// pendingPlace is the entry whose place the preview is still to show: a
+// page just opened, or a target not keyed yet.
+var pendingPlace = null;
+
+// historyPush makes entry the current one of history h; the entries ahead
+// of the current one, if it was gone back to, are dropped.
+function historyPush(h, entry) {
+  h.entries.splice(h.at + 1);
+  h.entries.push(entry);
+  h.at = h.entries.length - 1;
+}
+
+// historyArrive records in history h that the editor now shows path, and
+// returns the entry whose place to show, null for none. A page arrived at
+// on the way h.going names is that entry (a step back or forward, at, or
+// a reference followed); any other page is a new entry, unless it is the
+// one shown already, as after a reload.
+function historyArrive(h, path) {
+  var g = h.going;
+  h.going = null;
+  if (g && g.entry.path === path) {
+    if (g.at < 0) {
+      historyPush(h, g.entry);
+    } else {
+      h.at = g.at;
+    }
+    return h.entries[h.at];
+  }
+  if (h.at < 0 || h.entries[h.at].path !== path) {
+    historyPush(h, { path: path, key: '', scroll: null });
+  }
+  return null;
+}
+
+// historyStep is the place in history h that step entries away from the
+// current one, -1 back and 1 forward, null for none.
+function historyStep(h, step) {
+  var at = h.at + step;
+  return at >= 0 && at < h.entries.length ? at : null;
+}
+
+// shownPath is the path of the page in the editor, '' for none.
+function shownPath() {
+  var input = document.querySelector('#content input[name="path"]');
+  return input ? input.value : '';
+}
+
+// goTo shows entry, a new place: in the preview of the page shown, or in
+// the page it opens.
+function goTo(entry) {
+  if (entry.path === shownPath()) {
+    historyPush(pageHistory, entry);
+    showPlace(entry);
+  } else {
+    pageHistory.going = { entry: entry, at: -1 };
+    openPage(entry.path);
+  }
+  applyHistoryNav();
+}
+
+// stepHistory goes back (-1) or forward (1) through the history.
+function stepHistory(step) {
+  var at = historyStep(pageHistory, step);
+  if (at === null) {
+    return;
+  }
+  var entry = pageHistory.entries[at];
+  if (entry.path === shownPath()) {
+    pageHistory.at = at;
+    showPlace(entry);
+  } else {
+    pageHistory.going = { entry: entry, at: at };
+    openPage(entry.path);
+  }
+  applyHistoryNav();
+}
+
+// arrivePage records the page the editor now shows; a new project starts
+// a new history.
+function arrivePage(newProject) {
+  if (newProject) {
+    pageHistory = { entries: [], at: -1, going: null };
+  }
+  var path = shownPath();
+  pendingPlace = path ? historyArrive(pageHistory, path) : null;
+  applyHistoryNav();
+}
+
+// showPlace scrolls the preview to entry's place, or leaves that to the
+// renders to come when the place is not there yet.
+function showPlace(entry) {
+  pendingPlace = entry;
+  var preview = document.getElementById('preview');
+  if (preview) {
+    restorePlace(preview, entry.path, false);
+  }
+}
+
+// restorePlace scrolls the preview of the page at path to the place still
+// pending for it. A target that has no key yet waits for the targets to
+// come in; once they are in (final), it is given up.
+function restorePlace(preview, path, final) {
+  var entry = pendingPlace;
+  if (!entry || entry.path !== path) {
+    return;
+  }
+  var top = entry.scroll;
+  if (top === null && entry.key) {
+    var el = preview.querySelector('[data-xref-key="' + CSS.escape(entry.key) + '"]');
+    if (!el) {
+      if (final) {
+        pendingPlace = null;
+      }
+      return;
+    }
+    top = el.getBoundingClientRect().top - preview.getBoundingClientRect().top + preview.scrollTop;
+  }
+  pendingPlace = null;
+  if (top !== null) {
+    scrollLead = null; // the preview leads: the editor follows it there
+    preview.scrollTop = top;
+    followPreview();
+  }
+}
+
+// The current entry keeps the place the user leaves its page at.
+document.addEventListener('scroll', function (evt) {
+  var entry = pageHistory.entries[pageHistory.at];
+  if (evt.target.id === 'preview' && entry && entry.path === shownPath() && pendingPlace === null) {
+    entry.scroll = evt.target.scrollTop;
+  }
+}, true);
+
+// applyHistoryNav offers ← and → where there is somewhere to go, each
+// naming the page it goes to.
+function applyHistoryNav() {
+  [['page-back', -1, 'Back'], ['page-forward', 1, 'Forward']].forEach(function (nav) {
+    var button = document.getElementById(nav[0]);
+    if (!button) {
+      return;
+    }
+    var at = historyStep(pageHistory, nav[1]);
+    button.disabled = at === null;
+    button.title = at === null ? nav[2] + ': nowhere to go' : nav[2] + ' to ' + pageHistory.entries[at].path;
+  });
+}
 
 // schedulePreview coalesces the keystrokes of fast typing into one render.
 function schedulePreview() {
@@ -1678,6 +1839,22 @@ function applyPageNav() {
   });
 }
 
+// openPage opens the page at path the way a click on it in the tree does,
+// so the unsaved-edit confirmation and the tree's selection come with it.
+// A page the tree leaves out, a hidden one, is opened directly.
+function openPage(path) {
+  var entry = Array.prototype.find.call(document.querySelectorAll('#tree li.page'), function (li) {
+    return li.dataset.path === path;
+  });
+  var title = entry && entry.querySelector(':scope > .row > a.title');
+  if (title) {
+    title.click();
+    revealSelection();
+  } else {
+    htmx.ajax('GET', '/content?path=' + encodeURIComponent(path), { target: '#content' });
+  }
+}
+
 // flipPage opens the neighbouring page through its own entry in the tree,
 // so that flipping is the same act as clicking the page there -- the
 // unsaved-edit confirmation and the tree's selection included. A page
@@ -2214,6 +2391,7 @@ document.addEventListener('DOMContentLoaded', function () {
   syncCurrentPath();
   applySelection();
   revealSelection();
+  arrivePage(true);
   initEditor();
   restoreSuggestions();
   applyPreview();
@@ -2331,6 +2509,7 @@ document.body.addEventListener('htmx:afterSwap', function (evt) {
     showOverwrite(false);
   }
   if (id === 'content' || id === 'main') {
+    arrivePage(id === 'main'); // before the preview renders: it shows the place
     initEditor(); // mount before the preview reads the editor's text
     restoreSuggestions(); // and before the kept marks are painted into it
     applyPreview();
@@ -2425,6 +2604,11 @@ document.body.addEventListener('click', function (evt) {
     flipPage(flip.id === 'page-prev' ? -1 : 1);
     return;
   }
+  var step = evt.target.closest('#page-back, #page-forward');
+  if (step) {
+    stepHistory(step.id === 'page-back' ? -1 : 1);
+    return;
+  }
 
   // The pencil after the path in the editor's heading.
   var renameButton = evt.target.closest('#content-title .rename-file');
@@ -2513,17 +2697,7 @@ document.body.addEventListener('click', function (evt) {
   // A hidden page, which the tree leaves out, is opened directly.
   var bookmark = evt.target.closest('.bookmark-open');
   if (bookmark) {
-    var path = bookmark.dataset.path;
-    var entry = Array.prototype.find.call(document.querySelectorAll('#tree li.page'), function (li) {
-      return li.dataset.path === path;
-    });
-    var title = entry && entry.querySelector(':scope > .row > a.title');
-    if (title) {
-      title.click();
-      revealSelection();
-    } else {
-      htmx.ajax('GET', '/content?path=' + encodeURIComponent(path), { target: '#content' });
-    }
+    openPage(bookmark.dataset.path);
     return;
   }
 

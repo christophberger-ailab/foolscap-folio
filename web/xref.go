@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
 	"strings"
 
@@ -15,27 +16,37 @@ import (
 	"github.com/christophberger-ailab/foolscap-folio/internal/markdown"
 )
 
-// xref is what the preview shows of a reference's target. ID is the
-// identifier of a heading of the page itself, which the reference
-// scrolls to; "" for a target on another page.
+// xref is what the preview shows of a reference's target, and where a
+// click on it leads: to the heading or figure with Key on its page, the
+// page itself or, for a target on another page, the file Path.
 type xref struct {
 	Name   string `json:"name"`
 	Number string `json:"number,omitempty"`
-	ID     string `json:"id,omitempty"`
+	Key    string `json:"key"`
+	Path   string `json:"path,omitempty"`
+}
+
+// mark is what the preview puts on one of the page's headings or figures:
+// the key a reference names it by, and its number, if it has one.
+type mark struct {
+	Key    string `json:"key"`
+	Number string `json:"number,omitempty"`
 }
 
 // xrefsView answers /xrefs: the targets of the references, by the key
-// they are written with, and the identifiers of the page's headings, in
-// order, for the preview to put on its headings.
+// they are written with, and the page's headings and figures, in order,
+// for the preview to number and to scroll to.
 type xrefsView struct {
 	Refs     map[string]xref `json:"refs"`
-	Headings []string        `json:"headings"`
+	Headings []mark          `json:"headings"`
+	Figures  []mark          `json:"figures"`
 }
 
 // xrefs resolves the cross-references of the text the editor holds for
 // the page at path, as a website does: against the text's own headings
 // and figures and those of the project's other pages, numbered as the
-// first format that numbers anything numbers them (issue #161).
+// first format that numbers anything numbers them (issue #161). It
+// numbers the page's headings and figures as that format does (#178).
 func (s *server) xrefs(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -62,24 +73,42 @@ func (s *server) xrefs(w http.ResponseWriter, r *http.Request) {
 	markdown.AssignIDs(doc)
 	local := markdown.Targets(doc, page, fm.PageID(), nil)
 
-	// The page's own targets come from its text, the numbers of its
-	// headings from the book, by key; the other pages' from the project.
+	// The page's own targets come from its text, their numbers from the
+	// book: a heading's by key, a figure's by its place on the page. The
+	// other pages' targets come from the project. The book is only built
+	// when it numbers something or a reference needs it.
 	numbers := map[string]string{}
+	var labels []string
 	var others []markdown.Target
-	for _, t := range build.ProjectTargets(cfg, f) {
-		if t.Page == page {
-			numbers[t.Key] = t.Number
-		} else {
-			others = append(others, t)
+	if f.NumberedHeadings || f.NumberedFigures || strings.Contains(body, "](#") {
+		for _, t := range build.ProjectTargets(cfg, f) {
+			switch {
+			case t.Page != page:
+				others = append(others, t)
+			case t.Figure && t.Number != "":
+				labels = append(labels, t.Number)
+			case !t.Figure:
+				numbers[t.Key] = t.Number
+			}
 		}
 	}
-	v := xrefsView{Refs: map[string]xref{}, Headings: []string{}}
+	figures := map[ast.Node]int{}
+	for i, img := range markdown.Figures(doc) {
+		figures[img] = i
+	}
+	v := xrefsView{Refs: map[string]xref{}, Headings: []mark{}, Figures: []mark{}}
 	for i, t := range local {
-		if t.Figure {
+		if !t.Figure {
+			local[i].Number = numbers[t.Key]
+			v.Headings = append(v.Headings, mark{t.Key, local[i].Number})
 			continue
 		}
-		local[i].Number = numbers[t.Key]
-		v.Headings = append(v.Headings, t.ID)
+		if n, ok := figures[t.Node]; ok {
+			if n < len(labels) {
+				local[i].Number = labels[n]
+			}
+			v.Figures = append(v.Figures, mark{t.Key, local[i].Number})
+		}
 	}
 	idx := markdown.NewIndex(local, others)
 	_ = ast.Walk(doc.Root, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
@@ -92,9 +121,9 @@ func (s *server) xrefs(w http.ResponseWriter, r *http.Request) {
 			key = u
 		}
 		if t, n := idx.Lookup(key, page); n > 0 {
-			x := xref{Name: t.Name, Number: t.Number}
-			if t.Page == page && !t.Figure {
-				x.ID = t.ID
+			x := xref{Name: t.Name, Number: t.Number, Key: t.Key}
+			if t.Page != page {
+				x.Path = s.pageFile(t.Page)
 			}
 			v.Refs[key] = x
 		}
@@ -102,6 +131,19 @@ func (s *server) xrefs(w http.ResponseWriter, r *http.Request) {
 	})
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(v)
+}
+
+// pageFile is the file of the page the targets name p (see pageKey), ""
+// if there is none.
+func (s *server) pageFile(p string) string {
+	for _, name := range []string{p + ".qmd", p + ".md", path.Join(p, "index.qmd"), path.Join(p, "index.md")} {
+		if abs, err := s.resolvePath(name); err == nil {
+			if fi, err := os.Stat(abs); err == nil && fi.Mode().IsRegular() {
+				return name
+			}
+		}
+	}
+	return ""
 }
 
 // pageKey is the name the targets give the page at rel: its path without

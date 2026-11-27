@@ -690,15 +690,20 @@
 <div class="page-panes" hidden>
   <section class="side-pane preview-pane" id="preview-pane" data-pane="preview" hidden>
     <article class="markdown-preview" id="preview"></article>
-    {{/* Below the preview: the two buttons that page through the book, and
-         the stylesheet the preview is shown in. Both describe the preview
+    {{/* Below the preview: back and forward through the pages and places
+         visited, the two buttons that page through the book, and the
+         stylesheet the preview is shown in. All describe the preview
          rather than the text, so they sit under the preview's own column.
          The buttons start disabled and app.js enables the ones that lead
-         somewhere -- it reads the tree for the pages before and after this
-         one, which is also what keeps them right while the tree changes
-         under the editor. */ -}}
+         somewhere -- it keeps the history, and it reads the tree for the
+         pages before and after this one, which is also what keeps them
+         right while the tree changes under the editor. */ -}}
     <div class="preview-footer">
       <div class="page-nav">
+        <button type="button" class="page-flip" id="page-back" disabled
+                title="Back: nowhere to go">←</button>
+        <button type="button" class="page-flip" id="page-forward" disabled
+                title="Forward: nowhere to go">→</button>
         <button type="button" class="page-flip" id="page-prev" disabled
                 title="The page before this one">◀ Previous</button>
         <button type="button" class="page-flip" id="page-next" disabled
