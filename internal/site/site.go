@@ -71,6 +71,10 @@ type Options struct {
 	// numbers its figures, "Figure 3", through the topic.
 	NumberedHeadings bool
 	FigureLabel      string
+	// SectionPrefix and ChapterPrefix, if set, go before the titles of
+	// each topic's sections and chapters with their number, "Part 2: ",
+	// as the topic's book puts them (issue #179).
+	SectionPrefix, ChapterPrefix string
 	// AllTargets returns the headings and figures of the whole project,
 	// for references to pages the site leaves out; may be nil.
 	AllTargets func() markdown.Index
@@ -479,15 +483,17 @@ func (b *builder) footer(p *pageInfo) (template.HTML, error) {
 
 // number numbers the headings and figures of every topic's pages as the
 // topic's book numbers them, when the options ask for it: the topic is
-// flattened and numbered as a document is, and each page takes the
-// numbers of its headings, by key, and of its figures, in order.
+// flattened, prefixed and numbered as a document is, and each page takes
+// the prefixes and numbers of its headings, by key, and the numbers of its
+// figures, in order.
 func (b *builder) number() error {
-	if !b.o.NumberedHeadings && b.o.FigureLabel == "" {
+	if !b.o.NumberedHeadings && b.o.FigureLabel == "" && b.o.SectionPrefix == "" && b.o.ChapterPrefix == "" {
 		return nil
 	}
 	for _, t := range b.topics {
 		res, err := bookmaker.Flatten(t.root, bookmaker.Options{ProjectRoot: b.root, Title: t.Title,
-			WrapAudience: true, PageMarkers: true, Draft: b.o.Draft})
+			WrapAudience: true, PageMarkers: true, Draft: b.o.Draft,
+			SectionPrefix: b.o.SectionPrefix, ChapterPrefix: b.o.ChapterPrefix})
 		if err != nil {
 			return fmt.Errorf("site: topic %q: %w", t.Name, err)
 		}
@@ -500,12 +506,12 @@ func (b *builder) number() error {
 		book := markdown.Parse([]byte(md))
 		book.Prepare(markdown.Options{Keep: b.o.Keep, Formats: b.o.Formats, Lang: b.o.Lang, NoDiagrams: true})
 		if b.o.NumberedHeadings {
-			markdown.NumberHeadings(book, false, false)
+			markdown.NumberHeadings(book, b.o.SectionPrefix != "", b.o.ChapterPrefix != "")
 		}
 		if b.o.FigureLabel != "" {
 			markdown.NumberFigures(book, b.o.FigureLabel)
 		}
-		headings := map[[2]string]string{}
+		headings := map[[2]string]*ast.Heading{}
 		figures := map[string][]string{}
 		for _, x := range markdown.Targets(book, "", "", nil) {
 			switch {
@@ -513,7 +519,7 @@ func (b *builder) number() error {
 			case x.Figure:
 				figures[x.Page] = append(figures[x.Page], x.Number)
 			default:
-				headings[[2]string{x.Page, x.Key}] = x.Number
+				headings[[2]string{x.Page, x.Key}] = x.Node.(*ast.Heading)
 			}
 		}
 		for _, p := range t.pages {
@@ -521,12 +527,17 @@ func (b *builder) number() error {
 				continue
 			}
 			for i, x := range p.targets {
-				if h, ok := x.Node.(*ast.Heading); ok {
-					if num := headings[[2]string{p.key(), x.Key}]; num != "" {
-						markdown.SetHeadingNumber(h, num)
-						p.targets[i].Number = num
-					}
+				h, ok := x.Node.(*ast.Heading)
+				bh := headings[[2]string{p.key(), x.Key}]
+				if !ok || bh == nil {
+					continue
 				}
+				if pre := markdown.HeadingPrefix(bh); pre != "" {
+					markdown.SetHeadingPrefix(h, pre)
+				} else {
+					markdown.SetHeadingNumber(h, markdown.HeadingNumber(bh))
+				}
+				p.targets[i].Number = markdown.HeadingNumber(h)
 			}
 			labels := figures[p.key()]
 			for i, img := range markdown.Figures(p.doc) {

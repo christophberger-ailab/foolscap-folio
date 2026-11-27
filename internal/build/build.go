@@ -456,6 +456,7 @@ func Site(sel config.Selection, dir string, log Logf) error {
 }
 
 func renderSite(sel config.Selection, dir string, dryRun bool, log Logf) error {
+	section, chapter := sel.Prefixes()
 	css, err := sel.Stylesheets()
 	if err != nil {
 		return err
@@ -506,6 +507,8 @@ func renderSite(sel config.Selection, dir string, dryRun bool, log Logf) error {
 
 		NumberedHeadings: sel.Format.NumberedHeadings,
 		FigureLabel:      sel.FigureLabel(),
+		SectionPrefix:    section,
+		ChapterPrefix:    chapter,
 		AllTargets:       sync.OnceValue(func() markdown.Index { return markdown.NewIndex(ProjectTargets(sel.Config, config.Format{})) }),
 	})
 	if err != nil {
