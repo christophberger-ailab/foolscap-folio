@@ -363,6 +363,15 @@ button:disabled:hover {
   padding: 0.3rem 0.4rem;
 }
 
+.clone-dir summary {
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.clone-dir label {
+  margin-top: 0.3rem;
+}
+
 .clone-form .primary {
   background: var(--accent);
   border-color: var(--accent);

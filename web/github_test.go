@@ -2,12 +2,14 @@ package web
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -153,12 +155,15 @@ func TestGitHubPollWithoutLogin(t *testing.T) {
 	}
 }
 
-// The clone form starts in the folder the Open dialog showed.
+// The clone form clones into folio's own data folder unless told
+// otherwise; Back returns to the folder the Open dialog showed.
 func TestCloneForm(t *testing.T) {
+	data := dataHome(t)
 	srv := bareServer(t)
 	dir := t.TempDir()
 	body := get(t, srv, "/clone?dir="+url.QueryEscape(dir)).Body.String()
-	for _, want := range []string{`name="url"`, `name="dir"`, `value="` + dir + `"`} {
+	for _, want := range []string{`name="url"`, `name="dir"`, `name="branch"`, `name="path"`,
+		`value="` + filepath.Join(data, "folio", "repositories") + `"`, `data-path="` + dir + `"`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("clone form lacks %q:\n%s", want, body)
 		}
@@ -180,7 +185,9 @@ func TestCloneRefusesBadInput(t *testing.T) {
 	for name, form := range map[string]url.Values{
 		"local path":    {"url": {"/etc"}, "dir": {dir}},
 		"option":        {"url": {"--upload-pack=x"}, "dir": {dir}},
-		"no folder":     {"url": {"https://github.com/o/book"}, "dir": {""}},
+		"bad branch":    {"url": {"https://github.com/o/x"}, "dir": {dir}, "branch": {"-x"}},
+		"path up":       {"url": {"https://github.com/o/x"}, "dir": {dir}, "path": {"../x"}},
+		"path absolute": {"url": {"https://github.com/o/x"}, "dir": {dir}, "path": {dir}},
 		"relative":      {"url": {"https://github.com/o/book"}, "dir": {"rel"}},
 		"already there": {"url": {"https://github.com/o/book"}, "dir": {dir}},
 	} {
@@ -236,7 +243,114 @@ func TestCloneWithoutAFolioBrowsesIt(t *testing.T) {
 	}
 }
 
-type remoteStub struct{ asked string }
+// A clone named with no folder goes into folio's data folder, and a
+// second clone of the same repository opens the one already there.
+func TestCloneIntoTheDataFolder(t *testing.T) {
+	data := dataHome(t)
+	bareRemote(t, map[string]string{"folio.yml": testConfig, "index.qmd": "# Home\n"})
+	srv := bareServer(t)
+	form := url.Values{"url": {"https://github.com/o/book.git"}}
+	for range 2 {
+		rec := post(t, srv, "/clone", form)
+		if rec.Header().Get("HX-Retarget") != "#main" {
+			t.Fatalf("not opened: %s", rec.Body)
+		}
+	}
+	if want := filepath.Join(data, "folio", "repositories", "book"); srv.gitRoot() != want {
+		t.Errorf("open project = %q, want %q", srv.gitRoot(), want)
+	}
+	// Nor is a plain folder inside a clone of the repository.
+	nested := filepath.Join(srv.gitRoot(), "sub")
+	os.MkdirAll(filepath.Join(nested, "book"), 0o755)
+	if clonedFrom(filepath.Join(nested, "book"), "https://github.com/o/book.git") {
+		t.Error("a folder inside the clone taken for a clone")
+	}
+	// Another repository of the same name is not taken for it.
+	rec := post(t, srv, "/clone", url.Values{"url": {"https://example.com/other/book.git"}})
+	if !strings.Contains(rec.Body.String(), `class="browse-error"`) {
+		t.Errorf("another repository's clone opened: %s", rec.Body)
+	}
+}
+
+// The branch named is checked out, and the folder named in the
+// repository is the one opened.
+func TestCloneBranchAndPath(t *testing.T) {
+	remote := bareRemote(t, map[string]string{"README.md": "code\n"})
+	gitCmd(t, remote.src, "checkout", "-q", "-b", "docs")
+	os.MkdirAll(filepath.Join(remote.src, "doc", "book"), 0o755)
+	os.WriteFile(filepath.Join(remote.src, "doc", "book", "folio.yml"), []byte(testConfig), 0o644)
+	gitCmd(t, remote.src, "add", ".")
+	gitCmd(t, remote.src, "-c", "user.email=f@example.com", "-c", "user.name=F", "commit", "-q", "-m", "docs")
+	gitCmd(t, remote.src, "checkout", "-q", "main")
+
+	srv := bareServer(t)
+	dir := t.TempDir()
+	rec := post(t, srv, "/clone", url.Values{"url": {"https://github.com/o/code"}, "dir": {dir},
+		"branch": {"docs"}, "path": {"doc/book/"}})
+	if rec.Header().Get("HX-Retarget") != "#main" {
+		t.Fatalf("not opened: %s", rec.Body)
+	}
+	if remote.branch != "docs" {
+		t.Errorf("cloned branch %q", remote.branch)
+	}
+	if want := filepath.Join(dir, "code", "doc", "book"); srv.gitRoot() != want {
+		t.Errorf("open project = %q, want %q", srv.gitRoot(), want)
+	}
+}
+
+// A folder named that the clone does not have is reported, and the clone
+// shown in the folder dialog.
+func TestCloneMissingPath(t *testing.T) {
+	bareRemote(t, map[string]string{"folio.yml": testConfig})
+	srv := bareServer(t)
+	dir := t.TempDir()
+	rec := post(t, srv, "/clone", url.Values{"url": {"https://github.com/o/book"}, "dir": {dir}, "path": {"docs"}})
+	body := rec.Body.String()
+	if rec.Header().Get("HX-Retarget") != "" || !strings.Contains(body, `class="browse"`) || !strings.Contains(body, "docs") {
+		t.Errorf("missing folder not reported in the folder dialog:\n%s", body)
+	}
+}
+
+// A connection that failed says what usually stands behind it, and names
+// the proxy the system uses when there is one.
+func TestCloneNetworkFailure(t *testing.T) {
+	prev, prevProxy := cloneRepo, systemProxy
+	cloneRepo = func(u, dest, branch string) (string, error) {
+		return "fatal: unable to access 'https://dev.azure.com/o/_git/r/': Recv failure: Connection was reset", errors.New("exit status 128")
+	}
+	systemProxy = func() string { return "proxy.corp:8080" }
+	t.Cleanup(func() { cloneRepo, systemProxy = prev, prevProxy })
+	srv := bareServer(t)
+	rec := post(t, srv, "/clone", url.Values{"url": {"https://dev.azure.com/o/_git/r"}, "dir": {t.TempDir()}})
+	body := rec.Body.String()
+	for _, want := range []string{"dev.azure.com", "proxy.corp:8080", "git config --global http.proxy http://proxy.corp:8080", "Connection was reset"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("no %q in:\n%s", want, body)
+		}
+	}
+}
+
+// dataHome points the user's data folder at a temporary one and returns
+// it.
+func dataHome(t *testing.T) string {
+	t.Helper()
+	d := t.TempDir()
+	switch runtime.GOOS {
+	case "windows":
+		t.Setenv("LOCALAPPDATA", d)
+	case "darwin", "ios":
+		t.Setenv("HOME", d)
+		return filepath.Join(d, "Library", "Application Support")
+	default:
+		t.Setenv("XDG_DATA_HOME", d)
+	}
+	return d
+}
+
+type remoteStub struct {
+	src           string // the repository cloned from
+	asked, branch string
+}
 
 // bareRemote makes a repository holding files and points the clone
 // handler at it whatever URL is asked for, which it records: the URL
@@ -260,11 +374,16 @@ func bareRemote(t *testing.T, files map[string]string) *remoteStub {
 	} {
 		gitCmd(t, src, args...)
 	}
-	stub := &remoteStub{}
+	stub := &remoteStub{src: src}
 	prev := cloneRepo
-	cloneRepo = func(u, dest string) (string, error) {
-		stub.asked = u
-		return gitrepo.Clone(src, dest)
+	cloneRepo = func(u, dest, branch string) (string, error) {
+		stub.asked, stub.branch = u, branch
+		out, err := gitrepo.Clone(src, dest, branch)
+		if err == nil {
+			// The clone remembers the URL asked for, as a real one would.
+			gitCmd(t, dest, "remote", "set-url", "origin", u)
+		}
+		return out, err
 	}
 	t.Cleanup(func() { cloneRepo = prev })
 	return stub
@@ -294,5 +413,19 @@ func TestGitHubRefusalSaysWhy(t *testing.T) {
 	body := post(t, bareServer(t), "/github/login", nil).Body.String()
 	if !strings.Contains(body, "Device Flow must be explicitly enabled") {
 		t.Errorf("reason not shown:\n%s", body)
+	}
+}
+
+func TestProxyServer(t *testing.T) {
+	for in, want := range map[string]string{
+		"":                               "",
+		"proxy:8080":                     "proxy:8080",
+		"http=p:80;https=s:443;ftp=f:21": "s:443",
+		"ftp=f:21;http=p:80":             "p:80",
+		"socks=s:1080":                   "",
+	} {
+		if got := proxyServer(in); got != want {
+			t.Errorf("proxyServer(%q) = %q, want %q", in, got, want)
+		}
 	}
 }

@@ -48,10 +48,14 @@ You can start from a Git repository instead of a folder on disk.
 
 1. Press `Open`, then `From a repository…`.
 2. Paste the repository's address, as the hosting site shows it: `https://github.com/owner/book.git` or `git@github.com:owner/book.git`.
-3. Check the folder to clone into. It starts as the folder the dialog showed. The clone goes into a new folder inside it, named after the repository.
+3. If the book is not on the default branch, enter its `Branch`. If it is not at the top of the repository, as when it lives beside code, enter its `Folder of the book in the repository`, such as `docs`.
 4. Press `Clone and open`.
 
-If the repository has a `folio.yml` at its top, it opens right away. If not, the dialog shows the cloned folder so you can pick the subfolder that holds the book.
+The clone goes into folio's own data folder, so you need not choose one; open `Where the clone goes` to clone somewhere else. The clone goes into a new folder there, named after the repository. Cloning the same repository again opens the clone already there.
+
+If the book's folder has a `folio.yml`, it opens right away. If not, the dialog shows it so you can pick the subfolder that holds the book.
+
+If git cannot reach the host while your browser can, the network most likely wants a proxy that git is not told about. The form says so, and on Windows names the proxy Windows uses and the command that tells git about it.
 
 For a private repository on another host, such as Azure DevOps or GitLab, paste a personal access token into `Access token`. folio sends it to that host only and keeps it for push and sync.
 

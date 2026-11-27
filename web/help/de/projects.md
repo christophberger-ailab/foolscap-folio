@@ -48,10 +48,14 @@ Du kannst auch mit einem Git-Repository beginnen statt mit einem Ordner auf der 
 
 1. Drücke `Open`, dann `From a repository…`.
 2. Füge die Adresse des Repositorys ein, wie die Hosting-Seite sie zeigt: `https://github.com/owner/book.git` oder `git@github.com:owner/book.git`.
-3. Prüfe den Ordner, in den geklont wird. Vorgegeben ist der Ordner, den der Dialog zeigte. Der Klon landet darin in einem neuen Ordner, der nach dem Repository benannt ist.
+3. Liegt das Buch nicht auf dem Standard-Branch, trage seinen `Branch` ein. Liegt es nicht oben im Repository, etwa neben Code, trage unter `Folder of the book in the repository` seinen Ordner ein, zum Beispiel `docs`.
 4. Drücke `Clone and open`.
 
-Hat das Repository oben eine `folio.yml`, wird es sofort geöffnet. Sonst zeigt der Dialog den geklonten Ordner, damit du den Unterordner mit dem Buch auswählen kannst.
+Der Klon landet in folios eigenem Datenordner, du musst also keinen auswählen; unter `Where the clone goes` kannst du einen anderen angeben. Dort entsteht ein neuer Ordner, der nach dem Repository benannt ist. Wird dasselbe Repository noch einmal geklont, öffnet folio den vorhandenen Klon.
+
+Hat der Ordner des Buchs eine `folio.yml`, wird er sofort geöffnet. Sonst zeigt der Dialog ihn, damit du den Unterordner mit dem Buch auswählen kannst.
+
+Erreicht git den Host nicht, der Browser aber schon, verlangt das Netz meist einen Proxy, von dem git nichts weiß. Das Formular sagt das und nennt unter Windows den Proxy, den Windows verwendet, und den Befehl, der ihn git mitteilt.
 
 Für ein privates Repository bei einem anderen Anbieter, etwa Azure DevOps oder GitLab, füge ein persönliches Zugriffstoken unter `Access token` ein. folio schickt es nur an diesen Host und behält es für Push und Sync.
 
