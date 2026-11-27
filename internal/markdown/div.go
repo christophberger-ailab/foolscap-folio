@@ -1,6 +1,7 @@
 package markdown
 
 import (
+	"bytes"
 	"regexp"
 	"strings"
 
@@ -116,12 +117,15 @@ func (divParser) CanAcceptIndentedLine() bool { return false }
 
 // codeTracker wraps the fenced code and HTML block parsers to count the
 // open blocks of verbatim lines, so that a `:::` line inside code or an
-// HTML comment does not close a div.
+// HTML comment does not close a div. An HTML block that ends on its first
+// line is not counted: goldmark asks the div about the next line before
+// the block says it is over, and a fence there would be held back for it
+// (issue #175).
 type codeTracker struct{ parser.BlockParser }
 
 func (c codeTracker) Open(parent ast.Node, reader text.Reader, pc parser.Context) (ast.Node, parser.State) {
 	n, st := c.BlockParser.Open(parent, reader, pc)
-	if n != nil {
+	if n != nil && !oneLine(n, reader.Source()) {
 		d, _ := pc.Get(codeDepthKey).(int)
 		pc.Set(codeDepthKey, d+1)
 	}
@@ -130,7 +134,33 @@ func (c codeTracker) Open(parent ast.Node, reader text.Reader, pc parser.Context
 
 func (c codeTracker) Close(node ast.Node, reader text.Reader, pc parser.Context) {
 	c.BlockParser.Close(node, reader, pc)
-	if d, _ := pc.Get(codeDepthKey).(int); d > 0 {
+	if d, _ := pc.Get(codeDepthKey).(int); d > 0 && !oneLine(node, reader.Source()) {
 		pc.Set(codeDepthKey, d-1)
 	}
+}
+
+var (
+	htmlType1Close = regexp.MustCompile(`(?i)</(?:script|pre|style|textarea)>`)
+	htmlCloses     = map[ast.HTMLBlockType]string{
+		ast.HTMLBlockType2: "-->",
+		ast.HTMLBlockType3: "?>",
+		ast.HTMLBlockType4: ">",
+		ast.HTMLBlockType5: "]]>",
+	}
+)
+
+// oneLine reports whether n is an HTML block that ends on its first line,
+// as goldmark's HTML block parser reads it.
+func oneLine(n ast.Node, source []byte) bool {
+	h, ok := n.(*ast.HTMLBlock)
+	if !ok || h.Lines().Len() != 1 {
+		return false
+	}
+	seg := h.Lines().At(0)
+	first := seg.Value(source)
+	if h.HTMLBlockType == ast.HTMLBlockType1 {
+		return htmlType1Close.Match(first)
+	}
+	end, ok := htmlCloses[h.HTMLBlockType]
+	return ok && bytes.Contains(first, []byte(end))
 }
