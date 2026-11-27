@@ -1,6 +1,6 @@
 # Der Seitenbaum
 
-Die linke Seite des Fensters zeigt die `.md`-Seiten (und älteren `.qmd`-Seiten) des Projekts als Baum, in der Reihenfolge der Website und nach Ordnern verschachtelt. Der Ordner `assets` auf oberster Ebene des Projekts und Ordner, deren Name mit `_` oder `.` beginnt, fehlen samt ihrem Inhalt. Klicke auf einen Titel, um die Seite im [Editor](editor.md) zu öffnen.
+Die linke Seite des Fensters zeigt die `.md`-Seiten (und älteren `.qmd`-Seiten) des Projekts als Baum, in der Reihenfolge der Website und nach Ordnern verschachtelt. Der Ordner `assets` auf oberster Ebene des Projekts und die Ordner und Seiten, die `ignore` in der `folio.yml` nennt (etwa `_*/` für jeden Ordner, der mit `_` beginnt), fehlen samt ihrem Inhalt. Klicke auf einen Titel, um die Seite im [Editor](editor.md) zu öffnen.
 
 ## Titel
 

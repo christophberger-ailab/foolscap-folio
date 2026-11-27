@@ -49,13 +49,14 @@ constraints:
       it (see spec-migrate.yaml).
     requirements:
       1: 'The configuration is the file `folio.yml` in the project root. Unknown keys are errors'
-      1-1: 'Its top-level keys are `title`, `lang`, `output` (default `_output`), `vars`, `formats`, `audiences`, `topics`, `web` (see spec-web.yaml COMMAND 3-2) and `preview` (see spec-preview.yaml COMMAND 3-3); the three maps keep the order they are written in, and that order is the order of the matrix'
+      1-1: 'Its top-level keys are `title`, `lang`, `output` (default `_output`), `ignore`, `vars`, `formats`, `audiences`, `topics`, `web` (see spec-web.yaml COMMAND 3-2) and `preview` (see spec-preview.yaml COMMAND 3-3); the three maps keep the order they are written in, and that order is the order of the matrix'
+      1-2: '`ignore` lists the paths renders, previews and folio web leave out, as `.gitignore` patterns relative to the project root: blank lines and `#` comments are skipped, `!` negates, a trailing `/` names folders alone, a pattern without an inner `/` matches a name at any depth, `**` matches any number of folders, and what lies in a folder left out is left out too; a bad pattern is an error. The default is none; the output directory, `_build` and `.git` are always left out. A folio.yml written by `folio init` or `folio migrate` names `["_*", ".*"]`, the rule of Quarto (issue #181)'
       2: 'A format has a `type` -- `html`, `docx`, `pdf`, or a list of `docx` and `pdf` -- and the optional keys `show`, `toc`, `template`, `dir`, `file`, `css`, `topics`, `audiences` and `vars`. `html` cannot be combined with another type; an unknown type is an error; `css` on a format that is not html is an error'
       2-1: 'A format without a `type` takes it from its name: docx, word, handout and handbook mean docx, pdf means pdf, anything else html'
       3: 'An audience has the optional keys `title`, `show` and `vars`'
       4: 'A topic has the optional keys `folder` (default the topic name), `title`, `cover`, `formats`, `audiences` and `vars`'
       5: 'A format, audience or topic named in a `formats`, `audiences` or `topics` list that the project does not define is an error'
-      6: 'Without folio.yml every top-level content folder -- a directory not starting with `_` or `.` that holds a .qmd or .md file -- is a topic, the only format is `web` (html), and there is one audience, `all`'
+      6: 'Without folio.yml every top-level content folder -- a directory that holds a .qmd or .md file -- is a topic, the only format is `web` (html), and there is one audience, `all`'
       6-1: 'A project without folio.yml that has no top-level content folder is rendered whole instead: one topic named after the root folder (`docs` when that name is `all`), with the root as its folder, and the formats `web` (html), `docx` and `pdf`'
       7: 'The old `_quarto.yml` and `_quarto-<axis>-<value>.yml` files are not read'
       7-1: 'A project without folio.yml that has `_quarto.yml` or `_quarto-*.yml` files is an error that names the files and `folio migrate`; it is never rendered on the defaults'
@@ -108,7 +109,7 @@ constraints:
     requirements:
       1: Files must have an order entry. Report files with a missing order entry but continue.
       2: The paths in folio.yml (`folder`, `cover`, `template`) are relative to the project root.
-      3: Exclude files whose names start with an underscore or a full stop. E.g., `_foo.qmd`, `.bar.qmd`.
+      3: 'Exclude the paths that folio.yml''s `ignore` names (CONFIG 1-2); a project without the setting excludes nothing but the output directory, `_build` and `.git` (issue #181)'
 
   IMPLEMENTATION:
     requirements:

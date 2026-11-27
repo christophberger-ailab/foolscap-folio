@@ -147,10 +147,8 @@ func (n *Node) DropDrafts() {
 // LoadTree reads the book folder at dir and returns its root node.
 //
 // projectRoot is used to compute the Rel paths that in-book links are
-// resolved against. Hidden entries and entries whose name starts with "_"
-// are skipped, matching Quarto's own rules for what counts as project
-// content.
-func LoadTree(dir, projectRoot string) (*Node, error) {
+// resolved against. The entries ig leaves out are skipped (issue #181).
+func LoadTree(dir, projectRoot string, ig config.Ignore) (*Node, error) {
 	dir = filepath.Clean(dir)
 	info, err := os.Stat(dir)
 	if err != nil {
@@ -159,7 +157,7 @@ func LoadTree(dir, projectRoot string) (*Node, error) {
 	if !info.IsDir() {
 		return nil, fmt.Errorf("%s is not a directory", dir)
 	}
-	root, err := prune(loadDir(dir, projectRoot, 0))
+	root, err := prune(loadDir(dir, projectRoot, 0, ig))
 	if err == nil && root == nil {
 		err = fmt.Errorf("%s holds no .qmd or .md pages", dir)
 	}
@@ -191,7 +189,7 @@ func prune(node *Node, err error) (*Node, error) {
 	return node, nil
 }
 
-func loadDir(dir, projectRoot string, depth int) (*Node, error) {
+func loadDir(dir, projectRoot string, depth int, ig config.Ignore) (*Node, error) {
 	rel, err := relSlash(projectRoot, dir)
 	if err != nil {
 		return nil, err
@@ -211,12 +209,12 @@ func loadDir(dir, projectRoot string, depth int) (*Node, error) {
 
 	for _, e := range entries {
 		name := e.Name()
-		if skipEntry(name) {
+		if ig.Match(joinRel(rel, name), e.IsDir()) {
 			continue
 		}
 
 		if e.IsDir() {
-			child, err := loadDir(filepath.Join(dir, name), projectRoot, depth+1)
+			child, err := loadDir(filepath.Join(dir, name), projectRoot, depth+1, ig)
 			if err != nil {
 				return nil, err
 			}

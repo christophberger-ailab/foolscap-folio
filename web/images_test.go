@@ -31,9 +31,11 @@ func imageList(t *testing.T, srv http.Handler) []imageEntry {
 
 // UI.14-10: the Images pane lists every image under assets/images, in
 // subfolders too, with its project path and when it was last modified;
-// other files, hidden and draft entries, and images elsewhere are left out.
+// other files, the entries folio.yml's ignore patterns name (issue #181),
+// and images elsewhere are left out.
 func TestImagesListsAssetsImages(t *testing.T) {
 	srv, root := testServer(t)
+	writeConfig(t, root, testConfig+"ignore: [\"_*\", \".*\"]\n")
 	writePNG(t, root, "assets/images/b.png")
 	writePNG(t, root, "assets/images/shots/a photo.png")
 	writePNG(t, root, "assets/images/_draft.png")

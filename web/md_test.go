@@ -11,7 +11,7 @@ import (
 // them.
 func TestMarkdownPagesAreProjectPages(t *testing.T) {
 	srv, root := testServer(t)
-	if !isProjectPage("chapter2/notes.md") {
+	if !isProjectPage(root, "chapter2/notes.md") {
 		t.Error("isProjectPage(chapter2/notes.md) = false")
 	}
 

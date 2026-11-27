@@ -55,8 +55,11 @@ func TestCompleteListsPagesAtRoot(t *testing.T) {
 	}
 }
 
-func TestCompleteSkipsUnderscoreAndDotEntries(t *testing.T) {
+// Completion leaves out what folio.yml's ignore patterns name (issue
+// #181), and .git always.
+func TestCompleteSkipsIgnoredEntries(t *testing.T) {
 	srv, root := testServer(t)
+	writeConfig(t, root, testConfig+"ignore: [_drafts/, _notes.qmd]\n")
 	os.MkdirAll(filepath.Join(root, "_drafts"), 0o755)
 	os.MkdirAll(filepath.Join(root, ".git"), 0o755)
 	os.WriteFile(filepath.Join(root, "_notes.qmd"), []byte("# notes"), 0o644)

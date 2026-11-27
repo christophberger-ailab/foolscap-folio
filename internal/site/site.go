@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/christophberger-ailab/foolscap-folio/internal/bookmaker"
+	"github.com/christophberger-ailab/foolscap-folio/internal/config"
 	"github.com/christophberger-ailab/foolscap-folio/internal/markdown"
 	"github.com/yuin/goldmark/ast"
 	"go.yaml.in/yaml/v4"
@@ -43,7 +44,9 @@ type Options struct {
 	Keep          markdown.Keep
 	// Skip reports the folder and file names (without extension) that the
 	// site leaves out, with everything below them; may be nil.
-	Skip    func(name string) bool
+	Skip func(name string) bool
+	// Ignore leaves out what the project's ignore patterns name.
+	Ignore  config.Ignore
 	Formats []string
 	// CSS are stylesheets, absolute paths, that every page links after the
 	// site's own. They are copied verbatim into OutDir/_site/css.
@@ -251,7 +254,7 @@ func (b *builder) load() error {
 	b.title = cmp.Or(b.title, filepath.Base(b.root))
 	for _, t := range b.o.Topics {
 		dir := filepath.Join(b.root, filepath.FromSlash(t.Folder))
-		tree, err := bookmaker.LoadTree(dir, b.root)
+		tree, err := bookmaker.LoadTree(dir, b.root, b.o.Ignore)
 		if err != nil {
 			return fmt.Errorf("site: topic %q: %w", t.Name, err)
 		}

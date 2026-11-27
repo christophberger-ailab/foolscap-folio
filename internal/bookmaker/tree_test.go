@@ -5,7 +5,12 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/christophberger-ailab/foolscap-folio/internal/config"
 )
+
+// quarto leaves out what Quarto does, as the test projects expect.
+var quarto, _ = config.NewIgnore(config.DefaultIgnore, "")
 
 const (
 	testProject = "../../testdata/project"
@@ -14,7 +19,7 @@ const (
 
 func loadTestTree(t *testing.T) *Node {
 	t.Helper()
-	root, err := LoadTree(testBook, testProject)
+	root, err := LoadTree(testBook, testProject, quarto)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +93,7 @@ func TestLoadTreeAudience(t *testing.T) {
 }
 
 func TestLoadTreeRejectsFiles(t *testing.T) {
-	if _, err := LoadTree(testBook+"/index.qmd", testProject); err == nil {
+	if _, err := LoadTree(testBook+"/index.qmd", testProject, quarto); err == nil {
 		t.Fatal("expected an error for a file argument")
 	}
 }
@@ -167,7 +172,7 @@ func TestLoadTreeMarkdown(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	root, err := LoadTree(filepath.Join(dir, "book"), dir)
+	root, err := LoadTree(filepath.Join(dir, "book"), dir, quarto)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -176,10 +181,47 @@ func TestLoadTreeMarkdown(t *testing.T) {
 	if got := strings.Join(titles, ","); got != "Book,A,Sub" {
 		t.Errorf("titles = %s, want Book,A,Sub", got)
 	}
-	if _, err := LoadTree(filepath.Join(dir, "empty"), dir); err == nil {
+	if _, err := LoadTree(filepath.Join(dir, "empty"), dir, quarto); err == nil {
 		t.Error("LoadTree of a folder without pages: want an error")
 	}
 	if got, _ := BookFolders(dir); len(got) != 1 {
 		t.Errorf("BookFolders = %v, want only book", got)
+	}
+}
+
+// Issue #181: the tree leaves out what the project's ignore patterns name,
+// and without patterns nothing: "_" and "." are names like any other.
+func TestLoadTreeIgnore(t *testing.T) {
+	dir := t.TempDir()
+	for _, rel := range []string{"book/index.md", "book/_a.md", "book/.b/index.md", "book/c/OLD/x.md", "book/d.md"} {
+		p := filepath.Join(dir, filepath.FromSlash(rel))
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte("# x\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	ig, err := config.NewIgnore([]string{"**/OLD/", "/book/d.md"}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct {
+		ig   config.Ignore
+		want string
+	}{
+		{config.Ignore{}, "book book/.b book/_a book/c book/c/OLD book/c/OLD/x book/d"},
+		{quarto, "book book/c book/c/OLD book/c/OLD/x book/d"},
+		{ig, "book book/.b book/_a"},
+	} {
+		root, err := LoadTree(filepath.Join(dir, "book"), dir, c.ig)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var rels []string
+		root.Walk(func(n *Node) { rels = append(rels, n.Rel) })
+		if got := strings.Join(rels, " "); got != c.want {
+			t.Errorf("tree %s, want %s", got, c.want)
+		}
 	}
 }

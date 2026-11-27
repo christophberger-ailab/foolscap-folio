@@ -108,6 +108,12 @@ type Config struct {
 	// Footer is the text at the foot of every page of a website, in
 	// Markdown, with {name} placeholders; a format may have its own.
 	Footer string `yaml:"footer"`
+	// Ignore lists gitignore patterns of the paths renders, previews and
+	// folio web leave out (issue #181); none by default, but a folio.yml
+	// that folio writes names DefaultIgnore. Skip is what they make of
+	// it, with the output directory added.
+	Ignore []string `yaml:"ignore"`
+	Skip   Ignore   `yaml:"-"`
 
 	Formats   Entries[Format]   `yaml:"formats"`
 	Audiences Entries[Audience] `yaml:"audiences"`
@@ -284,6 +290,10 @@ func (c *Config) complete() error {
 	if c.Output == "" {
 		c.Output = "_output"
 	}
+	var err error
+	if c.Skip, err = NewIgnore(c.Ignore, c.Output); err != nil {
+		return err
+	}
 	if c.Vars == nil {
 		c.Vars = map[string]string{}
 	}
@@ -332,7 +342,7 @@ func (c *Config) complete() error {
 		}
 	}
 	if len(c.Topics) == 0 {
-		folders, err := ContentFolders(c.Root)
+		folders, err := ContentFolders(c.Root, c.Skip)
 		if err != nil {
 			return err
 		}
@@ -383,7 +393,7 @@ func (c *Config) complete() error {
 // topic folders: the whole tree is then one topic, named after the root
 // folder, rendered to a website, a DOCX and a PDF.
 func (c *Config) looseTree() error {
-	folders, err := ContentFolders(c.Root)
+	folders, err := ContentFolders(c.Root, Ignore{output: "_output"})
 	if err != nil {
 		return err
 	}
@@ -410,9 +420,9 @@ func guessType(name string) string {
 }
 
 // ContentFolders lists the directories directly below root that hold
-// content (a .qmd or .md file somewhere below them), in name order. Names
-// starting with "_" or "." are invisible.
-func ContentFolders(root string) ([]string, error) {
+// content (a .qmd or .md file somewhere below them), in name order. What
+// ig leaves out is invisible.
+func ContentFolders(root string, ig Ignore) ([]string, error) {
 	entries, err := os.ReadDir(root)
 	if err != nil {
 		return nil, err
@@ -420,10 +430,10 @@ func ContentFolders(root string) ([]string, error) {
 	var out []string
 	for _, e := range entries {
 		n := e.Name()
-		if !e.IsDir() || strings.HasPrefix(n, "_") || strings.HasPrefix(n, ".") {
+		if !e.IsDir() || ig.Match(n, true) {
 			continue
 		}
-		if hasContent(filepath.Join(root, n)) {
+		if hasContent(root, n, ig) {
 			out = append(out, n)
 		}
 	}
@@ -431,14 +441,17 @@ func ContentFolders(root string) ([]string, error) {
 	return out, nil
 }
 
-func hasContent(dir string) bool {
+// hasContent reports whether the folder rel below root holds a page that
+// ig does not leave out.
+func hasContent(root, rel string, ig Ignore) bool {
 	found := false
-	_ = filepath.WalkDir(dir, func(p string, d os.DirEntry, err error) error {
+	_ = filepath.WalkDir(filepath.Join(root, rel), func(p string, d os.DirEntry, err error) error {
 		if err != nil || found {
 			return filepath.SkipDir
 		}
 		n := d.Name()
-		if p != dir && (strings.HasPrefix(n, "_") || strings.HasPrefix(n, ".")) {
+		r, _ := filepath.Rel(root, p)
+		if ig.Match(filepath.ToSlash(r), d.IsDir()) {
 			if d.IsDir() {
 				return filepath.SkipDir
 			}

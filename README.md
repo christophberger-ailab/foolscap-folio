@@ -284,6 +284,7 @@ Top level keys:
 | `title`     | the site title and, for documents, the default document title; without it, the site is named by the `title` of the root `index.md`, else by its folder |
 | `lang`      | the document language (`de`, `en-US`, …); sets the proofing language and the contents heading |
 | `output`    | the directory renders are written below; default `_output`                                    |
+| `ignore`    | paths that renders, `folio preview` and `folio web` leave out, as `.gitignore` patterns (see below); default none |
 | `vars`      | variables for `{{< var name >}}` and `{name}` placeholders                                    |
 | `footer`    | the footer of every website page and of every page of a DOCX or PDF but the cover, in Markdown, with `{name}` or `{{name}}` placeholders; a format's `footer` replaces it |
 | `formats`   | how a render is produced                                                                      |
@@ -363,7 +364,7 @@ topics:
 
 (`suffix` is an example variable: it means something only because `template`, `file` and `cover` use it. The project-level default keeps `{suffix}` defined for the audience `std`, which sets none.)
 
-A minimal project needs no `folio.yml` at all. Without one, every top-level content folder (one holding a `.qmd` or `.md` file, and not starting with `_` or `.`) is a topic, the only format is `web` (HTML), and there is one audience, `all`. A Markdown tree without a `folio.yml` and without any top-level content folder is rendered whole, as it is: one topic named after the project folder (`docs` if that is `all`), whose folder is the root, rendered to a website (`web`), a DOCX (`docx`) and a PDF (`pdf`). `folio preview` serves that website, and `folio web` shows the tree as it is on disk. A project that has no `folio.yml` but still has `_quarto.yml` or `_quarto-*.yml` files is an error rather than a render on the defaults: run `folio migrate` first (see below). A `folio.yml` states only what differs:
+A minimal project needs no `folio.yml` at all. Without one, every top-level content folder (one holding a `.qmd` or `.md` file) is a topic, the only format is `web` (HTML), and there is one audience, `all`. A Markdown tree without a `folio.yml` and without any top-level content folder is rendered whole, as it is: one topic named after the project folder (`docs` if that is `all`), whose folder is the root, rendered to a website (`web`), a DOCX (`docx`) and a PDF (`pdf`). `folio preview` serves that website, and `folio web` shows the tree as it is on disk. A project that has no `folio.yml` but still has `_quarto.yml` or `_quarto-*.yml` files is an error rather than a render on the defaults: run `folio migrate` first (see below). A `folio.yml` states only what differs:
 
 ```yaml
 title: Handbook
@@ -627,7 +628,17 @@ The old `_quarto*.yml` files are **not read anymore** by `folio` itself. Delete 
 
 - Every page carries an `order:` in its front matter; a folder is ordered by
   its `index.qmd`, which sorts among its *parent's* pages.
-- Names starting with `_` or `.` are invisible.
+- The paths that `ignore` in `folio.yml` names are invisible: renders,
+  `folio preview` and `folio web` leave them out. The list follows the rules
+  of `.gitignore`: `_*/` is every folder whose name starts with `_`, at any
+  depth; `/notes.md` is that file in the project root alone; `**/OLD/` is
+  every folder named `OLD`; `!_keep/` takes a folder back in. Without the
+  key nothing is left out but the output directory, `_build` and `.git`, so
+  a Markdown tree that was not laid out for folio renders whole. `folio init`
+  and `folio migrate` write `ignore: ["_*", ".*"]`, the rule of Quarto and
+  of earlier versions of folio: names starting with `_` or `.` are invisible.
+  A project that relies on that rule and has a `folio.yml` without `ignore`
+  needs the line added.
 - A `_FW` or `_POL` suffix on a file or folder name marks it for one audience.
   A variant file supersedes its plain counterpart for the matching audience,
   and the flattener wraps variant content in a `::: fw` / `::: pol` div. That

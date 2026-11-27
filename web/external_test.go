@@ -290,7 +290,7 @@ func TestWatchAnnouncesChangedImages(t *testing.T) {
 
 	// Copies a render writes into an output folder are not the project's
 	// images.
-	writeImage(t, root, "_book/images/pic.png", "copy")
+	writeImage(t, root, "_output/images/pic.png", "copy")
 	if rec := get(t, srv, "/watch"); rec.Header().Get("HX-Trigger") != "" {
 		t.Errorf("an image in an output folder was announced")
 	}

@@ -22,13 +22,15 @@ func project(t *testing.T, yml string, folders ...string) string {
 }
 
 func TestDefaults(t *testing.T) {
-	root := project(t, "", "b", "a", "_hidden", "assets")
+	// Without an ignore setting nothing is left out (issue #181), but the
+	// output and .git are.
+	root := project(t, "", "b", "a", "_under", "assets", "_output/web", ".git")
 	os.Remove(filepath.Join(root, "assets", "index.qmd"))
 	c, err := Load(root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := c.Topics.Names(); !slices.Equal(got, []string{"a", "b"}) {
+	if got := c.Topics.Names(); !slices.Equal(got, []string{"_under", "a", "b"}) {
 		t.Errorf("topics %q", got)
 	}
 	if got := c.Formats.Names(); !slices.Equal(got, []string{"web"}) {

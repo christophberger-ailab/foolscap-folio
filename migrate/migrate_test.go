@@ -99,6 +99,7 @@ func TestMigrate(t *testing.T) {
 		"template: assets/templates/Template{audience_suffix}.docx",
 		"cover: assets/covers/calltaker{audience_suffix}.png",
 		"folder: systemadministration", "show: [explanation]",
+		`ignore: ["_*", ".*"]`, // Quarto's rule, which the project relies on (issue #181)
 	} {
 		if !strings.Contains(y, want) {
 			t.Errorf("YAML lacks %q", want)

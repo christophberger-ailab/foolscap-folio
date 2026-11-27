@@ -265,7 +265,7 @@ func (d *docTools) readPage(rel string) string {
 	if rel == d.openPath && d.openPath != "" {
 		return "The page " + rel + " (open in the editor):\n\n" + clip(d.openText)
 	}
-	if !isProjectPage(rel) {
+	if !isProjectPage(d.root, rel) {
 		return "Error: " + rel + " is not a page of the project; use a path that search_pages or list_pages names."
 	}
 	text := d.pageText(rel)
@@ -288,7 +288,7 @@ func (d *docTools) pageText(rel string) string {
 	if rel == d.openPath && d.openPath != "" {
 		return d.openText
 	}
-	if !isProjectPage(rel) || d.root == "" {
+	if d.root == "" || !isProjectPage(d.root, rel) {
 		return ""
 	}
 	abs := filepath.Join(d.root, filepath.FromSlash(rel))
@@ -312,18 +312,18 @@ func (d *docTools) pageText(rel string) string {
 // the tree shows -- a .qmd or .md file outside the folders it skips and not
 // itself prefixed with "_" -- which is all the chat may read. The rest of
 // the project, configuration and all, is not the documentation.
-func isProjectPage(rel string) bool {
-	if !safeRel(rel) || !config.IsContentFile(rel) {
+func isProjectPage(root, rel string) bool {
+	if !safeRel(rel) {
 		return false
 	}
+	ig := config.ReadIgnore(root)
 	parts := strings.Split(rel, "/")
 	for i := 1; i < len(parts); i++ {
-		if project.SkipDir(strings.Join(parts[:i], "/")) {
+		if project.SkipDir(strings.Join(parts[:i], "/"), ig) {
 			return false
 		}
 	}
-	file := parts[len(parts)-1]
-	return !strings.HasPrefix(file, "_") && !strings.HasPrefix(file, ".")
+	return project.IsPage(rel, ig)
 }
 
 // pageTitles maps every page's path to its title, as the tree shows it.

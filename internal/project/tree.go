@@ -191,18 +191,24 @@ type Tree struct {
 
 // SkipDir reports whether the directory at rel, a slash-separated path
 // relative to the project root, is left out of the page tree: the
-// top-level assets directory, which holds media, and any directory whose
-// name starts with "_" or ".", at any depth.
-func SkipDir(rel string) bool {
-	name := path.Base(rel)
-	return rel == "assets" || strings.HasPrefix(name, "_") || strings.HasPrefix(name, ".")
+// top-level assets directory, which holds media, and any directory ig
+// leaves out (see config.Ignore).
+func SkipDir(rel string, ig config.Ignore) bool {
+	return rel == "assets" || ig.Match(rel, true)
 }
 
 // SkipWalkedDir reports whether a walk of root skips the directory p, an
 // OS path below root, by the rule of SkipDir.
-func SkipWalkedDir(root, p string) bool {
+func SkipWalkedDir(root, p string, ig config.Ignore) bool {
 	rel, err := filepath.Rel(root, p)
-	return err == nil && rel != "." && SkipDir(filepath.ToSlash(rel))
+	return err == nil && rel != "." && SkipDir(filepath.ToSlash(rel), ig)
+}
+
+// IsPage reports whether the file at rel, a slash-separated path relative
+// to the project root, is a page of the tree: a content file that ig
+// does not leave out.
+func IsPage(rel string, ig config.Ignore) bool {
+	return config.IsContentFile(rel) && !ig.Match(rel, false)
 }
 
 // Load scans root for .qmd and .md files and builds the page tree.
@@ -210,26 +216,26 @@ func SkipWalkedDir(root, p string) bool {
 // index.qmd or index.md inside a directory represents that directory's
 // section and is ordered among the pages one level up, as is a name.qmd or
 // name.md file next to a name/ directory. Directories that SkipDir names
-// are ignored.
+// are ignored, and so are the files the project's ignore patterns name.
 func Load(root string) (*Tree, error) {
+	ig := config.ReadIgnore(root)
 	var files []string
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		name := d.Name()
 		if d.IsDir() {
-			if SkipWalkedDir(root, p) {
+			if SkipWalkedDir(root, p, ig) {
 				return filepath.SkipDir
 			}
 			return nil
 		}
-		if config.IsContentFile(name) && !strings.HasPrefix(name, "_") {
-			rel, err := filepath.Rel(root, p)
-			if err != nil {
-				return err
-			}
-			files = append(files, filepath.ToSlash(rel))
+		rel, err := filepath.Rel(root, p)
+		if err != nil {
+			return err
+		}
+		if rel = filepath.ToSlash(rel); IsPage(rel, ig) {
+			files = append(files, rel)
 		}
 		return nil
 	})
