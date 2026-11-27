@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -315,19 +316,77 @@ func TestCloneMissingPath(t *testing.T) {
 // the proxy the system uses when there is one.
 func TestCloneNetworkFailure(t *testing.T) {
 	prev, prevProxy := cloneRepo, systemProxy
-	cloneRepo = func(u, dest, branch string) (string, error) {
+	cloneRepo = func(u, dest, branch, proxy string) (string, error) {
 		return "fatal: unable to access 'https://dev.azure.com/o/_git/r/': Recv failure: Connection was reset", errors.New("exit status 128")
 	}
 	systemProxy = func() string { return "proxy.corp:8080" }
 	t.Cleanup(func() { cloneRepo, systemProxy = prev, prevProxy })
+	noGitProxy(t)
 	srv := bareServer(t)
 	rec := post(t, srv, "/clone", url.Values{"url": {"https://dev.azure.com/o/_git/r"}, "dir": {t.TempDir()}})
 	body := rec.Body.String()
-	for _, want := range []string{"dev.azure.com", "proxy.corp:8080", "git config --global http.proxy http://proxy.corp:8080", "Connection was reset"} {
+	for _, want := range []string{"dev.azure.com", "also through the proxy proxy.corp:8080", "Connection was reset"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("no %q in:\n%s", want, body)
 		}
 	}
+}
+
+// A clone that could not reach its host goes again through the proxy the
+// system uses, which git is not told about, and keeps it.
+func TestCloneRetriesThroughTheSystemProxy(t *testing.T) {
+	stub := bareRemote(t, map[string]string{"folio.yml": testConfig})
+	reach := cloneRepo
+	var proxies []string
+	cloneRepo = func(u, dest, branch, proxy string) (string, error) {
+		proxies = append(proxies, proxy)
+		if proxy == "" {
+			return "fatal: unable to access 'https://dev.azure.com/o/_git/r/': Recv failure: Connection was reset", errors.New("exit status 128")
+		}
+		return reach(u, dest, branch, proxy)
+	}
+	prevProxy := systemProxy
+	systemProxy = func() string { return "proxy.corp:8080" }
+	t.Cleanup(func() { systemProxy = prevProxy })
+	noGitProxy(t)
+	srv := bareServer(t)
+	rec := post(t, srv, "/clone", url.Values{"url": {"https://dev.azure.com/o/_git/r"}, "dir": {t.TempDir()}})
+	if rec.Header().Get("HX-Retarget") != "#main" {
+		t.Errorf("the book did not open:\n%s", rec.Body.String())
+	}
+	if !slices.Equal(proxies, []string{"", "http://proxy.corp:8080"}) || stub.asked == "" {
+		t.Errorf("cloned through %q, want directly, then through http://proxy.corp:8080", proxies)
+	}
+}
+
+// A proxy git has of its own is the one it goes through: the system's is
+// not tried in its place.
+func TestCloneKeepsGitsOwnProxy(t *testing.T) {
+	prev, prevProxy := cloneRepo, systemProxy
+	var n int
+	cloneRepo = func(u, dest, branch, proxy string) (string, error) {
+		n++
+		return "fatal: Recv failure: Connection was reset", errors.New("exit status 128")
+	}
+	systemProxy = func() string { return "proxy.corp:8080" }
+	t.Cleanup(func() { cloneRepo, systemProxy = prev, prevProxy })
+	noGitProxy(t)
+	t.Setenv("HTTPS_PROXY", "http://mine:3128")
+	srv := bareServer(t)
+	post(t, srv, "/clone", url.Values{"url": {"https://dev.azure.com/o/_git/r"}, "dir": {t.TempDir()}})
+	if n != 1 {
+		t.Errorf("cloned %d times, want once", n)
+	}
+}
+
+// noGitProxy gives git no proxy of its own for the test.
+func noGitProxy(t *testing.T) {
+	t.Helper()
+	for _, v := range []string{"https_proxy", "HTTPS_PROXY", "all_proxy", "ALL_PROXY"} {
+		t.Setenv(v, "")
+	}
+	t.Setenv("GIT_CONFIG_GLOBAL", filepath.Join(t.TempDir(), "gitconfig"))
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
 }
 
 // dataHome points the user's data folder at a temporary one and returns
@@ -376,9 +435,9 @@ func bareRemote(t *testing.T, files map[string]string) *remoteStub {
 	}
 	stub := &remoteStub{src: src}
 	prev := cloneRepo
-	cloneRepo = func(u, dest, branch string) (string, error) {
+	cloneRepo = func(u, dest, branch, proxy string) (string, error) {
 		stub.asked, stub.branch = u, branch
-		out, err := gitrepo.Clone(src, dest, branch)
+		out, err := gitrepo.Clone(src, dest, branch, proxy)
 		if err == nil {
 			// The clone remembers the URL asked for, as a real one would.
 			gitCmd(t, dest, "remote", "set-url", "origin", u)

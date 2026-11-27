@@ -99,10 +99,15 @@ func ValidBranch(b string) error {
 // Clone makes a working tree of the repository at url in dest, which must
 // not exist yet. The remote is called origin and the branch named, or the
 // default branch for "", is checked out tracking it, so push and sync work
-// on it at once.
-func Clone(url, dest, branch string) (string, error) {
+// on it at once. A proxy, such as http://host:port, is what the clone goes
+// through, and what the clone's own configuration keeps for pull and push;
+// "" leaves the proxy to git.
+func Clone(url, dest, branch, proxy string) (string, error) {
 	if err := ValidBranch(branch); err != nil {
 		return "", err
+	}
+	if strings.IndexFunc(proxy, func(r rune) bool { return unicode.IsSpace(r) || unicode.IsControl(r) }) >= 0 {
+		return "", fmt.Errorf("%q is not a proxy address", proxy)
 	}
 	if _, err := os.Stat(dest); err == nil {
 		return "", fmt.Errorf("%s is already there; choose another folder", dest)
@@ -112,12 +117,30 @@ func Clone(url, dest, branch string) (string, error) {
 		return "", err
 	}
 	args := []string{"clone"}
+	if proxy != "" {
+		args = append(args, "--config", "http.proxy="+proxy)
+	}
 	if branch != "" {
 		args = append(args, "--branch", branch)
 	}
 	// The "--" keeps a URL from being read as an option, which ValidRemote
 	// checks too; this is the second lock.
 	return runFor(CloneTimeout, parent, 0, append(args, "--", url, dest)...)
+}
+
+// ProxyConfigured reports whether git has a proxy for https of its own:
+// http.proxy in its configuration, or one of the variables in the
+// environment curl takes it from.
+func ProxyConfigured() bool {
+	for _, v := range []string{"https_proxy", "HTTPS_PROXY", "all_proxy", "ALL_PROXY"} {
+		if os.Getenv(v) != "" {
+			return true
+		}
+	}
+	// Run outside any repository, so that only the user's and the
+	// system's configuration count.
+	out, err := run(os.TempDir(), "config", "--get", "http.proxy")
+	return err == nil && strings.TrimSpace(out) != ""
 }
 
 // OriginURL is the URL of the remote origin of the repository at dir.
