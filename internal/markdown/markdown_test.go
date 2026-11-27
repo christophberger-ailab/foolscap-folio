@@ -54,6 +54,27 @@ func TestFenceInCommentDoesNotCloseDiv(t *testing.T) {
 	}
 }
 
+// Issue #175: an HTML block that ends on its first line, a one-line
+// comment for one, is over before the next line, so a closing fence right
+// after it closes the div it is in, and the rest of the page is not
+// swallowed by a div that never closes, nor dropped with its speaker notes.
+func TestFenceAfterOneLineCommentClosesDiv(t *testing.T) {
+	src := "::: a\n<!-- note -->\n:::\n\nAfter\n"
+	want := "<div class=\"a\">\n<!-- note -->\n</div>\n<p>After</p>\n"
+	if got := render(t, src, Options{}); got != want {
+		t.Errorf("got\n%s\nwant\n%s", got, want)
+	}
+	src = "::: slide\n\nShown on slides.\n\n:::: {.notes}\n<!-- Speaker notes go here -->\n::::\n\n:::\n\n::: explanation\nMore text\n:::\n"
+	want = "<div class=\"explanation\">\n<p>More text</p>\n</div>\n"
+	if got := render(t, src, Options{}); got != want {
+		t.Errorf("got\n%s\nwant\n%s", got, want)
+	}
+	src = "::: a\n<script>x()</script>\n:::\n\nAfter\n"
+	if got := render(t, src, Options{}); !strings.Contains(got, "</script>\n</div>\n<p>After</p>") {
+		t.Errorf("got\n%s", got)
+	}
+}
+
 // Issue #163: a span that holds a whole line, its list marker included,
 // is read before the list, so that the item is the audience's: a list
 // item where the span is kept, and nothing where it is not.
