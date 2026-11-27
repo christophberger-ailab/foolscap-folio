@@ -213,7 +213,30 @@ cosign verify-blob SHA256SUMS.txt \
 sha256sum --check --ignore-missing SHA256SUMS.txt
 ```
 
-Every release also carries a software bill of materials for each platform, `folio_<version>_<os>_<arch>.cdx.json`, in [CycloneDX](https://cyclonedx.org) JSON. It lists everything compiled into that binary: the Go modules (read from the binary itself, so only the ones linked in), the Rust crates of the embedded SVG renderer, resvg, and the embedded Fuse.js. The SBOMs are listed in `SHA256SUMS.txt`, so the commands above check them too, and any tool that reads CycloneDX takes them, such as [Grype](https://github.com/anchore/grype) (`grype sbom:folio_<version>_linux_amd64.cdx.json`) or Dependency-Track.
+Every release is also attested with [GitHub artifact attestations](https://docs.github.com/en/actions/security-for-github-actions/using-artifact-attestations): a signed [SLSA build provenance](https://slsa.dev/spec/v1.0/provenance) statement that names the repository, the workflow, the commit and the run that built each file. The [GitHub CLI](https://cli.github.com) checks it, with no cosign and no checksum file needed, for any download (archive, deb/rpm/apk/Arch package, SBOM, Windows setup program) and for the installed binary itself, whether it came from Homebrew, Scoop, winget, an archive or `folio upgrade`:
+
+```sh
+gh attestation verify folio_<version>_linux_amd64.tar.gz \
+  --repo christophberger-ailab/foolscap-folio \
+  --signer-workflow christophberger-ailab/foolscap-folio/.github/workflows/release.yml
+
+gh attestation verify "$(command -v folio)" \
+  --repo christophberger-ailab/foolscap-folio \
+  --signer-workflow christophberger-ailab/foolscap-folio/.github/workflows/release.yml
+```
+
+On Windows, give the path of `folio.exe` instead (`(Get-Command folio).Source` in PowerShell). A file that was not built by folio's release workflow, or was changed afterwards, fails the check. `gh` needs to be signed in (`gh auth login`); to verify without the network, download the attestations once with `gh attestation download` and pass `--bundle`. The attestations are signed through Sigstore's public-good instance, like the cosign signature above, and are listed on the repository's [Attestations](https://github.com/christophberger-ailab/foolscap-folio/attestations) page.
+
+Every release also carries a software bill of materials for each platform, `folio_<version>_<os>_<arch>.cdx.json`, in [CycloneDX](https://cyclonedx.org) JSON. It lists everything compiled into that binary: the Go modules (read from the binary itself, so only the ones linked in), the Rust crates of the embedded SVG renderer, resvg, and the embedded Fuse.js. The SBOMs are listed in `SHA256SUMS.txt`, so the commands above check them too. Each SBOM is also attested as describing its platform's archive and the binary in it, so `gh` hands back the SBOM that belongs to a file you have:
+
+```sh
+gh attestation verify "$(command -v folio)" \
+  --repo christophberger-ailab/foolscap-folio \
+  --predicate-type https://cyclonedx.org/bom \
+  --format json --jq '.[0].verificationResult.statement.predicate'
+```
+
+Any tool that reads CycloneDX takes them, such as [Grype](https://github.com/anchore/grype) (`grype sbom:folio_<version>_linux_amd64.cdx.json`) or Dependency-Track.
 
 Where releases come from and how often `folio web` looks is the `update` section of the settings file (below):
 
@@ -678,7 +701,9 @@ each for amd64 and arm64), builds the Windows setup program, and publishes a
 release with checksums. `SHA256SUMS.txt` is signed keylessly with cosign through the
 workflow's GitHub OIDC token, so no signing key is stored anywhere; the
 signature is only accepted from `release.yml` on `main`, which is why a manual
-run must be started on `main`. Versions follow [SemVer](https://semver.org)
+run must be started on `main`. The same workflow writes GitHub artifact
+attestations through `actions/attest`: build provenance for every released file
+and binary, and one SBOM attestation per platform. Versions follow [SemVer](https://semver.org)
 with the major version held at 0: label a PR `semver:minor` when it adds or
 improves a feature, which bumps the minor version; a PR with only fixes
 (`semver:patch` or no label) bumps the patch level. A manual run of the
